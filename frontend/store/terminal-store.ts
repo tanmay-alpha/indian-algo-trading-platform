@@ -19,7 +19,7 @@ import type {
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
 
-interface TerminalState {
+export interface TerminalState {
   // Workspace
   activeWorkspace: WorkspaceId
   activePreset: PresetId | null
@@ -68,7 +68,7 @@ interface TerminalState {
   signals: SignalEvent[]
 }
 
-interface TerminalActions {
+export interface TerminalActions {
   setWorkspace: (w: WorkspaceId) => void
   setPreset: (p: PresetId | null) => void
   setRightPanelTab: (t: RightPanelTab) => void
@@ -241,7 +241,12 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setConnectionError: (e) => set({ connectionError: e }),
 
-  setTerminalStatus: (s) => set({ terminalStatus: s }),
+  setTerminalStatus: (s) =>
+    set((state) => ({
+      terminalStatus: s,
+      brokerStatus: s?.broker ?? state.brokerStatus,
+      executionMode: s?.trading_mode ?? state.executionMode,
+    })),
   setBrokerStatus: (s) => set({ brokerStatus: s }),
   setPortfolio: (p) => set({ portfolio: p }),
 

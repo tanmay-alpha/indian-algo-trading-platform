@@ -90,7 +90,7 @@ export const setMarketWatch = (symbols: string[]) =>
   })
 
 // ----- Candles -----
-export const fetchCandles = (symbol: string, interval = '5m') =>
-  request<{ symbol: string; interval: string; candles: Candle[] }>(
-    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?interval=${interval}`
+export const fetchCandles = (symbol: string, timeframe = '5m') =>
+  request<{ symbol: string; timeframe: string; candles: Candle[] }>(
+    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}`
   )

@@ -103,7 +103,7 @@ export function OperatorStatusStrip() {
         state={candleState}
         detail={
           status?.candles?.symbols != null
-            ? `${status.candles.symbols} symbol(s)`
+            ? `${status.candles.symbols.length} symbol(s)`
             : undefined
         }
       />

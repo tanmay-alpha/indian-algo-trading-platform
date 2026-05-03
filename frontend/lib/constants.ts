@@ -10,10 +10,8 @@ import type {
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-// Backend exposes /ws/terminal — many configs also try /ws/market_stream as
-// described in the spec. We default to /ws/terminal to match api_server.py.
 export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/terminal'
+  process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/market_stream'
 
 export const ENDPOINTS = {
   health: '/health',
@@ -129,7 +127,7 @@ export const RIGHT_TABS: RightTabDef[] = [
 ]
 
 // ----- Timeframes -----
-export const TIMEFRAMES: Timeframe[] = ['1m', '3m', '5m', '15m', '1h', '1d']
+export const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1d']
 
 // ----- Index strip -----
 export const INDEX_TILES = [

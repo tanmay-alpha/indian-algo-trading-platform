@@ -4,38 +4,79 @@ import { useEffect } from 'react'
 import { TerminalLayout } from '@/components/terminal/terminal-layout'
 import { MarketDataProvider } from '@/components/websocket/market-provider'
 import { useTerminalStore } from '@/store/terminal-store'
-import { fetchHealth, fetchIndices } from '@/lib/api'
+import { fetchHealth, fetchIndices, fetchMarketWatch, fetchTerminalStatus } from '@/lib/api'
 
 function TerminalInitializer() {
-  const { setIndices, setGatewayStatus, addLog } = useTerminalStore()
+  const {
+    setIndices,
+    setTerminalStatus,
+    setBrokerStatus,
+    setPortfolio,
+    setMode,
+    setBackendOffline,
+    ingestMarketWatchRows,
+    ingestEvent,
+  } = useTerminalStore()
 
   useEffect(() => {
-    // Fetch initial health status
     const loadInitialData = async () => {
       try {
-        // Load health/status
         const health = await fetchHealth()
         if (health.broker) {
-          setGatewayStatus(health.broker)
+          setBrokerStatus(health.broker)
         }
-        addLog(`Terminal initialized in ${health.mode} mode`, 'info')
+        if (health.portfolio) setPortfolio(health.portfolio)
+        setMode(health.mode)
+        setBackendOffline(false)
+        ingestEvent({
+          event_type: 'log',
+          component: 'API',
+          severity: 'info',
+          message: `Terminal initialized in ${health.mode} mode`,
+        })
       } catch {
-        addLog('Backend API unavailable - running in offline mode', 'warning')
+        setBackendOffline(true)
+        ingestEvent({
+          event_type: 'log',
+          component: 'API',
+          severity: 'warning',
+          message: 'Backend API unavailable - running in offline mode',
+        })
       }
 
-      // Load indices (if endpoint exists)
+      try {
+        const status = await fetchTerminalStatus()
+        setTerminalStatus(status)
+      } catch {
+        // Status can be unavailable while the backend is booting.
+      }
+
+      try {
+        const watch = await fetchMarketWatch()
+        ingestMarketWatchRows(watch.items || [])
+      } catch {
+        // Market watch can remain empty without fabricating prices.
+      }
+
       try {
         const indices = await fetchIndices()
-        if (Array.isArray(indices)) {
-          setIndices(indices)
-        }
+        setIndices(indices)
       } catch {
-        // Indices endpoint may not exist yet
+        // Indices endpoint can be unavailable; UI shows empty values.
       }
     }
 
     loadInitialData()
-  }, [setIndices, setGatewayStatus, addLog])
+  }, [
+    ingestEvent,
+    ingestMarketWatchRows,
+    setBackendOffline,
+    setBrokerStatus,
+    setIndices,
+    setMode,
+    setPortfolio,
+    setTerminalStatus,
+  ])
 
   return null
 }

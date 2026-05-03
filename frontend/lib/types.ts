@@ -155,15 +155,16 @@ export interface TickBusStats {
 }
 
 export interface EventBusStats {
-  published?: number
-  subscribers?: number
-  failures?: number
+  total?: number
+  by_type?: Record<string, number>
+  failed_handler_count?: number
+  history_size?: number
 }
 
 export interface CandleStoreStats {
-  symbols?: number
-  candles?: number
-  last_update?: string
+  symbols?: string[]
+  candle_counts?: Record<string, Record<string, number>>
+  supported_timeframes?: Timeframe[]
 }
 
 export interface TerminalStatus {
@@ -276,4 +277,4 @@ export interface WsEnvelope<T = unknown> {
 }
 
 // ----- Chart timeframe -----
-export type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '1d'
+export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1d'
