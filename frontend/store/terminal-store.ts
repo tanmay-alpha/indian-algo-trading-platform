@@ -9,7 +9,9 @@ import type {
   Position,
 } from '@/lib/types'
 
-interface TerminalState {
+export type LogType = 'info' | 'success' | 'error' | 'warning'
+
+export interface TerminalState {
   // Connection
   isConnected: boolean
   connectionError: string | null
@@ -36,10 +38,10 @@ interface TerminalState {
   gatewayStatus: GatewayStatus | null
 
   // Event Logs
-  logs: Array<{ timestamp: number; message: string; type: 'info' | 'success' | 'error' | 'warning' }>
+  logs: Array<{ timestamp: number; message: string; type: LogType }>
 }
 
-interface TerminalActions {
+export interface TerminalActions {
   setConnected: (connected: boolean) => void
   setConnectionError: (error: string | null) => void
   incrementReconnectAttempts: () => void
@@ -52,9 +54,11 @@ interface TerminalActions {
   setExecutionMode: (mode: 'PAPER' | 'LIVE') => void
   setAutoPilot: (enabled: boolean) => void
   setGatewayStatus: (status: GatewayStatus) => void
-  addLog: (message: string, type: 'info' | 'success' | 'error' | 'warning') => void
+  addLog: (message: string, type: LogType) => void
   reset: () => void
 }
+
+export type TerminalStore = TerminalState & TerminalActions
 
 const initialState: TerminalState = {
   isConnected: false,
@@ -73,7 +77,7 @@ const initialState: TerminalState = {
   logs: [],
 }
 
-export const useTerminalStore = create<TerminalState & TerminalActions>((set) => ({
+export const useTerminalStore = create<TerminalStore>((set) => ({
   ...initialState,
 
   setConnected: (connected) =>

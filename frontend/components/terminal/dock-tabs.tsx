@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   ShoppingCart,
   BarChart2,
@@ -12,10 +13,11 @@ import {
   Heart,
 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
+import type { TerminalStore } from '@/store/terminal-store'
 import { formatTime, cn } from '@/lib/utils'
 import { DOCK_TABS } from '@/lib/constants'
 
-const TAB_ICONS: Record<string, React.ReactNode> = {
+const TAB_ICONS: Record<string, ReactNode> = {
   orders: <ShoppingCart className="w-3.5 h-3.5" />,
   positions: <BarChart2 className="w-3.5 h-3.5" />,
   holdings: <Briefcase className="w-3.5 h-3.5" />,
@@ -92,7 +94,7 @@ function PlaceholderContent({ title }: { title: string }) {
   )
 }
 
-function PnLTabContent({ portfolio }: { portfolio: ReturnType<typeof useTerminalStore>['portfolio'] }) {
+function PnLTabContent({ portfolio }: { portfolio: TerminalStore['portfolio'] }) {
   if (!portfolio) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -134,7 +136,7 @@ function PnLTabContent({ portfolio }: { portfolio: ReturnType<typeof useTerminal
   )
 }
 
-function EventsTabContent({ logs }: { logs: ReturnType<typeof useTerminalStore>['logs'] }) {
+function EventsTabContent({ logs }: { logs: TerminalStore['logs'] }) {
   if (logs.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -164,7 +166,7 @@ function EventsTabContent({ logs }: { logs: ReturnType<typeof useTerminalStore>[
   )
 }
 
-function HealthTabContent({ status }: { status: ReturnType<typeof useTerminalStore>['gatewayStatus'] }) {
+function HealthTabContent({ status }: { status: TerminalStore['gatewayStatus'] }) {
   const items = status
     ? [
         { label: 'Configured', value: status.configured },
