@@ -23,6 +23,11 @@ export const ENDPOINTS = {
   toggleMode: '/toggle_mode',
   toggleAutoPilot: '/toggle_auto_pilot',
   order: '/order',
+  portfolioSummary: '/portfolio/summary',
+  portfolioPositions: '/portfolio/positions',
+  portfolioHoldings: '/portfolio/holdings',
+  portfolioEquityCurve: '/portfolio/equity-curve',
+  portfolioReconciliation: '/portfolio/reconciliation/status',
 } as const
 
 export const WS_RECONNECT_DELAY = 2000

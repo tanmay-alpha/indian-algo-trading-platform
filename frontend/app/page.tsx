@@ -16,6 +16,7 @@ function TerminalInitializer() {
     setBackendOffline,
     ingestMarketWatchRows,
     ingestEvent,
+    refreshPortfolio,
   } = useTerminalStore()
 
   useEffect(() => {
@@ -64,12 +65,15 @@ function TerminalInitializer() {
       } catch {
         // Indices endpoint can be unavailable; UI shows empty values.
       }
+
+      await refreshPortfolio()
     }
 
     loadInitialData()
   }, [
     ingestEvent,
     ingestMarketWatchRows,
+    refreshPortfolio,
     setBackendOffline,
     setBrokerStatus,
     setIndices,

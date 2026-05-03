@@ -118,26 +118,196 @@ function ChartsWorkspace() {
 }
 
 function PortfolioWorkspace() {
-  const portfolio = useTerminalStore((s) => s.portfolio)
+  const summary = useTerminalStore((s) => s.portfolioSummary)
+  const positions = useTerminalStore((s) => s.positions)
+  const holdings = useTerminalStore((s) => s.holdings)
+  const equityCurve = useTerminalStore((s) => s.equityCurve)
+  const reconciliation = useTerminalStore((s) => s.reconciliationStatus)
+  const loading = useTerminalStore((s) => s.portfolioLoading)
+  const error = useTerminalStore((s) => s.portfolioError)
+  const refreshPortfolio = useTerminalStore((s) => s.refreshPortfolio)
+  const quality = summary?.data_status === 'AVAILABLE' ? 'LIVE' : error ? 'BACKEND OFFLINE' : 'UNAVAILABLE'
+  const source = summary?.source_of_truth || (summary?.trading_mode === 'LIVE' ? 'BROKER' : 'INTERNAL')
   return (
     <WorkspaceFrame id="portfolio" icon={<Briefcase className="w-4 h-4" />}>
-      {portfolio ? (
-        <div className="p-4 grid grid-cols-3 gap-3">
-          <Stat title="Unrealised PnL" value={fmtPrice(portfolio.unrealized_pnl)} />
-          <Stat title="Realised PnL" value={fmtPrice(portfolio.realized_pnl)} />
-          <Stat title="Capital" value={fmtPrice(portfolio.current_capital)} />
-          <Stat title="Trades" value={String(portfolio.total_trades)} />
-          <Stat title="Win Rate" value={fmtPct(portfolio.win_rate * 100)} />
-          <Stat title="Max Drawdown" value={fmtPrice(portfolio.max_drawdown)} />
+      <div className="h-full min-h-0 overflow-auto p-3 space-y-3">
+        <div className="flex items-center justify-between rounded-sm border border-border bg-panel/60 px-3 py-2">
+          <div>
+            <div className="text-xs font-semibold text-text">Portfolio Control</div>
+            <div className="mt-0.5 text-[10px] font-mono text-text-faint">
+              Source of truth: {summary?.trading_mode === 'LIVE' ? 'LIVE broker' : 'PAPER internal'} / {source}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <DataQualityBadge quality={quality} />
+            <button
+              onClick={() => refreshPortfolio()}
+              disabled={loading}
+              className="h-7 px-2 rounded-sm border border-border bg-bg text-[10px] font-mono text-text-dim hover:text-text disabled:opacity-50"
+            >
+              <RefreshCw className="inline w-3 h-3 mr-1" />
+              {loading ? 'Loading' : 'Refresh'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <Stat title="Realized PnL" value={fmtPrice(summary?.realized_pnl)} />
+          <Stat title="Unrealized PnL" value={fmtPrice(summary?.unrealized_pnl)} />
+          <Stat title="Net PnL" value={fmtPrice(summary?.net_pnl)} />
+          <Stat title="Total Fees" value={fmtPrice(summary?.total_fees)} />
+          <Stat title="Open Positions" value={String(summary?.open_positions_count ?? 0)} />
+          <Stat title="Open Notional" value={fmtPrice(summary?.total_open_notional)} />
+          <Stat title="Equity" value={fmtPrice(summary?.equity)} />
+          <Stat title="Max Drawdown" value={fmtPrice(summary?.max_drawdown)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <PortfolioPanel title="Positions" subtitle="Internal paper fills / broker-reconciled later">
+            <PortfolioTable
+              columns={['Symbol', 'Qty', 'Avg Price', 'LTP', 'Unreal PnL', 'Real PnL', 'Fees', 'Net PnL', 'Quality']}
+              emptyTitle="No open positions"
+              emptyHint="Filled paper orders will create internal positions."
+              rows={positions.map((position) => [
+                position.symbol,
+                String(position.quantity),
+                fmtPrice(position.avg_price),
+                fmtPrice(position.ltp),
+                fmtPrice(position.unrealized_pnl),
+                fmtPrice(position.realized_pnl),
+                fmtPrice(position.fees),
+                fmtPrice(position.net_pnl),
+                position.quality,
+              ])}
+            />
+          </PortfolioPanel>
+
+          <PortfolioPanel title="Holdings" subtitle="Broker holdings snapshot when available">
+            <PortfolioTable
+              columns={['Symbol', 'Qty', 'Avg Price', 'LTP', 'Value', 'PnL', 'Status']}
+              emptyTitle="No holdings connected"
+              emptyHint="Broker holdings sync has not returned data."
+              rows={holdings.map((holding) => [
+                holding.symbol,
+                String(holding.quantity),
+                fmtPrice(holding.average_price),
+                fmtPrice(holding.ltp),
+                fmtPrice(holding.value),
+                fmtPrice(holding.pnl),
+                holding.data_status,
+              ])}
+            />
+          </PortfolioPanel>
+
+          <PortfolioPanel title="Equity Curve" subtitle="Created from portfolio events">
+            {equityCurve.length === 0 ? (
+              <EmptyState
+                title="No equity curve data yet"
+                hint="Equity points are created after portfolio events."
+                compact
+              />
+            ) : (
+              <div className="p-2 space-y-1">
+                {equityCurve.slice(-8).map((point) => (
+                  <div key={`${point.timestamp}-${point.equity}`} className="grid grid-cols-3 gap-2 border border-border bg-bg/70 px-2 py-1 text-[10px] font-mono">
+                    <span className="truncate text-text-faint">{new Date(point.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-text">{fmtPrice(point.equity)}</span>
+                    <span className="text-warn">{fmtPrice(point.drawdown)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PortfolioPanel>
+
+          <PortfolioPanel title="Reconciliation" subtitle="Internal vs broker state">
+            <div className="p-2 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <Stat title="Mismatch Count" value={String(reconciliation?.summary.mismatch_count ?? 0)} />
+                <Stat title="Critical" value={String(reconciliation?.summary.by_severity.CRITICAL ?? 0)} />
+                <Stat title="Status" value={reconciliation?.summary.ok ? 'OK' : 'MISMATCH'} />
+              </div>
+              <PortfolioTable
+                columns={['Symbol', 'Field', 'Severity', 'Message']}
+                emptyTitle="No reconciliation mismatches"
+                emptyHint="Broker and internal state differences will appear here."
+                rows={[...(reconciliation?.positions || []), ...(reconciliation?.holdings || [])].map((mismatch) => [
+                  mismatch.symbol,
+                  mismatch.field,
+                  mismatch.severity,
+                  mismatch.message,
+                ])}
+              />
+            </div>
+          </PortfolioPanel>
+        </div>
+      </div>
+    </WorkspaceFrame>
+  )
+}
+
+function PortfolioPanel({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle: string
+  children: ReactNode
+}) {
+  return (
+    <section className="min-h-[210px] rounded-sm border border-border bg-panel/60 overflow-hidden">
+      <div className="h-9 px-3 flex items-center justify-between border-b border-border bg-bg/60">
+        <div>
+          <div className="text-xs font-semibold text-text">{title}</div>
+          <div className="text-[9px] font-mono text-text-faint">{subtitle}</div>
+        </div>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function PortfolioTable({
+  columns,
+  rows,
+  emptyTitle,
+  emptyHint,
+}: {
+  columns: string[]
+  rows: string[][]
+  emptyTitle: string
+  emptyHint: string
+}) {
+  return (
+    <div className="h-full min-h-[160px] flex flex-col">
+      <div
+        className="grid gap-2 px-2 py-1.5 border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint"
+        style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+      >
+        {columns.map((column) => (
+          <span key={column} className="truncate">{column}</span>
+        ))}
+      </div>
+      {rows.length === 0 ? (
+        <div className="flex-1 grid place-items-center">
+          <EmptyState title={emptyTitle} hint={emptyHint} compact />
         </div>
       ) : (
-        <EmptyState
-          title="No portfolio data connected"
-          hint="Paper portfolio and broker reconciliation will appear here."
-          icon={<Briefcase className="w-8 h-8" />}
-        />
+        <div className="flex-1 overflow-auto">
+          {rows.map((row, index) => (
+            <div
+              key={`${row[0]}-${index}`}
+              className="grid gap-2 px-2 py-1.5 border-b border-border/60 text-[10px] font-mono text-text-2"
+              style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+            >
+              {row.map((cell, cellIndex) => (
+                <span key={`${cell}-${cellIndex}`} className="truncate">{cell}</span>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
-    </WorkspaceFrame>
+    </div>
   )
 }
 
@@ -173,6 +343,7 @@ function StrategyWorkspace() {
 function RiskWorkspace() {
   const status = useTerminalStore((s) => s.terminalStatus)
   const broker = useTerminalStore((s) => s.brokerStatus)
+  const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
   return (
     <WorkspaceFrame id="risk" icon={<ShieldCheck className="w-4 h-4" />}>
       <div className="p-4 grid grid-cols-2 gap-3">
@@ -180,6 +351,8 @@ function RiskWorkspace() {
         <Stat title="Feed Token" value={broker?.feed_token_available ? 'AVAILABLE' : broker ? 'WAITING' : '\u2014'} />
         <Stat title="EventBus Total" value={String(status?.event_bus?.total ?? '\u2014')} />
         <Stat title="Tick Drop" value={status?.tick_bus?.drop_rate_pct == null ? '\u2014' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`} />
+        <Stat title="Portfolio Net PnL" value={fmtPrice(portfolioSummary?.net_pnl ?? status?.portfolio?.net_pnl)} />
+        <Stat title="Portfolio Drawdown" value={fmtPrice(portfolioSummary?.current_drawdown ?? status?.portfolio?.current_drawdown)} />
       </div>
     </WorkspaceFrame>
   )

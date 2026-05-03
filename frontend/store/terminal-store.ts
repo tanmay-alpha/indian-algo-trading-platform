@@ -6,6 +6,11 @@ import type {
   DockTabId,
   TickPayload,
   PortfolioPerformance,
+  PortfolioSummary,
+  PortfolioPosition,
+  PortfolioHolding,
+  EquityCurvePoint,
+  ReconciliationStatus,
   BrokerStatus,
   TerminalStatus,
   IndexSnapshot,
@@ -18,6 +23,13 @@ import type {
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
+import {
+  getPortfolioEquityCurve,
+  getPortfolioHoldings,
+  getPortfolioPositions,
+  getPortfolioReconciliationStatus,
+  getPortfolioSummary,
+} from '@/lib/api'
 
 export interface TerminalState {
   // Workspace
@@ -52,6 +64,14 @@ export interface TerminalState {
   terminalStatus: TerminalStatus | null
   brokerStatus: BrokerStatus | null
   portfolio: PortfolioPerformance | null
+  portfolioSummary: PortfolioSummary | null
+  positions: PortfolioPosition[]
+  holdings: PortfolioHolding[]
+  equityCurve: EquityCurvePoint[]
+  reconciliationStatus: ReconciliationStatus | null
+  portfolioLoading: boolean
+  portfolioError: string | null
+  portfolioLastUpdated: number | null
 
   // Live tick
   currentTick: TickPayload | null
@@ -96,6 +116,12 @@ export interface TerminalActions {
   setTerminalStatus: (s: TerminalStatus | null) => void
   setBrokerStatus: (s: BrokerStatus | null) => void
   setPortfolio: (p: PortfolioPerformance | null) => void
+  fetchPortfolioSummary: () => Promise<void>
+  fetchPositions: () => Promise<void>
+  fetchHoldings: () => Promise<void>
+  fetchEquityCurve: () => Promise<void>
+  fetchReconciliationStatus: () => Promise<void>
+  refreshPortfolio: () => Promise<void>
 
   ingestTick: (tick: TickPayload) => void
   ingestSignal: (s: SignalEvent) => void
@@ -133,6 +159,14 @@ const initialState: TerminalState = {
   terminalStatus: null,
   brokerStatus: null,
   portfolio: null,
+  portfolioSummary: null,
+  positions: [],
+  holdings: [],
+  equityCurve: [],
+  reconciliationStatus: null,
+  portfolioLoading: false,
+  portfolioError: null,
+  portfolioLastUpdated: null,
 
   currentTick: null,
   lastTickAt: null,
@@ -245,10 +279,68 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     set((state) => ({
       terminalStatus: s,
       brokerStatus: s?.broker ?? state.brokerStatus,
+      portfolioSummary: s?.portfolio ?? state.portfolioSummary,
       executionMode: s?.trading_mode ?? state.executionMode,
     })),
   setBrokerStatus: (s) => set({ brokerStatus: s }),
   setPortfolio: (p) => set({ portfolio: p }),
+  fetchPortfolioSummary: async () => {
+    const summary = await getPortfolioSummary()
+    set({ portfolioSummary: summary, portfolioLastUpdated: Date.now() })
+  },
+  fetchPositions: async () => {
+    const positions = await getPortfolioPositions()
+    set({ positions, portfolioLastUpdated: Date.now() })
+  },
+  fetchHoldings: async () => {
+    const holdings = await getPortfolioHoldings()
+    set({ holdings, portfolioLastUpdated: Date.now() })
+  },
+  fetchEquityCurve: async () => {
+    const equityCurve = await getPortfolioEquityCurve()
+    set({ equityCurve, portfolioLastUpdated: Date.now() })
+  },
+  fetchReconciliationStatus: async () => {
+    const reconciliationStatus = await getPortfolioReconciliationStatus()
+    set({ reconciliationStatus, portfolioLastUpdated: Date.now() })
+  },
+  refreshPortfolio: async () => {
+    set({ portfolioLoading: true, portfolioError: null })
+    try {
+      const [
+        portfolioSummary,
+        positions,
+        holdings,
+        equityCurve,
+        reconciliationStatus,
+      ] = await Promise.all([
+        getPortfolioSummary(),
+        getPortfolioPositions(),
+        getPortfolioHoldings(),
+        getPortfolioEquityCurve(),
+        getPortfolioReconciliationStatus(),
+      ])
+      set({
+        portfolioSummary,
+        positions,
+        holdings,
+        equityCurve,
+        reconciliationStatus,
+        portfolioLoading: false,
+        portfolioError:
+          portfolioSummary.data_status === 'UNAVAILABLE'
+            ? 'Portfolio backend unavailable'
+            : null,
+        portfolioLastUpdated: Date.now(),
+      })
+    } catch {
+      set({
+        portfolioLoading: false,
+        portfolioError: 'Portfolio backend unavailable',
+        portfolioLastUpdated: Date.now(),
+      })
+    }
+  },
 
   ingestTick: (tick) =>
     set((state) => {

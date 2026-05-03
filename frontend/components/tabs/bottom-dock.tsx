@@ -53,8 +53,8 @@ export function BottomDock() {
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {tab === 'orders' && <TableEmpty title="No orders yet" hint="Order execution is disabled in this build." columns={['Time', 'Symbol', 'Side', 'Qty', 'Status']} />}
-        {tab === 'positions' && <TableEmpty title="No positions connected" hint="Paper portfolio and broker reconciliation will appear here." columns={['Symbol', 'Qty', 'Avg', 'LTP', 'PnL']} />}
-        {tab === 'holdings' && <TableEmpty title="No holdings connected" hint="Holdings endpoint is not connected yet." columns={['Symbol', 'Qty', 'Avg', 'LTP', 'PnL']} />}
+        {tab === 'positions' && <PositionsContent />}
+        {tab === 'holdings' && <HoldingsContent />}
         {tab === 'trades' && <TableEmpty title="No trades" hint="Trade history is empty." columns={['Time', 'Symbol', 'Side', 'Qty', 'Price']} />}
         {tab === 'pnl' && <PnLContent />}
         {tab === 'signals' && <SignalsContent />}
@@ -93,17 +93,104 @@ function NoRows({ title, hint }: { title: string; hint: string }) {
 }
 
 function PnLContent() {
-  const portfolio = useTerminalStore((s) => s.portfolio)
-  if (!portfolio) {
-    return <NoRows title="No PnL data connected" hint="PnL requires portfolio and event integration." />
-  }
+  const summary = useTerminalStore((s) => s.portfolioSummary)
   const rows = [
-    ['Unrealised', fmtPrice(portfolio.unrealized_pnl)],
-    ['Realised', fmtPrice(portfolio.realized_pnl)],
-    ['Capital', fmtPrice(portfolio.current_capital)],
-    ['Trades', String(portfolio.total_trades)],
+    ['Realized', fmtPrice(summary?.realized_pnl)],
+    ['Unrealized', fmtPrice(summary?.unrealized_pnl)],
+    ['Gross', fmtPrice(summary?.gross_pnl)],
+    ['Fees', fmtPrice(summary?.total_fees)],
+    ['Net', fmtPrice(summary?.net_pnl)],
+    ['Equity', fmtPrice(summary?.equity)],
+    ['Open Notional', fmtPrice(summary?.total_open_notional)],
+    ['Drawdown', fmtPrice(summary?.current_drawdown)],
   ]
   return <KeyValueGrid rows={rows} />
+}
+
+function PositionsContent() {
+  const positions = useTerminalStore((s) => s.positions)
+  return (
+    <DockTable
+      columns={['Symbol', 'Qty', 'Avg', 'LTP', 'Unreal', 'Real', 'Fees', 'Net', 'Quality']}
+      rows={positions.map((position) => [
+        position.symbol,
+        String(position.quantity),
+        fmtPrice(position.avg_price),
+        fmtPrice(position.ltp),
+        fmtPrice(position.unrealized_pnl),
+        fmtPrice(position.realized_pnl),
+        fmtPrice(position.fees),
+        fmtPrice(position.net_pnl),
+        position.quality,
+      ])}
+      emptyTitle="No positions connected"
+      emptyHint="Filled paper orders will appear here."
+    />
+  )
+}
+
+function HoldingsContent() {
+  const holdings = useTerminalStore((s) => s.holdings)
+  return (
+    <DockTable
+      columns={['Symbol', 'Qty', 'Avg', 'LTP', 'Value', 'PnL', 'Status']}
+      rows={holdings.map((holding) => [
+        holding.symbol,
+        String(holding.quantity),
+        fmtPrice(holding.average_price),
+        fmtPrice(holding.ltp),
+        fmtPrice(holding.value),
+        fmtPrice(holding.pnl),
+        holding.data_status,
+      ])}
+      emptyTitle="No holdings connected"
+      emptyHint="Broker holdings sync has not returned data."
+    />
+  )
+}
+
+function DockTable({
+  columns,
+  rows,
+  emptyTitle,
+  emptyHint,
+}: {
+  columns: string[]
+  rows: string[][]
+  emptyTitle: string
+  emptyHint: string
+}) {
+  return (
+    <div className="h-full flex flex-col">
+      <div
+        className="h-7 grid gap-2 px-3 items-center border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint"
+        style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+      >
+        {columns.map((column) => (
+          <span key={column} className="truncate">{column}</span>
+        ))}
+      </div>
+      {rows.length === 0 ? (
+        <div className="flex-1 grid place-items-center">
+          <EmptyState title={emptyTitle} hint={emptyHint} compact />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {rows.map((row, index) => (
+            <div
+              key={`${row[0]}-${index}`}
+              className="grid gap-2 px-3 py-1.5 border-b border-border/60 font-mono text-[10px] text-text-2"
+              style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+            >
+              {row.map((cell, cellIndex) => (
+                <span key={`${cell}-${cellIndex}`} className="truncate">{cell}</span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SignalsContent() {
@@ -167,6 +254,7 @@ function HealthContent() {
     ['EventBus', String(status?.event_bus?.total ?? '\u2014')],
     ['TickBus Drop', status?.tick_bus?.drop_rate_pct == null ? '\u2014' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
     ['Candle Engine', status?.candles ? 'READY' : '\u2014'],
+    ['Portfolio', status?.portfolio ? 'READY' : '\u2014'],
     ['Frontend', 'READY'],
   ]
   return <KeyValueGrid rows={rows} />

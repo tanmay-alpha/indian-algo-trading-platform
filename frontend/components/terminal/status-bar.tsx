@@ -26,6 +26,7 @@ export function StatusBar() {
   const mode = useTerminalStore((s) => s.executionMode)
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const ws = useTerminalStore((s) => s.activeWorkspace)
+  const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
 
   // tick to refresh "age"
   const [, force] = useState(0)
@@ -122,6 +123,11 @@ export function StatusBar() {
       <Cell className="text-text-2">
         <span>SYM</span>
         <span className="text-text">{selected ?? '\u2014'}</span>
+      </Cell>
+
+      <Cell className={portfolioSummary?.net_pnl != null && portfolioSummary.net_pnl < 0 ? 'text-down' : 'text-text-2'}>
+        <span>NET PNL</span>
+        <span className="text-text">{portfolioSummary?.net_pnl == null ? '\u2014' : portfolioSummary.net_pnl.toFixed(2)}</span>
       </Cell>
 
       <Cell

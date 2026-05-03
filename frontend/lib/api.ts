@@ -6,6 +6,11 @@ import type {
   IndexSnapshot,
   Candle,
   MarketWatchRow,
+  PortfolioSummary,
+  PortfolioPosition,
+  PortfolioHolding,
+  EquityCurvePoint,
+  ReconciliationStatus,
 } from './types'
 
 export class APIError extends Error {
@@ -94,3 +99,153 @@ export const fetchCandles = (symbol: string, timeframe = '5m') =>
   request<{ symbol: string; timeframe: string; candles: Candle[] }>(
     `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}`
   )
+
+// ----- Portfolio -----
+const unavailablePortfolioSummary: PortfolioSummary = {
+  realized_pnl: null,
+  unrealized_pnl: null,
+  gross_pnl: null,
+  total_fees: null,
+  net_pnl: null,
+  open_positions_count: 0,
+  total_open_notional: null,
+  equity: null,
+  current_drawdown: null,
+  max_drawdown: null,
+  data_status: 'UNAVAILABLE',
+}
+
+const unavailableReconciliation: ReconciliationStatus = {
+  positions: [],
+  holdings: [],
+  summary: { mismatch_count: 0, by_severity: {}, ok: true },
+  data_status: 'UNAVAILABLE',
+}
+
+export async function getPortfolioSummary(): Promise<PortfolioSummary> {
+  try {
+    const data = await request<Partial<PortfolioSummary>>(ENDPOINTS.portfolioSummary)
+    return {
+      ...unavailablePortfolioSummary,
+      ...data,
+      data_status: 'AVAILABLE',
+    }
+  } catch {
+    return unavailablePortfolioSummary
+  }
+}
+
+export async function getPortfolioPositions(): Promise<PortfolioPosition[]> {
+  try {
+    const data = await request<{ positions?: Array<Record<string, unknown>> }>(
+      ENDPOINTS.portfolioPositions
+    )
+    return (data.positions || []).map(normalizePosition)
+  } catch {
+    return []
+  }
+}
+
+export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
+  try {
+    const data = await request<{ holdings?: Array<Record<string, unknown>> }>(
+      ENDPOINTS.portfolioHoldings
+    )
+    return (data.holdings || []).map(normalizeHolding)
+  } catch {
+    return []
+  }
+}
+
+export async function getPortfolioEquityCurve(): Promise<EquityCurvePoint[]> {
+  try {
+    const data = await request<{ points?: EquityCurvePoint[] }>(
+      ENDPOINTS.portfolioEquityCurve
+    )
+    return data.points || []
+  } catch {
+    return []
+  }
+}
+
+export async function getPortfolioReconciliationStatus(): Promise<ReconciliationStatus> {
+  try {
+    const data = await request<Partial<ReconciliationStatus>>(
+      ENDPOINTS.portfolioReconciliation
+    )
+    return {
+      positions: data.positions || [],
+      holdings: data.holdings || [],
+      summary: data.summary || unavailableReconciliation.summary,
+      data_status: 'AVAILABLE',
+    }
+  } catch {
+    return unavailableReconciliation
+  }
+}
+
+function normalizePosition(raw: Record<string, unknown>): PortfolioPosition {
+  const quantity = numberOrZero(raw.quantity)
+  const avgPrice = numberOrNull(raw.avg_price)
+  const ltp = numberOrNull(raw.ltp)
+  const marketValue = numberOrNull(raw.market_value)
+  const fees = numberOrNull(raw.fees)
+  const realized = numberOrNull(raw.realized_pnl)
+  const unrealized = numberOrNull(raw.unrealized_pnl)
+  return {
+    symbol: String(raw.symbol || ''),
+    quantity,
+    avg_price: avgPrice,
+    ltp,
+    realized_pnl: realized,
+    unrealized_pnl: unrealized,
+    gross_pnl: addNullable(realized, unrealized),
+    fees,
+    net_pnl: subtractNullable(addNullable(realized, unrealized), fees),
+    open_notional: marketValue,
+    market_value: marketValue,
+    last_update: typeof raw.last_update === 'string' ? raw.last_update : null,
+    quality: ltp == null ? 'UNAVAILABLE' : 'LIVE',
+  }
+}
+
+function normalizeHolding(raw: Record<string, unknown>): PortfolioHolding {
+  const quantity = numberOrZero(raw.quantity)
+  const averagePrice = numberOrNull(raw.average_price ?? raw.avg_price)
+  const ltp = numberOrNull(raw.ltp)
+  const value = numberOrNull(raw.value ?? raw.market_value)
+  const pnl =
+    ltp != null && averagePrice != null
+      ? (ltp - averagePrice) * quantity
+      : null
+  return {
+    symbol: String(raw.symbol || ''),
+    quantity,
+    average_price: averagePrice,
+    ltp,
+    value,
+    pnl,
+    data_status: 'AVAILABLE',
+    last_update: typeof raw.last_update === 'string' ? raw.last_update : null,
+  }
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value == null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function numberOrZero(value: unknown): number {
+  return numberOrNull(value) ?? 0
+}
+
+function addNullable(a: number | null, b: number | null): number | null {
+  if (a == null && b == null) return null
+  return (a ?? 0) + (b ?? 0)
+}
+
+function subtractNullable(a: number | null, b: number | null): number | null {
+  if (a == null && b == null) return null
+  return (a ?? 0) - (b ?? 0)
+}

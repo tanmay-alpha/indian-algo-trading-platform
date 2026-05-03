@@ -43,6 +43,14 @@ export type DataQuality =
   | 'LOADING'
   | 'ERROR'
 
+export type PortfolioDataQuality =
+  | 'AVAILABLE'
+  | 'UNAVAILABLE'
+  | 'STALE'
+  | 'BACKEND OFFLINE'
+  | 'LOADING'
+  | 'ERROR'
+
 export type OperatorState =
   | 'ONLINE'
   | 'DEGRADED'
@@ -174,7 +182,77 @@ export interface TerminalStatus {
   event_bus?: EventBusStats
   tick_bus?: TickBusStats | null
   candles?: CandleStoreStats
+  portfolio?: PortfolioSummary
   trading_mode?: 'PAPER' | 'LIVE'
+}
+
+export interface PortfolioSummary {
+  realized_pnl: number | null
+  unrealized_pnl: number | null
+  gross_pnl: number | null
+  total_fees: number | null
+  net_pnl: number | null
+  open_positions_count: number
+  total_open_notional: number | null
+  equity: number | null
+  current_drawdown: number | null
+  max_drawdown: number | null
+  data_status: PortfolioDataQuality
+  trading_mode?: 'PAPER' | 'LIVE'
+  source_of_truth?: string
+}
+
+export interface PortfolioPosition {
+  symbol: string
+  quantity: number
+  avg_price: number | null
+  ltp: number | null
+  realized_pnl: number | null
+  unrealized_pnl: number | null
+  gross_pnl?: number | null
+  fees: number | null
+  net_pnl?: number | null
+  open_notional?: number | null
+  market_value?: number | null
+  last_update?: string | null
+  quality: DataQuality
+}
+
+export interface PortfolioHolding {
+  symbol: string
+  quantity: number
+  average_price: number | null
+  ltp: number | null
+  value: number | null
+  pnl: number | null
+  data_status: PortfolioDataQuality
+  last_update?: string | null
+}
+
+export interface EquityCurvePoint {
+  timestamp: string
+  equity: number
+  drawdown: number
+}
+
+export interface ReconciliationMismatch {
+  symbol: string
+  field: string
+  internal_value: unknown
+  broker_value: unknown
+  severity: 'INFO' | 'WARNING' | 'CRITICAL'
+  message: string
+}
+
+export interface ReconciliationStatus {
+  positions: ReconciliationMismatch[]
+  holdings: ReconciliationMismatch[]
+  summary: {
+    mismatch_count: number
+    by_severity: Record<string, number>
+    ok: boolean
+  }
+  data_status: PortfolioDataQuality
 }
 
 // ----- Health endpoint -----
