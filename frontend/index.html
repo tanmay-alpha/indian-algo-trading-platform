@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSEx — Institutional Trading Terminal</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --panel: rgba(23, 27, 34, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass: blur(10px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            height: 60px;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel);
+            backdrop-filter: var(--glass);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 13px;
+        }
+
+        .mode-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-dot.online {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        .chart-container {
+            background: var(--bg);
+            position: relative;
+            padding: 10px;
+        }
+
+        .sidebar {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .panel {
+            background: var(--panel);
+            backdrop-filter: var(--glass);
+            padding: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .metric-card:hover {
+            border-color: var(--border);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .metric-value.up {
+            color: var(--success);
+        }
+
+        .metric-value.down {
+            color: var(--danger);
+        }
+
+        .trade-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-group label {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .btn-buy {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-sell {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-toggle {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            font-size: 10px;
+            padding: 5px;
+        }
+
+        .autopilot-container {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .autopilot-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .signal-banner {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .signal-buy {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .signal-sell {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .signal-neutral {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">NSEx <span>Alpha</span></div>
+        <div class="header-meta">
+            <div>Symbol: <b id="header-symbol">---</b></div>
+            <div>Mode: <span id="mode-badge" class="mode-badge">PAPER</span></div>
+            <div><span id="status-dot" class="status-dot"></span> <span id="status-text">DISCONNECTED</span></div>
+        </div>
+    </header>
+
+    <main>
+        <div class="chart-container">
+            <canvas id="main-chart"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="font-size: 16px;">Core Metrics</h3>
+                    <div id="autopilot-badge"
+                        style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-dim);">
+                        MANUAL CONTROL</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">LTP</div>
+                        <div class="metric-value" id="price-val">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">VWAP (INST)</div>
+                        <div class="metric-value accent" style="color: #60a5fa" id="vwap-val">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">PnL</div>
+                        <div class="metric-value" id="pnl-val">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Equity</div>
+                        <div class="metric-value" id="equity-val">0.00</div>
+                    </div>
+                </div>
+
+                <div class="trade-actions">
+                    <div class="input-group">
+                        <label>Order Size</label>
+                        <input type="number" id="order-qty" value="1" min="1">
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn-buy" onclick="placeOrder('BUY')">Buy</button>
+                        <button class="btn-sell" onclick="placeOrder('SELL')">Sell</button>
+                    </div>
+
+                    <div class="autopilot-container">
+                        <div class="autopilot-label">AUTO-PILOT</div>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-pilot-switch" onchange="toggleAutoPilot()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <button class="btn-toggle" onclick="toggleMode()">Toggle Execution Mode</button>
+
+                    <div id="signal-box" class="signal-banner signal-neutral">QUANT SIGNAL: NEUTRAL</div>
+                </div>
+            </div>
+
+            <div class="panel" style="flex:1; border-top: 1px solid var(--border); overflow-y: auto;">
+                <h4 style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px;">
+                    Execution Log</h4>
+                <div id="log-container"
+                    style="font-family: 'JetBrains Mono', monospace; font-size: 10px; display: flex; flex-direction: column; gap: 6px;">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const statusDot = document.getElementById("status-dot");
+        const statusText = document.getElementById("status-text");
+        const priceVal = document.getElementById("price-val");
+        const vwapVal = document.getElementById("vwap-val");
+        const pnlVal = document.getElementById("pnl-val");
+        const equityVal = document.getElementById("equity-val");
+        const symbolBadge = document.getElementById("header-symbol");
+        const modeBadge = document.getElementById("mode-badge");
+        const signalBox = document.getElementById("signal-box");
+        const logContainer = document.getElementById("log-container");
+        const apSwitch = document.getElementById("auto-pilot-switch");
+        const apBadge = document.getElementById("autopilot-badge");
+
+        let currentMode = "PAPER";
+        let ws;
+
+        const ctx = document.getElementById('main-chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'candlestick',
+            data: { datasets: [{ label: 'Live Ticks', data: [], borderColor: '#3b82f6', color: { up: '#10b981', down: '#ef4444', unchanged: '#94a3b8' } }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', grid: { color: 'rgba(255,255,255,0.05)' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } }, plugins: { legend: { display: false } } }
+        });
+
+        let currentCandle = null;
+        const candleTime = 60000;
+
+        function connect() {
+            ws = new WebSocket(`ws://${location.host}/ws/terminal`);
+            ws.onopen = () => { statusDot.classList.add("online"); statusText.innerText = "CONNECTED"; addLog("MDG: Real-time stream established", "accent"); };
+            ws.onclose = () => { statusDot.classList.remove("online"); statusText.innerText = "OFFLINE"; setTimeout(connect, 3000); };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "TICK") {
+                    updateUI(data);
+                    updateChart(data.price);
+                }
+            };
+        }
+
+        function updateUI(data) {
+            symbolBadge.innerText = data.symbol;
+            priceVal.innerText = data.price.toFixed(2);
+            vwapVal.innerText = data.vwap ? data.vwap.toFixed(2) : "0.00";
+
+            const port = data.portfolio;
+            pnlVal.innerText = port.unrealized_pnl.toFixed(2);
+            pnlVal.className = "metric-value " + (port.unrealized_pnl >= 0 ? "up" : "down");
+            equityVal.innerText = port.current_capital.toFixed(2);
+
+            modeBadge.innerText = data.mode;
+            currentMode = data.mode;
+
+            if (data.signal) {
+                signalBox.innerText = "QUANT SIGNAL: " + data.signal;
+                signalBox.className = "signal-banner " + (data.signal === "BUY" ? "signal-buy" : data.signal === "SELL" ? "signal-sell" : "signal-neutral");
+            }
+
+            apSwitch.checked = data.auto_pilot;
+            apBadge.innerText = data.auto_pilot ? "AUTONOMOUS MODE ACTIVE" : "MANUAL CONTROL";
+            apBadge.style.color = data.auto_pilot ? "var(--success)" : "var(--text-dim)";
+            if (data.auto_pilot) apBadge.style.textShadow = "0 0 8px var(--success)";
+            else apBadge.style.textShadow = "none";
+        }
+
+        function updateChart(price) {
+            const now = Date.now();
+            if (!currentCandle || now - currentCandle.time >= candleTime) {
+                currentCandle = { time: now, open: price, high: price, low: price, close: price };
+                chart.data.datasets[0].data.push({ x: now, o: price, h: price, l: price, c: price });
+            } else {
+                currentCandle.high = Math.max(currentCandle.high, price);
+                currentCandle.low = Math.min(currentCandle.low, price);
+                currentCandle.close = price;
+                const last = chart.data.datasets[0].data.length - 1;
+                chart.data.datasets[0].data[last] = { x: currentCandle.time, o: currentCandle.open, h: currentCandle.high, l: currentCandle.low, c: currentCandle.close };
+            }
+            if (chart.data.datasets[0].data.length > 50) chart.data.datasets[0].data.shift();
+            chart.update('none');
+        }
+
+        async function placeOrder(side) {
+            const qty = document.getElementById("order-qty").value;
+            try {
+                const res = await fetch(`/order?side=${side}&qty=${qty}`, { method: 'POST' });
+                const result = await res.json();
+                if (result.status === "SUCCESS" || result.status === "PAPER_EXECUTED") {
+                    addLog(`${side} order executed for ${qty} shares`, "success");
+                } else {
+                    addLog(`Order failed: ${result.reason || result.error}`, "danger");
+                }
+            } catch (e) { addLog("Network error placing order", "danger"); }
+        }
+
+        async function toggleMode() {
+            const nextMode = currentMode === "PAPER" ? "LIVE" : "PAPER";
+            if (nextMode === "LIVE" && !confirm("Warning: Trading LIVE uses real capital. Proceed?")) return;
+            const res = await fetch(`/toggle_mode?mode=${nextMode}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === "success") addLog(`System: Mode switched to ${nextMode}`, "accent");
+        }
+
+        async function toggleAutoPilot() {
+            try {
+                const res = await fetch(`/toggle_auto_pilot`, { method: 'POST' });
+                const data = await res.json();
+                addLog(`Auto-Pilot: ${data.auto_pilot ? "ENABLED" : "DISABLED"}`, data.auto_pilot ? "success" : "accent");
+            } catch (e) { addLog("Error toggling Auto-Pilot", "danger"); apSwitch.checked = !apSwitch.checked; }
+        }
+
+        function addLog(msg, type) {
+            const div = document.createElement("div");
+            div.style.color = type === "success" ? "var(--success)" : type === "danger" ? "var(--danger)" : type === "accent" ? "var(--accent)" : "white";
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logContainer.prepend(div);
+            if (logContainer.children.length > 20) logContainer.lastChild.remove();
+        }
+
+        connect();
+    </script>
+</body>
+
+</html>

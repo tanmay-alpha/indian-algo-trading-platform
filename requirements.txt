@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pyotp
+python-dotenv
+smartapi-python
+websocket-client
+numpy
+pandas
