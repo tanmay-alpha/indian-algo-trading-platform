@@ -1,66 +1,157 @@
 'use client'
 
-import { Clock, Wifi, Database, Cpu } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Activity,
+  Wifi,
+  WifiOff,
+  Server,
+  Cpu,
+  Clock,
+  Layers,
+  CircleDot,
+} from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { formatTime, cn } from '@/lib/utils'
+import { fmtAge, cn, qualityFromAge } from '@/lib/utils'
+import { BUILD_ENV, WORKSPACES } from '@/lib/constants'
 
 export function StatusBar() {
-  const { isConnected, lastUpdate, executionMode, gatewayStatus, reconnectAttempts } = useTerminalStore()
+  const wsConnected = useTerminalStore((s) => s.wsConnected)
+  const reconnect = useTerminalStore((s) => s.wsReconnectAttempts)
+  const backendOffline = useTerminalStore((s) => s.backendOffline)
+  const lastTickAt = useTerminalStore((s) => s.lastTickAt)
+  const status = useTerminalStore((s) => s.terminalStatus)
+  const broker = useTerminalStore((s) => s.brokerStatus)
+  const mode = useTerminalStore((s) => s.executionMode)
+  const selected = useTerminalStore((s) => s.selectedSymbol)
+  const ws = useTerminalStore((s) => s.activeWorkspace)
+
+  // tick to refresh "age"
+  const [, force] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => force((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const tickAge = lastTickAt ? Date.now() - lastTickAt : null
+  const quality = qualityFromAge(lastTickAt, !backendOffline, false)
+  const tick = status?.tick_bus
+  const dropPct = tick?.drop_rate_pct ?? null
+
+  const wsLabel = wsConnected
+    ? quality === 'STALE'
+      ? 'STALE'
+      : 'LIVE'
+    : reconnect > 0
+    ? `RECONNECT ${reconnect}`
+    : 'OFFLINE'
+
+  const wsCls = wsConnected
+    ? quality === 'STALE'
+      ? 'text-warn'
+      : 'text-up'
+    : 'text-down'
+
+  const wsLabelObj = WORKSPACES.find((w) => w.id === ws)
 
   return (
-    <footer className="h-7 px-4 flex items-center justify-between bg-[#0d1117] border-t border-border text-[10px]">
-      {/* Left Side */}
-      <div className="flex items-center gap-4">
-        {/* Connection Status */}
-        <div className="flex items-center gap-1.5">
-          <Wifi
-            className={cn('w-3 h-3', isConnected ? 'text-success' : 'text-danger')}
-          />
-          <span className={cn(isConnected ? 'text-success' : 'text-danger')}>
-            {isConnected ? 'LIVE' : reconnectAttempts > 0 ? `RECONNECTING (${reconnectAttempts})` : 'OFFLINE'}
-          </span>
-        </div>
+    <footer className="h-statusbar shrink-0 px-2 flex items-center gap-3 bg-bg-2 border-t border-border text-[10px] font-mono">
+      {/* Left cluster */}
+      <Cell className={wsCls}>
+        {wsConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+        <span>WS</span>
+        <span>{wsLabel}</span>
+      </Cell>
 
-        {/* Gateway Status */}
-        {gatewayStatus && (
-          <div className="flex items-center gap-1.5">
-            <Database
-              className={cn(
-                'w-3 h-3',
-                gatewayStatus.websocket_started ? 'text-success' : 'text-danger'
-              )}
-            />
-            <span className="text-text-dim">
-              Gateway: {gatewayStatus.websocket_started ? 'Active' : 'Inactive'}
-            </span>
-          </div>
+      <Cell className={backendOffline ? 'text-down' : 'text-text-2'}>
+        <Server className="w-3 h-3" />
+        <span>API</span>
+        <span>{backendOffline ? 'OFFLINE' : 'OK'}</span>
+      </Cell>
+
+      <Cell className={broker?.logged_in ? 'text-up' : 'text-text-dim'}>
+        <CircleDot className="w-3 h-3" />
+        <span>BRK</span>
+        <span>
+          {broker
+            ? broker.logged_in
+              ? 'LOGGED IN'
+              : 'OFFLINE'
+            : '—'}
+        </span>
+      </Cell>
+
+      <Cell className="text-text-2">
+        <Activity className="w-3 h-3" />
+        <span>TICKS</span>
+        <span className="tnum text-text">
+          {tick?.total ?? '—'}
+        </span>
+        <span className="text-text-faint">DROP</span>
+        <span
+          className={cn(
+            'tnum',
+            dropPct == null
+              ? 'text-text-faint'
+              : dropPct > 5
+              ? 'text-warn'
+              : 'text-text'
+          )}
+        >
+          {dropPct == null ? '—' : `${dropPct.toFixed(2)}%`}
+        </span>
+      </Cell>
+
+      <Cell className="text-text-2">
+        <Clock className="w-3 h-3" />
+        <span>TICK AGE</span>
+        <span className="tnum text-text">{fmtAge(tickAge)}</span>
+      </Cell>
+
+      {/* Spacer */}
+      <span className="ml-auto" />
+
+      {/* Right cluster */}
+      <Cell className="text-text-2">
+        <Layers className="w-3 h-3" />
+        <span>WS</span>
+        <span className="text-text">{wsLabelObj?.label ?? '—'}</span>
+      </Cell>
+
+      <Cell className="text-text-2">
+        <span>SYM</span>
+        <span className="text-text">{selected ?? '—'}</span>
+      </Cell>
+
+      <Cell
+        className={cn(
+          mode === 'LIVE' ? 'text-live' : 'text-paper'
         )}
+      >
+        <Cpu className="w-3 h-3" />
+        <span>MODE</span>
+        <span>{mode}</span>
+      </Cell>
 
-        {/* Mode */}
-        <div className="flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-accent" />
-          <span className="text-text-dim">
-            Mode: <span className="text-text-main font-medium">{executionMode}</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Right Side */}
-      <div className="flex items-center gap-4">
-        {/* Last Update */}
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3 h-3 text-text-dim" />
-          <span className="text-text-dim">
-            Last Update:{' '}
-            <span className="text-text-main font-mono">
-              {lastUpdate ? formatTime(lastUpdate) : '--:--:--'}
-            </span>
-          </span>
-        </div>
-
-        {/* Version */}
-        <span className="text-text-dim">v0.1.0</span>
-      </div>
+      <Cell className="text-text-faint">
+        <span>{BUILD_ENV}</span>
+        <span>·</span>
+        <span>v0.2 · MAET.OS</span>
+      </Cell>
     </footer>
+  )
+}
+
+function Cell({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', className)}>
+      {children}
+    </span>
   )
 }

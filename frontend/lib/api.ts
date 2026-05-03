@@ -1,78 +1,96 @@
 import { API_URL, ENDPOINTS } from './constants'
-import type { HealthResponse, Instrument, IndexData } from './types'
+import type {
+  HealthResponse,
+  Instrument,
+  TerminalStatus,
+  IndexSnapshot,
+  Candle,
+  MarketWatchRow,
+} from './types'
 
-class APIError extends Error {
+export class APIError extends Error {
   constructor(
     message: string,
-    public status: number
+    public status: number,
+    public detail?: unknown
   ) {
     super(message)
     this.name = 'APIError'
   }
 }
 
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_URL}${endpoint}`
-
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const url = `${API_URL}${path}`
+  let res: Response
   try {
-    const response = await fetch(url, {
+    res = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...options?.headers,
+        ...(options?.headers || {}),
       },
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new APIError(errorData.detail || `HTTP ${response.status}`, response.status)
-    }
-
-    return response.json()
-  } catch (error) {
-    if (error instanceof APIError) {
-      throw error
-    }
-    throw new APIError('Network error - API server may be offline', 0)
+  } catch {
+    throw new APIError('Backend unreachable', 0)
   }
+  if (!res.ok) {
+    let detail: unknown
+    try {
+      detail = await res.json()
+    } catch {
+      /* ignore */
+    }
+    throw new APIError(`HTTP ${res.status}`, res.status, detail)
+  }
+  return res.json() as Promise<T>
 }
 
-// API Functions
-export async function fetchHealth(): Promise<HealthResponse> {
-  return fetchAPI<HealthResponse>(ENDPOINTS.health)
+// ----- Health / Status -----
+export const fetchHealth = () => request<HealthResponse>(ENDPOINTS.health)
+
+export const fetchTerminalStatus = () =>
+  request<TerminalStatus>(ENDPOINTS.terminalStatus)
+
+// ----- Instruments / Indices -----
+export interface InstrumentsSearchResponse {
+  query: string
+  results: Instrument[]
 }
 
-export async function fetchTerminalStatus(): Promise<HealthResponse> {
-  return fetchAPI<HealthResponse>(ENDPOINTS.terminalStatus)
+export async function searchInstruments(q: string): Promise<Instrument[]> {
+  if (!q || q.trim().length < 2) return []
+  const data = await request<InstrumentsSearchResponse>(
+    `${ENDPOINTS.searchInstruments}?q=${encodeURIComponent(q.trim())}`
+  )
+  return data.results || []
 }
 
-export async function searchInstruments(query: string): Promise<Instrument[]> {
-  if (!query || query.length < 2) return []
-  return fetchAPI<Instrument[]>(`${ENDPOINTS.searchInstruments}?q=${encodeURIComponent(query)}`)
+export interface IndicesResponse {
+  indices: IndexSnapshot[]
 }
 
-export async function fetchIndices(): Promise<IndexData[]> {
-  return fetchAPI<IndexData[]>(ENDPOINTS.indices)
+export async function fetchIndices(): Promise<IndexSnapshot[]> {
+  const data = await request<IndicesResponse>(ENDPOINTS.indices)
+  return data.indices || []
 }
 
-export async function fetchMarketWatch(): Promise<unknown> {
-  return fetchAPI(ENDPOINTS.marketWatch)
+// ----- Market Watch -----
+export interface MarketWatchResponse {
+  symbols: string[]
+  items: MarketWatchRow[]
 }
 
-export async function toggleExecutionMode(mode: 'PAPER' | 'LIVE'): Promise<{ status: string; new_mode: string }> {
-  return fetchAPI(`${ENDPOINTS.toggleMode}?mode=${mode}`, { method: 'POST' })
-}
+export const fetchMarketWatch = () =>
+  request<MarketWatchResponse>(ENDPOINTS.marketWatch)
 
-export async function toggleAutoPilot(): Promise<{ status: string; auto_pilot: boolean }> {
-  return fetchAPI(ENDPOINTS.toggleAutoPilot, { method: 'POST' })
-}
-
-export async function placeOrder(
-  side: 'BUY' | 'SELL',
-  qty: number,
-  symbol: string = 'SBIN-EQ'
-): Promise<{ status: string; reason?: string; error?: string }> {
-  return fetchAPI(`${ENDPOINTS.order}?side=${side}&qty=${qty}&symbol=${encodeURIComponent(symbol)}`, {
+export const setMarketWatch = (symbols: string[]) =>
+  request<MarketWatchResponse>(ENDPOINTS.marketWatch, {
     method: 'POST',
+    body: JSON.stringify({ symbols }),
   })
-}
+
+// ----- Candles -----
+export const fetchCandles = (symbol: string, interval = '5m') =>
+  request<{ symbol: string; interval: string; candles: Candle[] }>(
+    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?interval=${interval}`
+  )

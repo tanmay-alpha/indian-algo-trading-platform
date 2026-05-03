@@ -1,105 +1,157 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #0b0e14;
-  --foreground: #f8fafc;
-  --panel: rgba(23, 27, 34, 0.7);
-  --panel-solid: #171b22;
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #3b82f6;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --muted: #94a3b8;
+  /* Surfaces */
+  --bg: #060810;
+  --bg-2: #0a0e16;
+  --panel: #0d121b;
+  --panel-2: #121826;
+  --panel-3: #1a2030;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.09);
+  --border-accent: rgba(84, 193, 236, 0.32);
+
+  /* Text */
+  --text: #d6dde6;
+  --text-2: #97a2b3;
+  --text-dim: #6b7589;
+  --text-faint: #475063;
+
+  /* Market state */
+  --up: #16c784;
+  --up-dim: rgba(22, 199, 132, 0.14);
+  --down: #ea3943;
+  --down-dim: rgba(234, 57, 67, 0.14);
+
+  /* System / quality */
+  --warn: #f0a928;
+  --warn-dim: rgba(240, 169, 40, 0.14);
+  --info: #54c1ec;
+  --info-dim: rgba(84, 193, 236, 0.14);
+  --locked: #475063;
+
+  /* Mode badges */
+  --paper: #54c1ec;
+  --live: #ea3943;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
-}
-
-html {
-  background-color: var(--background);
-}
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Custom scrollbar */
+/* Mono numerals everywhere */
+.tnum,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'cv01';
+}
+
+/* Compact scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Glass effect utility */
-.glass {
-  background: var(--panel);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* Inputs */
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
-
-/* Price change animations */
-@keyframes flash-green {
-  0% { background-color: rgba(16, 185, 129, 0.3); }
-  100% { background-color: transparent; }
-}
-
-@keyframes flash-red {
-  0% { background-color: rgba(239, 68, 68, 0.3); }
-  100% { background-color: transparent; }
-}
-
-.flash-up {
-  animation: flash-green 0.5s ease-out;
-}
-
-.flash-down {
-  animation: flash-red 0.5s ease-out;
-}
-
-/* Input styles */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
 }
 
-/* Tab styles */
-.tab-active {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent);
-  border-bottom: 2px solid var(--accent);
+/* Focus ring */
+:where(button, a, input, [role='button']):focus-visible {
+  outline: 1px solid var(--info);
+  outline-offset: 1px;
 }
 
-/* Disabled button styles */
-button:disabled {
-  opacity: 0.5;
+/* Disabled */
+button:disabled,
+[aria-disabled='true'] {
+  opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* Terminal grid backdrop */
+.term-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Flash classes (on tick change) */
+.flash-up {
+  animation: flashUp 0.45s ease-out;
+}
+.flash-down {
+  animation: flashDown 0.45s ease-out;
+}
+
+/* Live dot pulse */
+.live-dot {
+  position: relative;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  opacity: 0;
+  animation: pulseRing 2.2s ease-out infinite;
+}
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Selection */
+::selection {
+  background: rgba(84, 193, 236, 0.25);
+  color: var(--text);
 }
