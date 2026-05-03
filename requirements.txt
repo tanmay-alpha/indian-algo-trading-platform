@@ -11,3 +11,4 @@ ntplib
 loguru
 pytest
 pytest-asyncio
+aiosqlite

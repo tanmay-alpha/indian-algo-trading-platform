@@ -6,7 +6,6 @@ from pydantic import BaseModel
 import asyncio
 import logging
 from datetime import datetime, timezone
-from types import SimpleNamespace
 
 from backend.candles.candle_fetcher import CandleFetcher
 from backend.candles.candle_store import CandleStore
@@ -67,7 +66,14 @@ last_trade_time = 0
 trade_cooldown = 60 # 60 seconds safety cooldown
 
 execution_mode = "PAPER"
-router = ExecutionRouter(mode=execution_mode)
+router = ExecutionRouter(
+    mode=execution_mode,
+    event_bus=event_bus,
+    market_watch=market_watch,
+    portfolio_manager=portfolio,
+    risk_manager=risk,
+    live_enabled=settings.live_trading_enabled,
+)
 
 broker_status = {
     "configured": True,
@@ -362,23 +368,26 @@ def terminal_status():
         "event_bus": event_bus.get_stats(),
         "tick_bus": tick_bus.stats() if tick_bus else None,
         "candles": candle_store.stats(),
+        "execution": router.status(),
         "trading_mode": execution_mode,
     }
 
 @app.post("/toggle_mode")
-def toggle_mode(mode: str):
+async def toggle_mode(mode: str, confirm: bool = False):
     global execution_mode, router
     if mode not in ["PAPER", "LIVE"]:
         raise HTTPException(status_code=400, detail="Invalid mode")
 
     if mode == "LIVE":
-        broker = get_broker_status()
-        if not session_manager or not session_manager.smart_api or not broker["logged_in"]:
-            raise HTTPException(status_code=503, detail="Broker session is not initialized")
+        allowed = await router.switch_to_live(confirm=confirm)
+        if not allowed:
+            raise HTTPException(status_code=403, detail="Live trading remains locked")
+        execution_mode = "LIVE"
+        logger.info("TERMINAL: Mode switched to LIVE")
+        return {"status": "success", "new_mode": execution_mode}
     
-    execution_mode = mode
-    live_session = SimpleNamespace(smart=session_manager.smart_api) if session_manager else None
-    router = ExecutionRouter(mode=execution_mode, session=live_session)
+    execution_mode = "PAPER"
+    await router.switch_to_paper()
     logger.info(f"TERMINAL: Mode switched to {execution_mode}")
     return {"status": "success", "new_mode": execution_mode}
 

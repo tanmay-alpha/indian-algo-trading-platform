@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     max_daily_loss: float = -25000.0
     jwt_refresh_interval_minutes: int = 30
     ws_reconnect_delay_seconds: int = 3
+    live_trading_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
