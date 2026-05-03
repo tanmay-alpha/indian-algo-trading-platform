@@ -13,6 +13,7 @@ from backend.core.config import settings
 from backend.core.event_bus import EventBus
 from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.routers import candles as candles_router
+from backend.routers import portfolio as portfolio_router
 from backend.gateway import instrument_registry
 from backend.gateway.market_gateway import MarketDataGateway
 from backend.gateway.tick_bus import TickBus
@@ -20,6 +21,7 @@ from backend.gateway.market_watch import MarketWatch
 from backend.gateway.instrument_registry import search_symbols, get_instrument, validate_symbols
 from backend.execution.execution_router import ExecutionRouter
 from backend.portfolio.portfolio_manager import PortfolioManager
+from backend.portfolio.portfolio_engine import PortfolioEngine
 from backend.risk.risk_manager import RiskManager
 from backend.engine.strategy_engine import StrategyEngine
 from backend.core.broadcaster import WebSocketBroadcaster
@@ -46,6 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(candles_router.router)
+app.include_router(portfolio_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
@@ -66,6 +69,7 @@ last_trade_time = 0
 trade_cooldown = 60 # 60 seconds safety cooldown
 
 execution_mode = "PAPER"
+portfolio_engine = PortfolioEngine(initial_capital=50000, event_bus=event_bus, trading_mode=execution_mode)
 router = ExecutionRouter(
     mode=execution_mode,
     event_bus=event_bus,
@@ -91,6 +95,7 @@ app.state.candle_store = candle_store
 app.state.candle_fetcher = candle_fetcher
 app.state.market_watch_state = market_watch
 app.state.session_manager = session_manager
+app.state.portfolio_engine = portfolio_engine
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -119,6 +124,7 @@ async def event_to_ws_bridge(event):
     })
 
 event_bus.subscribe(EventType.TICK.value, candle_store.on_tick_event)
+event_bus.subscribe(EventType.ORDER_STATE.value, portfolio_engine.on_order_state_event)
 for bridged_type in (
     EventType.SIGNAL.value,
     EventType.PORTFOLIO.value,
@@ -246,6 +252,7 @@ async def process_tick(tick: dict):
     
     # Update Portfolio Unrealized PnL
     portfolio.update_unrealized(symbol, price)
+    await portfolio_engine.on_tick(symbol, price)
     
     # Enrichment
     tick.update({
@@ -301,7 +308,8 @@ def health_check():
         "status": "online",
         "mode": execution_mode,
         "broker": get_broker_status(),
-        "portfolio": portfolio.get_performance()
+        "portfolio": portfolio.get_performance(),
+        "portfolio_engine": portfolio_engine.get_summary(),
     }
 
 @app.get("/instruments/search")
@@ -369,6 +377,7 @@ def terminal_status():
         "tick_bus": tick_bus.stats() if tick_bus else None,
         "candles": candle_store.stats(),
         "execution": router.status(),
+        "portfolio": portfolio_engine.get_summary(),
         "trading_mode": execution_mode,
     }
 

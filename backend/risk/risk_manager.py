@@ -33,6 +33,7 @@ class RiskManager:
         self.daily_loss = 0
         self.trades_today = 0
         self.kill_switch = False
+        self._breach_log = []
 
         # =============================
         # Trade Tracking
@@ -83,6 +84,7 @@ class RiskManager:
         if self.daily_loss >= self.initial_capital * self.max_daily_loss_pct:
             print("RISK: Daily loss limit hit")
             self.kill_switch = True
+            self._record_breach("DAILY_LOSS", "Daily loss limit hit")
             return False
 
         if symbol in self.positions:
@@ -174,6 +176,7 @@ class RiskManager:
         if self.daily_loss >= self.initial_capital * self.max_daily_loss_pct:
             print("RISK: Daily loss limit reached -> Activating Kill Switch")
             self.kill_switch = True
+            self._record_breach("DAILY_LOSS", "Daily loss limit reached")
 
         self.trade_history.append({
             "symbol": symbol,
@@ -210,3 +213,26 @@ class RiskManager:
         self.daily_loss = 0
         self.trades_today = 0
         self.kill_switch = False
+
+    def update_daily_pnl(self, pnl: float):
+        if pnl < 0:
+            self.daily_loss = abs(pnl)
+        else:
+            self.daily_loss = 0
+        if self.daily_loss >= self.initial_capital * self.max_daily_loss_pct:
+            self.kill_switch = True
+            self._record_breach("DAILY_LOSS", "Daily PnL breached risk limit")
+
+    @property
+    def is_trading_halted(self):
+        return self.kill_switch
+
+    def get_breach_log(self):
+        return list(self._breach_log)
+
+    def _record_breach(self, breach_type, message):
+        self._breach_log.append({
+            "timestamp": datetime.now().isoformat(),
+            "type": breach_type,
+            "message": message,
+        })
