@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   Activity,
   Wifi,
@@ -77,7 +78,7 @@ export function StatusBar() {
             ? broker.logged_in
               ? 'LOGGED IN'
               : 'OFFLINE'
-            : '—'}
+            : '\u2014'}
         </span>
       </Cell>
 
@@ -85,7 +86,7 @@ export function StatusBar() {
         <Activity className="w-3 h-3" />
         <span>TICKS</span>
         <span className="tnum text-text">
-          {tick?.total ?? '—'}
+          {tick?.total ?? '\u2014'}
         </span>
         <span className="text-text-faint">DROP</span>
         <span
@@ -98,7 +99,7 @@ export function StatusBar() {
               : 'text-text'
           )}
         >
-          {dropPct == null ? '—' : `${dropPct.toFixed(2)}%`}
+          {dropPct == null ? '\u2014' : `${dropPct.toFixed(2)}%`}
         </span>
       </Cell>
 
@@ -115,12 +116,12 @@ export function StatusBar() {
       <Cell className="text-text-2">
         <Layers className="w-3 h-3" />
         <span>WS</span>
-        <span className="text-text">{wsLabelObj?.label ?? '—'}</span>
+        <span className="text-text">{wsLabelObj?.label ?? '\u2014'}</span>
       </Cell>
 
       <Cell className="text-text-2">
         <span>SYM</span>
-        <span className="text-text">{selected ?? '—'}</span>
+        <span className="text-text">{selected ?? '\u2014'}</span>
       </Cell>
 
       <Cell
@@ -135,8 +136,8 @@ export function StatusBar() {
 
       <Cell className="text-text-faint">
         <span>{BUILD_ENV}</span>
-        <span>·</span>
-        <span>v0.2 · MAET.OS</span>
+        <span>/</span>
+        <span>v0.2 / MAET.OS</span>
       </Cell>
     </footer>
   )
@@ -146,7 +147,7 @@ function Cell({
   children,
   className,
 }: {
-  children: React.ReactNode
+  children: ReactNode
   className?: string
 }) {
   return (

@@ -56,12 +56,12 @@ module.exports = {
         md: ['14px', { lineHeight: '20px' }],
       },
       spacing: {
-        rail: '52px',
-        watchlist: '300px',
-        drawer: '340px',
+        rail: '68px',
+        watchlist: '324px',
+        drawer: '360px',
         topbar: '48px',
         statusbar: '26px',
-        dock: '240px',
+        dock: '260px',
       },
       boxShadow: {
         panel: '0 1px 0 rgba(255,255,255,0.02) inset',

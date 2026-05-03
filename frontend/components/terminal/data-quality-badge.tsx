@@ -16,6 +16,7 @@ export function DataQualityBadge({
   className,
   showDot = true,
 }: Props) {
+  const display = quality === 'UNAVAILABLE' ? 'Waiting' : quality
   return (
     <span
       className={cn(
@@ -42,7 +43,7 @@ export function DataQualityBadge({
           )}
         />
       )}
-      {quality}
+      {display}
     </span>
   )
 }

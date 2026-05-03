@@ -1,15 +1,15 @@
 'use client'
 
 import {
-  CandlestickChart,
-  Globe2,
-  LineChart,
   Briefcase,
-  Cpu,
-  ShieldCheck,
-  Notebook,
+  CandlestickChart,
   Command,
+  Cpu,
+  Globe2,
   Keyboard,
+  LineChart,
+  Notebook,
+  ShieldCheck,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
@@ -27,6 +27,12 @@ const ICONS: Record<WorkspaceId, ReactNode> = {
   journal: <Notebook className="w-4 h-4" />,
 }
 
+function railLabel(label: string) {
+  if (label === 'Strategy Lab') return 'Strategy'
+  if (label === 'Risk / System') return 'Risk'
+  return label
+}
+
 export function WorkspaceRail() {
   const activeWorkspace = useTerminalStore((s) => s.activeWorkspace)
   const setWorkspace = useTerminalStore((s) => s.setWorkspace)
@@ -38,43 +44,41 @@ export function WorkspaceRail() {
       className="w-rail shrink-0 h-full border-r border-border bg-bg-2 flex flex-col items-stretch"
       aria-label="Workspace navigation"
     >
-      {/* Logo dot */}
-      <div className="h-topbar flex items-center justify-center border-b border-border">
-        <div className="w-7 h-7 grid place-items-center rounded-sm bg-info/10 border border-info/30 text-info font-mono text-[10px] font-bold tracking-tighter">
-          M·OS
+      <div className="h-topbar flex items-center justify-center border-b border-border bg-panel/40">
+        <div className="w-9 h-8 grid place-items-center rounded-md bg-info/10 border border-info/25 text-info font-mono text-[10px] font-bold tracking-tight">
+          MAET
         </div>
       </div>
 
-      {/* Workspace items */}
-      <ul className="flex-1 py-2 flex flex-col gap-0.5">
-        {WORKSPACES.map((w) => {
-          const active = activeWorkspace === w.id
+      <ul className="flex-1 py-2 flex flex-col gap-1">
+        {WORKSPACES.map((workspace) => {
+          const active = activeWorkspace === workspace.id
           return (
-            <li key={w.id}>
+            <li key={workspace.id}>
               <button
-                onClick={() => setWorkspace(w.id)}
+                onClick={() => setWorkspace(workspace.id)}
                 className={cn(
-                  'group relative w-full h-10 flex flex-col items-center justify-center gap-0.5',
-                  'text-text-dim hover:text-text hover:bg-white/[0.03] transition-colors',
-                  active && 'text-info bg-info/[0.08]'
+                  'group relative mx-1 h-[50px] rounded-md flex flex-col items-center justify-center gap-1',
+                  'text-text-dim hover:text-text hover:bg-white/[0.04] transition-colors',
+                  active &&
+                    'text-info bg-info/[0.10] shadow-[inset_0_0_0_1px_rgba(84,193,236,0.10)]'
                 )}
-                title={`${w.label} · ${w.shortcut}`}
+                title={`${workspace.label} / ${workspace.shortcut}`}
               >
-                {/* Active accent line */}
                 {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-info" />
+                  <span className="absolute left-[-4px] top-2 bottom-2 w-[2px] rounded-r bg-info" />
                 )}
-                {ICONS[w.id]}
+                {ICONS[workspace.id]}
                 <span
                   className={cn(
-                    'text-[8.5px] font-mono uppercase tracking-wider',
-                    active ? 'text-info' : 'text-text-faint group-hover:text-text-dim'
+                    'max-w-[58px] truncate text-[9px] font-medium leading-none',
+                    active ? 'text-info' : 'text-text-dim group-hover:text-text-2'
                   )}
                 >
-                  {w.short}
+                  {railLabel(workspace.label)}
                 </span>
-                <span className="absolute right-1 top-1 text-[8px] font-mono text-text-faint">
-                  {w.shortcut}
+                <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded border border-border bg-bg text-[8px] font-mono text-text-faint">
+                  {workspace.shortcut}
                 </span>
               </button>
             </li>
@@ -82,20 +86,19 @@ export function WorkspaceRail() {
         })}
       </ul>
 
-      {/* Bottom utilities */}
-      <div className="border-t border-border py-2 flex flex-col gap-0.5">
+      <div className="border-t border-border py-2 flex flex-col gap-1">
         <button
           onClick={() => togglePalette(true)}
-          className="h-9 flex flex-col items-center justify-center gap-0.5 text-text-dim hover:text-info hover:bg-white/[0.03]"
-          title="Command palette · Ctrl K"
+          className="mx-1 h-10 rounded-md flex flex-col items-center justify-center gap-0.5 text-text-dim hover:text-info hover:bg-white/[0.04]"
+          title="Command palette / Ctrl K"
         >
           <Command className="w-3.5 h-3.5" />
           <span className="text-[8.5px] font-mono uppercase tracking-wider">CMD</span>
         </button>
         <button
           onClick={() => toggleShortcuts(true)}
-          className="h-9 flex flex-col items-center justify-center gap-0.5 text-text-dim hover:text-info hover:bg-white/[0.03]"
-          title="Keyboard shortcuts · ?"
+          className="mx-1 h-10 rounded-md flex flex-col items-center justify-center gap-0.5 text-text-dim hover:text-info hover:bg-white/[0.04]"
+          title="Keyboard shortcuts / ?"
         >
           <Keyboard className="w-3.5 h-3.5" />
           <span className="text-[8.5px] font-mono uppercase tracking-wider">KEY</span>

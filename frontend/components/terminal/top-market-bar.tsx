@@ -1,25 +1,29 @@
 'use client'
 
+import { Activity, LockKeyhole } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Activity } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { INDEX_TILES, BUILD_ENV, WORKSPACES } from '@/lib/constants'
+import { BUILD_ENV, INDEX_TILES, WORKSPACES } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 import { IndexTicker } from './index-ticker'
 import { OperatorStatusStrip } from './operator-status-strip'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
-import { cn } from '@/lib/utils'
 import type { IndexSnapshot } from '@/lib/types'
 
 function useIstClock() {
-  const [now, setNow] = useState<string>('—:—:—')
+  const [now, setNow] = useState('00:00:00')
   useEffect(() => {
     const tick = () => {
-      const d = new Date()
-      const ist = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
-      const hh = String(ist.getHours()).padStart(2, '0')
-      const mm = String(ist.getMinutes()).padStart(2, '0')
-      const ss = String(ist.getSeconds()).padStart(2, '0')
-      setNow(`${hh}:${mm}:${ss}`)
+      const date = new Date()
+      setNow(
+        date.toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      )
     }
     tick()
     const id = setInterval(tick, 1000)
@@ -35,73 +39,65 @@ export function TopMarketBar() {
   const ist = useIstClock()
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
-  for (const i of indices) indexBySymbol[i.symbol] = i
+  for (const index of indices) indexBySymbol[index.symbol] = index
 
-  const ws = WORKSPACES.find((w) => w.id === activeWorkspace)
+  const workspace = WORKSPACES.find((item) => item.id === activeWorkspace)
+  const locked = mode === 'PAPER'
 
   return (
-    <div className="h-topbar shrink-0 border-b border-border bg-bg-2 flex items-stretch">
-      {/* Brand + workspace label */}
-      <div className="flex items-center gap-3 px-3 border-r border-border min-w-[260px]">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-info" />
-          <span className="font-mono text-sm font-semibold tracking-tight">
-            MAET<span className="text-info">.OS</span>
-          </span>
+    <header className="h-topbar shrink-0 border-b border-border bg-bg-2 flex items-stretch shadow-panel">
+      <div className="w-[330px] px-3 flex items-center gap-3 border-r border-border">
+        <div className="h-8 w-8 grid place-items-center rounded-md border border-info/25 bg-info-dim text-info">
+          <Activity className="w-4 h-4" />
         </div>
-        <span className="h-4 w-px bg-border" />
-        <div className="flex flex-col leading-none">
-          <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
-            Workspace
-          </span>
-          <span className="text-xs font-mono text-text">
-            {ws ? ws.label.toUpperCase() : '—'}
-          </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold tracking-tight text-text">MAET Terminal</span>
+            <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[9px] font-mono text-text-dim">
+              {BUILD_ENV} PREVIEW
+            </span>
+          </div>
+          <div className="text-[10px] text-text-faint">
+            Market Analytics & Execution Terminal
+          </div>
         </div>
       </div>
 
-      {/* Index strip */}
-      <div className="flex-1 flex items-center gap-1.5 px-3 overflow-x-auto">
-        <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint shrink-0 mr-1">
-          IDX
-        </span>
-        {INDEX_TILES.map((t) => (
+      <div className="flex-1 min-w-0 flex items-center gap-2 px-3 overflow-x-auto">
+        <div className="mr-1 hidden xl:flex flex-col leading-none">
+          <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
+            {workspace?.label ?? 'Workspace'}
+          </span>
+          <span className="text-[10px] text-text-dim">market strip</span>
+        </div>
+        {INDEX_TILES.map((tile) => (
           <IndexTicker
-            key={t.symbol}
-            label={t.label}
-            snapshot={indexBySymbol[t.symbol]}
+            key={tile.symbol}
+            label={tile.label}
+            snapshot={indexBySymbol[tile.symbol]}
           />
         ))}
       </div>
 
-      {/* Preset + Operator + Mode + Env + Clock */}
-      <div className="flex items-center gap-2 px-3 border-l border-border">
+      <div className="min-w-[470px] px-3 flex items-center gap-2 border-l border-border">
         <WorkspacePresetSelector />
-        <OperatorStatusStrip />
-        <span className="h-4 w-px bg-border mx-1" />
         <span
           className={cn(
-            'inline-flex items-center gap-1 px-2 h-[22px] rounded-sm border text-[10px] font-mono uppercase tracking-wider',
-            mode === 'LIVE'
-              ? 'text-live border-live/30 bg-down-dim'
-              : 'text-paper border-paper/30 bg-info-dim'
+            'inline-flex items-center gap-1.5 px-2 h-[24px] rounded-sm border text-[10px] font-mono uppercase tracking-wider',
+            locked
+              ? 'text-paper border-paper/30 bg-info-dim'
+              : 'text-live border-live/30 bg-down-dim'
           )}
         >
-          <span
-            className={cn(
-              'w-1.5 h-1.5 rounded-full',
-              mode === 'LIVE' ? 'bg-live' : 'bg-paper'
-            )}
-          />
-          {mode}
+          <LockKeyhole className="w-3 h-3" />
+          {locked ? 'Paper locked' : 'Live gated'}
         </span>
-        <span className="inline-flex items-center px-2 h-[22px] rounded-sm border border-border bg-panel/60 text-[10px] font-mono uppercase tracking-wider text-text-2">
-          {BUILD_ENV}
+        <span className="inline-flex items-center px-2 h-[24px] rounded-sm border border-border bg-panel/70 text-[10px] font-mono text-text-2">
+          {ist} <span className="ml-1 text-text-faint">IST</span>
         </span>
-        <span className="inline-flex items-center px-2 h-[22px] rounded-sm border border-border bg-panel/60 text-[10px] font-mono tnum text-text">
-          {ist} <span className="text-text-faint ml-1">IST</span>
-        </span>
+        <div className="h-6 w-px bg-border mx-1" />
+        <OperatorStatusStrip />
       </div>
-    </div>
+    </header>
   )
 }

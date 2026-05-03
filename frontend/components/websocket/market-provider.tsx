@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { WS_MAX_RECONNECT_ATTEMPTS, WS_RECONNECT_DELAY, WS_URL } from '@/lib/constants'
 import type {
@@ -11,7 +12,7 @@ import type {
   WsEnvelope,
 } from '@/lib/types'
 
-export function MarketDataProvider({ children }: { children: React.ReactNode }) {
+export function MarketDataProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(false)

@@ -127,7 +127,7 @@ export const RIGHT_TABS: RightTabDef[] = [
 ]
 
 // ----- Timeframes -----
-export const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1d']
+export const TIMEFRAMES: Timeframe[] = ['1m', '3m', '5m', '15m', '1h', '1d']
 
 // ----- Index strip -----
 export const INDEX_TILES = [

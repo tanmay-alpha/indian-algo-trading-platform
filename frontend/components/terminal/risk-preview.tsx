@@ -13,6 +13,11 @@ export function RiskPreview() {
     ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '—'],
     ['Feed', broker?.feed_token_available ? 'AVAILABLE' : '—'],
     ['Tick Drop', status?.tick_bus?.drop_rate_pct == null ? '—' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
+    ['Max Qty', '—'],
+    ['Max Notional', '—'],
+    ['Max Daily Loss', '—'],
+    ['Stale Data Rule', 'BLOCK'],
+    ['Kill Switch', 'PLACEHOLDER'],
   ]
 
   return (
@@ -21,12 +26,14 @@ export function RiskPreview() {
         <ShieldCheck className="w-4 h-4" />
         <span className="font-mono text-xs uppercase tracking-wider">Risk / System</span>
       </div>
-      {rows.map(([label, value]) => (
-        <div key={label} className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-sm font-mono text-xs">
+      <div className="grid grid-cols-1 gap-2">
+        {rows.map(([label, value]) => (
+        <div key={label} className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-md font-mono text-xs">
           <span className="text-text-dim">{label}</span>
           <span className="text-text">{value}</span>
         </div>
-      ))}
+        ))}
+      </div>
       <div className="border border-warn/20 bg-warn-dim text-warn rounded-sm p-2 text-2xs font-mono leading-relaxed">
         Live trading is disabled. This panel is a safety preview only.
       </div>

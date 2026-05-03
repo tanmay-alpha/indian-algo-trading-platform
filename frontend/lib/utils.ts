@@ -10,7 +10,7 @@ export function cn(...inputs: ClassValue[]) {
 const inLocale = 'en-IN'
 
 export function fmtPrice(value: number | null | undefined, decimals = 2): string {
-  if (value == null || !Number.isFinite(value)) return '—'
+  if (value == null || !Number.isFinite(value)) return '\u2014'
   return value.toLocaleString(inLocale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -18,19 +18,19 @@ export function fmtPrice(value: number | null | undefined, decimals = 2): string
 }
 
 export function fmtPct(value: number | null | undefined, decimals = 2): string {
-  if (value == null || !Number.isFinite(value)) return '—'
+  if (value == null || !Number.isFinite(value)) return '\u2014'
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(decimals)}%`
 }
 
 export function fmtChange(value: number | null | undefined, decimals = 2): string {
-  if (value == null || !Number.isFinite(value)) return '—'
+  if (value == null || !Number.isFinite(value)) return '\u2014'
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(decimals)}`
 }
 
 export function fmtVolume(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '—'
+  if (value == null || !Number.isFinite(value)) return '\u2014'
   const abs = Math.abs(value)
   if (abs >= 1_00_00_000) return `${(value / 1_00_00_000).toFixed(2)}Cr`
   if (abs >= 1_00_000) return `${(value / 1_00_000).toFixed(2)}L`
@@ -39,7 +39,7 @@ export function fmtVolume(value: number | null | undefined): string {
 }
 
 export function fmtCurrency(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '—'
+  if (value == null || !Number.isFinite(value)) return '\u2014'
   const abs = Math.abs(value)
   if (abs >= 1_00_00_000) return `${(value / 1_00_00_000).toFixed(2)} Cr`
   if (abs >= 1_00_000) return `${(value / 1_00_000).toFixed(2)} L`
@@ -47,9 +47,9 @@ export function fmtCurrency(value: number | null | undefined): string {
 }
 
 export function fmtTime(timestamp: number | string | null | undefined): string {
-  if (!timestamp) return '—:—:—'
+  if (!timestamp) return '--:--:--'
   const d = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp)
-  if (isNaN(d.getTime())) return '—:—:—'
+  if (isNaN(d.getTime())) return '--:--:--'
   return d.toLocaleTimeString(inLocale, {
     hour: '2-digit',
     minute: '2-digit',
@@ -59,7 +59,7 @@ export function fmtTime(timestamp: number | string | null | undefined): string {
 }
 
 export function fmtAge(ms: number | null | undefined): string {
-  if (ms == null || !Number.isFinite(ms)) return '—'
+  if (ms == null || !Number.isFinite(ms)) return '\u2014'
   if (ms < 1000) return `${Math.round(ms)}ms`
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
   if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m`

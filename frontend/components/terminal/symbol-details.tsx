@@ -1,6 +1,6 @@
 'use client'
 
-import { Info } from 'lucide-react'
+import { BarChart3, Info } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { fmtPrice, fmtVolume } from '@/lib/utils'
 import { EmptyState } from './empty-state'
@@ -20,22 +20,35 @@ export function SymbolDetails() {
         <Info className="w-4 h-4" />
         <span className="font-mono text-xs uppercase tracking-wider">Symbol Details</span>
       </div>
-      <div className="border border-border bg-panel/70 rounded-sm p-3">
+      <div className="border border-border bg-panel/70 rounded-lg p-3">
         <div className="font-mono text-sm text-text">{selected}</div>
         <div className="mt-1 text-2xs font-mono text-text-dim">{row?.name ?? 'Instrument metadata unavailable'}</div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <InfoRow label="Exchange" value={row?.exchange ?? '—'} />
+        <InfoRow label="Token" value={row?.token ?? '—'} />
       </div>
       <InfoRow label="LTP" value={fmtPrice(row?.ltp)} />
       <InfoRow label="Best Bid" value={fmtPrice(row?.best_bid)} />
       <InfoRow label="Best Ask" value={fmtPrice(row?.best_ask)} />
       <InfoRow label="VWAP" value={fmtPrice(row?.vwap)} />
       <InfoRow label="Volume" value={fmtVolume(row?.volume)} />
+      <div className="rounded-lg border border-border bg-bg p-3">
+        <div className="flex items-center gap-2 text-info">
+          <BarChart3 className="w-4 h-4" />
+          <span className="text-xs font-semibold">Candle status</span>
+        </div>
+        <p className="mt-1 text-2xs font-mono leading-relaxed text-text-dim">
+          Waiting for historical candle source. No synthetic chart data is displayed.
+        </p>
+      </div>
     </div>
   )
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-sm font-mono text-xs">
+    <div className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-md font-mono text-xs">
       <span className="text-text-dim">{label}</span>
       <span className="text-text">{value}</span>
     </div>

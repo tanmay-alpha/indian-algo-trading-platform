@@ -88,7 +88,7 @@ export function CommandPalette() {
       ...PRESETS.map<PaletteCommand>((p) => ({
         id: `pr-${p.id}`,
         kind: 'preset',
-        label: `Apply preset · ${p.label}`,
+        label: `Apply preset - ${p.label}`,
         hint: p.description,
         payload: { presetId: p.id },
       })),
@@ -96,19 +96,19 @@ export function CommandPalette() {
         id: 'sys-events',
         kind: 'system',
         label: 'Show system events',
-        hint: 'Bottom dock · Events',
+        hint: 'Bottom dock - Events',
       },
       {
         id: 'sys-health',
         kind: 'system',
         label: 'Show system health',
-        hint: 'Bottom dock · System Health',
+        hint: 'Bottom dock - System Health',
       },
       {
         id: 'sys-signals',
         kind: 'system',
         label: 'Show signal feed',
-        hint: 'Right drawer · Signals',
+        hint: 'Right drawer - Signals',
       },
       {
         id: 'pl-buy',
@@ -143,15 +143,15 @@ export function CommandPalette() {
         {
           id: `sym-open-${inst.token}`,
           kind: 'symbol',
-          label: `Open chart · ${inst.symbol}`,
-          hint: `${inst.name} · ${inst.exchange}`,
+          label: `Open chart - ${inst.symbol}`,
+          hint: `${inst.name} - ${inst.exchange}`,
           payload: { symbol: inst.symbol },
         } as PaletteCommand,
         {
           id: `sym-add-${inst.token}`,
           kind: 'symbol',
-          label: `Add to watchlist · ${inst.symbol}`,
-          hint: `${inst.name} · ${inst.exchange}`,
+          label: `Add to watchlist - ${inst.symbol}`,
+          hint: `${inst.name} - ${inst.exchange}`,
           payload: { symbol: inst.symbol },
         } as PaletteCommand,
       ]),
@@ -204,7 +204,7 @@ export function CommandPalette() {
         event_type: 'placeholder',
         component: 'CMD',
         severity: 'warning',
-        message: `${c.label} — placeholder, live execution disabled`,
+        message: `${c.label} - placeholder, live execution disabled`,
       })
       return
     }
@@ -257,11 +257,11 @@ export function CommandPalette() {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search symbols, workspaces, presets, commands…"
+            placeholder="Search symbols, workspaces, presets, commands..."
             className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-text-dim"
           />
           <span className="text-[10px] font-mono text-text-faint">
-            {searching ? 'searching…' : `${commands.length} results`}
+            {searching ? 'searching...' : `${commands.length} results`}
           </span>
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-[18px] rounded-sm border border-border text-[9px] font-mono text-text-dim">
             ESC
@@ -315,8 +315,8 @@ export function CommandPalette() {
             <span>MAET.OS Command Layer</span>
           </span>
           <span className="flex items-center gap-3">
-            <span>↑↓ navigate</span>
-            <span>↵ run</span>
+            <span>Up/Down navigate</span>
+            <span>Enter run</span>
             <span>esc close</span>
           </span>
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
-import { cn, fmtPrice, fmtPct, priceDirClass } from '@/lib/utils'
-import type { IndexSnapshot, DataQuality } from '@/lib/types'
+import type { DataQuality, IndexSnapshot } from '@/lib/types'
+import { cn, fmtPct, fmtPrice, priceDirClass } from '@/lib/utils'
 import { DataQualityBadge } from './data-quality-badge'
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function IndexTicker({ label, snapshot, className }: Props) {
-  const hasData = snapshot && snapshot.ltp != null
+  const hasData = snapshot?.ltp != null
   const change = snapshot?.change ?? null
   const changePct = snapshot?.change_pct ?? null
   const quality: DataQuality =
@@ -25,11 +25,11 @@ export function IndexTicker({ label, snapshot, className }: Props) {
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-2.5 h-8 rounded-sm border border-border bg-panel/60 hover:border-border-strong transition-colors shrink-0',
+        'min-w-[142px] flex items-center gap-2 px-2.5 h-8 rounded-md border border-border bg-panel/70 hover:border-border-strong transition-colors shrink-0',
         className
       )}
     >
-      <span className="text-[10px] font-mono uppercase tracking-wider text-text-2">
+      <span className="min-w-0 flex-1 truncate text-[10px] font-medium uppercase tracking-wide text-text-2">
         {label}
       </span>
       <span
@@ -42,13 +42,13 @@ export function IndexTicker({ label, snapshot, className }: Props) {
       </span>
       <span
         className={cn(
-          'text-2xs font-mono tnum',
+          'w-12 text-right text-2xs font-mono tnum',
           hasData ? priceDirClass(change) : 'text-text-faint'
         )}
       >
         {hasData ? fmtPct(changePct) : '—'}
       </span>
-      <DataQualityBadge quality={quality} />
+      <DataQualityBadge quality={quality} showDot={false} />
     </div>
   )
 }

@@ -277,4 +277,4 @@ export interface WsEnvelope<T = unknown> {
 }
 
 // ----- Chart timeframe -----
-export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1d'
+export type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '1d'

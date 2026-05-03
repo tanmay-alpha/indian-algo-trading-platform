@@ -16,15 +16,19 @@ export function RightTradePanel() {
   return (
     <aside
       aria-label="Symbol intelligence drawer"
-      className="w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col"
+      className="w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col shadow-panel"
     >
-      <div className="flex border-b border-border bg-panel/30">
+      <div className="px-3 py-2 border-b border-border bg-panel/40">
+        <div className="text-xs font-semibold text-text">Symbol Command</div>
+        <div className="text-[10px] text-text-faint">Order, risk, signals, and notes</div>
+      </div>
+      <div className="flex border-b border-border bg-bg">
         {RIGHT_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              'flex-1 h-9 text-2xs font-mono uppercase tracking-wider transition-colors border-b-2',
+              'flex-1 h-8 text-2xs font-medium transition-colors border-b-2',
               tab === t.id
                 ? 'text-info border-info bg-info/[0.06]'
                 : 'text-text-dim border-transparent hover:text-text hover:bg-white/[0.03]'

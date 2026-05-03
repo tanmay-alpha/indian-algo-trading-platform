@@ -33,14 +33,14 @@ export function BottomDock() {
   const setTab = useTerminalStore((s) => s.setBottomDockTab)
 
   return (
-    <section className="h-dock shrink-0 border-t border-border bg-bg-2 flex flex-col">
-      <div className="h-8 flex items-center border-b border-border overflow-x-auto">
+    <section className="h-dock shrink-0 border-t border-border bg-bg-2 flex flex-col shadow-panel">
+      <div className="h-9 flex items-center border-b border-border overflow-x-auto bg-panel/30">
         {DOCK_TABS.map((dockTab) => (
           <button
             key={dockTab.id}
             onClick={() => setTab(dockTab.id)}
             className={cn(
-              'h-8 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-2xs font-mono uppercase tracking-wider transition-colors',
+              'h-9 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-2xs font-medium transition-colors',
               tab === dockTab.id
                 ? 'text-info bg-info/[0.07] border-b-info'
                 : 'text-text-dim border-b-transparent hover:text-text hover:bg-white/[0.03]'
@@ -52,16 +52,39 @@ export function BottomDock() {
         ))}
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
-        {tab === 'orders' && <NoRows title="NO ORDERS" hint="Order placement is disabled in this build." />}
-        {tab === 'positions' && <NoRows title="NO POSITIONS" hint="Positions will appear only after paper execution is wired." />}
-        {tab === 'holdings' && <NoRows title="NO HOLDINGS" hint="Holdings endpoint is not connected yet." />}
-        {tab === 'trades' && <NoRows title="NO TRADES" hint="Trade history is empty." />}
+        {tab === 'orders' && <TableEmpty title="No orders yet" hint="Order execution is disabled in this build." columns={['Time', 'Symbol', 'Side', 'Qty', 'Status']} />}
+        {tab === 'positions' && <TableEmpty title="No positions connected" hint="Paper portfolio and broker reconciliation will appear here." columns={['Symbol', 'Qty', 'Avg', 'LTP', 'PnL']} />}
+        {tab === 'holdings' && <TableEmpty title="No holdings connected" hint="Holdings endpoint is not connected yet." columns={['Symbol', 'Qty', 'Avg', 'LTP', 'PnL']} />}
+        {tab === 'trades' && <TableEmpty title="No trades" hint="Trade history is empty." columns={['Time', 'Symbol', 'Side', 'Qty', 'Price']} />}
         {tab === 'pnl' && <PnLContent />}
         {tab === 'signals' && <SignalsContent />}
         {tab === 'events' && <EventsContent />}
         {tab === 'system-health' && <HealthContent />}
       </div>
     </section>
+  )
+}
+
+function TableEmpty({
+  title,
+  hint,
+  columns,
+}: {
+  title: string
+  hint: string
+  columns: string[]
+}) {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="h-7 grid grid-cols-5 gap-2 px-3 items-center border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint">
+        {columns.map((column) => (
+          <span key={column}>{column}</span>
+        ))}
+      </div>
+      <div className="flex-1 grid place-items-center">
+        <EmptyState title={title} hint={hint} compact />
+      </div>
+    </div>
   )
 }
 
@@ -72,7 +95,7 @@ function NoRows({ title, hint }: { title: string; hint: string }) {
 function PnLContent() {
   const portfolio = useTerminalStore((s) => s.portfolio)
   if (!portfolio) {
-    return <NoRows title="PNL UNAVAILABLE" hint="No backend PnL snapshot has been received." />
+    return <NoRows title="No PnL data connected" hint="PnL requires portfolio and event integration." />
   }
   const rows = [
     ['Unrealised', fmtPrice(portfolio.unrealized_pnl)],
@@ -96,7 +119,7 @@ function SignalsContent() {
           <span className={cn('w-14 text-2xs', signal.action === 'BUY' ? 'text-up' : signal.action === 'SELL' ? 'text-down' : 'text-text-dim')}>
             {signal.action}
           </span>
-          <span className="flex-1 text-2xs text-text-dim truncate">{signal.reason ?? '—'}</span>
+          <span className="flex-1 text-2xs text-text-dim truncate">{signal.reason ?? '\u2014'}</span>
         </div>
       ))}
     </div>
@@ -109,15 +132,25 @@ function EventsContent() {
     return <NoRows title="NO EVENTS" hint="System events and unknown WebSocket envelopes will appear here." />
   }
   return (
-    <div className="p-2 space-y-1 font-mono text-2xs">
+    <div className="h-full flex flex-col font-mono text-2xs">
+      <div className="h-7 grid grid-cols-[86px_84px_84px_1fr_70px] gap-2 px-3 items-center border-b border-border bg-bg uppercase tracking-wider text-text-faint">
+        <span>Time</span>
+        <span>Type</span>
+        <span>Component</span>
+        <span>Message</span>
+        <span>State</span>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
       {events.slice(0, 40).map((event) => (
-        <div key={event.id} className="px-2 py-1 flex items-start gap-2 border border-border/60 bg-panel/60">
-          <span className="w-20 shrink-0 text-text-faint">{fmtTime(event.ts)}</span>
-          <span className="w-20 shrink-0 text-info">{event.component ?? event.event_type}</span>
-          <span className={cn('w-16 shrink-0 uppercase', severityClass(event.severity))}>{event.severity}</span>
-          <span className="flex-1 text-text-2">{event.message}</span>
+        <div key={event.id} className="min-h-7 px-2 py-1 grid grid-cols-[78px_76px_84px_1fr_64px] gap-2 items-start border border-border/60 bg-panel/60 rounded-sm">
+          <span className="text-text-faint">{fmtTime(event.ts)}</span>
+          <span className="text-info">{event.event_type}</span>
+          <span className="text-text-dim">{event.component ?? 'UI'}</span>
+          <span className="text-text-2">{event.message}</span>
+          <span className={cn('uppercase', severityClass(event.severity))}>{event.severity}</span>
         </div>
       ))}
+      </div>
     </div>
   )
 }
@@ -125,11 +158,16 @@ function EventsContent() {
 function HealthContent() {
   const status = useTerminalStore((s) => s.terminalStatus)
   const broker = useTerminalStore((s) => s.brokerStatus)
+  const wsConnected = useTerminalStore((s) => s.wsConnected)
   const rows = [
-    ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '—'],
-    ['Feed', broker?.feed_token_available ? 'AVAILABLE' : broker ? 'UNAVAILABLE' : '—'],
-    ['EventBus', String(status?.event_bus?.total ?? '—')],
-    ['TickBus Drop', status?.tick_bus?.drop_rate_pct == null ? '—' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
+    ['API', status ? 'ONLINE' : '\u2014'],
+    ['WebSocket', wsConnected ? 'ONLINE' : 'OFFLINE'],
+    ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '\u2014'],
+    ['Feed', broker?.feed_token_available ? 'AVAILABLE' : broker ? 'WAITING' : '\u2014'],
+    ['EventBus', String(status?.event_bus?.total ?? '\u2014')],
+    ['TickBus Drop', status?.tick_bus?.drop_rate_pct == null ? '\u2014' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
+    ['Candle Engine', status?.candles ? 'READY' : '\u2014'],
+    ['Frontend', 'READY'],
   ]
   return <KeyValueGrid rows={rows} />
 }
