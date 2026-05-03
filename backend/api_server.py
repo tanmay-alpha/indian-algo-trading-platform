@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import asyncio
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 from backend.candles.candle_fetcher import CandleFetcher
 from backend.candles.candle_store import CandleStore
@@ -40,10 +41,24 @@ def safe_error_message(error):
 
 app = FastAPI(title="High-Frequency Trading Terminal")
 
+def get_cors_origins() -> list[str]:
+    local_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
+    configured = settings.allowed_origin_list
+    origins = list(dict.fromkeys([*local_origins, *configured]))
+    if settings.environment.upper() == "PRODUCTION":
+        origins = [origin for origin in origins if origin != "*"]
+    return origins
+
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_cors_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -312,6 +327,29 @@ def health_check():
         "portfolio_engine": portfolio_engine.get_summary(),
     }
 
+@app.get("/live")
+def live_check():
+    return {"status": "alive"}
+
+@app.get("/ready")
+def ready_check():
+    db_path = Path(settings.db_path)
+    db_parent = db_path.parent if db_path.parent != Path("") else Path(".")
+    gateway_status = gateway.status() if gateway else None
+    return {
+        "status": "ready",
+        "app": {"status": "online", "environment": settings.environment},
+        "broker": get_broker_status(),
+        "gateway": gateway_status,
+        "database": {
+            "path_configured": bool(settings.db_path),
+            "parent_exists": db_parent.exists(),
+            "path": settings.db_path,
+        },
+        "trading_mode": execution_mode,
+        "live_trading_enabled": settings.live_trading_enabled,
+    }
+
 @app.get("/instruments/search")
 def search_instruments(q: str = Query(default=""), limit: int = Query(default=20, ge=1, le=100)):
     return {
@@ -426,6 +464,7 @@ def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
 
     return res
 
+@app.websocket("/ws/market_stream")
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket):
     """Handles frontend terminal connections via the unified broadcaster."""

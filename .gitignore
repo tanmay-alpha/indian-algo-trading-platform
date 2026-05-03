@@ -4,8 +4,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 logs/
+data/*.db
 node_modules/
 .next/
+frontend/.next/
+frontend/node_modules/
 dist/
 build/
 coverage/

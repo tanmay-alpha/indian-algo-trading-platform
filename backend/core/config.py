@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, DotEnvSettingsSource, PydanticBaseSettingsSource, SettingsConfigDict
@@ -22,8 +23,21 @@ class Settings(BaseSettings):
     jwt_refresh_interval_minutes: int = 30
     ws_reconnect_delay_seconds: int = 3
     live_trading_enabled: bool = False
+    allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+    environment: str = "LOCAL"
+    public_backend_url: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
+    @property
+    def allowed_origin_list(self) -> list[str]:
+        if not self.allowed_origins:
+            return []
+        return [
+            origin.strip()
+            for origin in self.allowed_origins.split(",")
+            if origin.strip()
+        ]
 
     @classmethod
     def settings_customise_sources(
