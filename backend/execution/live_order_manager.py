@@ -3,6 +3,8 @@
 class LiveOrderManager:
 
     def __init__(self, session):
+        if not session or not getattr(session, "smart", None):
+            raise ValueError("Live execution requires an initialized broker session")
         self.session = session # AngelSession object
         self.smart = session.smart
 

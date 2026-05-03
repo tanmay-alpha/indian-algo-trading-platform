@@ -1,22 +1,18 @@
-import os
 import time
 import pyotp
 import threading
 import logging
-from dotenv import load_dotenv
 from SmartApi import SmartConnect
 from SmartApi.smartWebSocketV2 import SmartWebSocketV2
+from backend.core.config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# 1. LOAD ENV
-load_dotenv(override=True)
-
-api_key = os.getenv("ANGEL_API_KEY")
-client_id = os.getenv("ANGEL_CLIENT_ID")
-password = os.getenv("ANGEL_PASSWORD")
-totp_secret = os.getenv("ANGEL_TOTP_SECRET")
+api_key = settings.angel_api_key
+client_id = settings.angel_client_code
+password = settings.angel_password
+totp_secret = settings.angel_totp_secret
 
 if not all([api_key, client_id, password, totp_secret]):
     logger.error("Missing ENV variables")

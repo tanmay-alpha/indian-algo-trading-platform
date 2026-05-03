@@ -1,5 +1,4 @@
 import threading
-import json
 import logging
 from SmartApi.smartWebSocketV2 import SmartWebSocketV2
 from backend.core.session import AngelSession
@@ -7,26 +6,31 @@ from backend.core.session import AngelSession
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+def safe_error_message(error):
+    message = str(error) or error.__class__.__name__
+    sensitive_terms = ("api_key", "password", "secret", "jwt", "refresh", "feed", "token")
+    if any(term in message.lower() for term in sensitive_terms):
+        return error.__class__.__name__
+    return message
+
 class MarketDataGateway:
     """
     Live Market Data Gateway (MDG) for Angel One SmartAPI.
     Funnels live ticks into the system without blocking.
     """
     def __init__(self, broadcaster=None, loop=None):
-        logger.info("GATEWAY: Initializing Live Market Data Gateway...")
-        
-        # 1. Ensure active session
-        self.session = AngelSession().login()
-        
-        self.api_key = self.session.api_key
-        self.client_code = self.session.client_id
-        self.jwt_token = self.session.jwt_token
-        self.feed_token = self.session.feed_token
-        
+        logger.info("GATEWAY: Market Data Gateway created.")
+
+        self.session = None
+        self.api_key = None
+        self.client_code = None
+        self.jwt_token = None
+        self.feed_token = None
+
         self.broadcaster = broadcaster
         self.loop = loop
 
-        # 2. Subscriptions setup (MUST be string tokens)
+        # Subscriptions setup (MUST be string tokens)
         self.subscriptions = {
             "3045": "SBIN-EQ",
             "2885": "RELIANCE-EQ",
@@ -37,6 +41,41 @@ class MarketDataGateway:
         self.latest_data = {}
         self.sws = None
         self.ws_thread = None
+        self.status = {
+            "configured": AngelSession.config_status()["configured"],
+            "logged_in": False,
+            "feed_token_available": False,
+            "websocket_started": False,
+            "last_error": None,
+        }
+
+    def initialize_session(self):
+        """Login to Angel only when explicitly requested."""
+        config = AngelSession.config_status()
+        self.status["configured"] = config["configured"]
+        self.status["last_error"] = None
+
+        if not config["configured"]:
+            self.status["last_error"] = f"Missing broker config: {', '.join(config['missing'])}"
+            logger.warning("MDG: Broker configuration is incomplete; market stream will not start.")
+            return False
+
+        try:
+            self.session = AngelSession().login()
+            self.api_key = self.session.api_key
+            self.client_code = self.session.client_id
+            self.jwt_token = self.session.jwt_token
+            self.feed_token = self.session.feed_token
+            self.status["logged_in"] = True
+            self.status["feed_token_available"] = bool(self.feed_token)
+            return True
+        except Exception as e:
+            self.status["logged_in"] = False
+            self.status["feed_token_available"] = False
+            self.status["websocket_started"] = False
+            self.status["last_error"] = safe_error_message(e)
+            logger.error(f"MDG: Broker login failed: {self.status['last_error']}")
+            return False
 
     def on_data(self, ws, message):
         """Callback for incoming WebSocket data."""
@@ -99,15 +138,20 @@ class MarketDataGateway:
         )
 
     def on_error(self, ws, error):
-        logger.error(f"MDG: WebSocket Error: {error}")
+        self.status["last_error"] = "WebSocket error"
+        logger.error("MDG: WebSocket Error")
 
     # CRITICAL FIX: on_close signature takes 3 args in modern websocket-client
     def on_close(self, ws, close_status_code, close_msg):
-        logger.warning(f"MDG: Connection closed. Code: {close_status_code}, Msg: {close_msg}")
+        self.status["websocket_started"] = False
+        logger.warning(f"MDG: Connection closed. Code: {close_status_code}")
 
     def start(self):
         """Initializes and connects the SmartWebSocketV2 non-blockingly."""
         try:
+            if not self.session and not self.initialize_session():
+                return False
+
             self.sws = SmartWebSocketV2(
                 self.jwt_token,
                 self.api_key,
@@ -125,6 +169,12 @@ class MarketDataGateway:
             # CRITICAL FIX: Run in daemon thread to prevent freezing main process
             self.ws_thread = threading.Thread(target=self.sws.connect, daemon=True)
             self.ws_thread.start()
+            self.status["websocket_started"] = True
+            self.status["last_error"] = None
+            return True
             
         except Exception as e:
-            logger.error(f"MDG Fatal Startup Error: {e}")
+            self.status["websocket_started"] = False
+            self.status["last_error"] = safe_error_message(e)
+            logger.error(f"MDG Fatal Startup Error: {self.status['last_error']}")
+            return False

@@ -1,25 +1,34 @@
-import os
 import time
 import pyotp
 import logging
-from dotenv import load_dotenv
 from SmartApi import SmartConnect
+from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV_PATH = os.path.join(BASE_DIR, ".env")
-load_dotenv(dotenv_path=ENV_PATH, override=True)
-
 class AngelSession:
+    @staticmethod
+    def config_status():
+        """Return broker config presence without exposing values."""
+        return {
+            "configured": all([
+                settings.angel_api_key,
+                settings.angel_client_code,
+                settings.angel_password,
+                settings.angel_totp_secret,
+            ]),
+            "missing": [],
+        }
+
     def __init__(self):
-        self.api_key = os.getenv("ANGEL_API_KEY")
-        self.client_id = os.getenv("ANGEL_CLIENT_ID")
-        self.password = os.getenv("ANGEL_PASSWORD")
-        self.totp_secret = os.getenv("ANGEL_TOTP_SECRET")
+        self.api_key = settings.angel_api_key
+        self.client_id = settings.angel_client_code
+        self.password = settings.angel_password
+        self.totp_secret = settings.angel_totp_secret
 
         if not all([self.api_key, self.client_id, self.password, self.totp_secret]):
-            raise ValueError("CRITICAL: Missing Angel One environment variables in .env")
+            missing = AngelSession.config_status()["missing"]
+            raise ValueError(f"Missing Angel One environment variables: {', '.join(missing)}")
 
         self.smart = None
         self.jwt_token = None
@@ -39,7 +48,7 @@ class AngelSession:
         
         # Handle time drift retry
         if not data or not data.get("status"):
-            logger.warning(f"SESSION: Login failed, possible TOTP time drift. Retrying... Response: {data}")
+            logger.warning("SESSION: Login failed, possible TOTP time drift. Retrying...")
             time.sleep(1) # Wait for potential window rollover
             totp = self._get_totp()
             data = self.smart.generateSession(self.client_id, self.password, totp)
@@ -47,9 +56,9 @@ class AngelSession:
             if not data or not data.get("status"):
                 error_msg = data.get("message", "Unknown error") if data else "Empty response"
                 if "Invalid TOTP" in error_msg:
-                    raise Exception(f"Login failed: Invalid TOTP. Check PC time sync! Response: {data}")
+                    raise Exception("Login failed: Invalid TOTP. Check PC time sync.")
                 else:
-                    raise Exception(f"Login failed: Check Credentials. Response: {data}")
+                    raise Exception(f"Login failed: {error_msg}")
 
         logger.info(f"SESSION: Structured Login Response: {{'status': {data.get('status')}, 'message': '{data.get('message')}'}}")
 
