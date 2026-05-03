@@ -1,13 +1,27 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+})
+
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono',
+})
+
 export const metadata: Metadata = {
-  title: 'MAET Terminal - Institutional Trading Platform',
-  description: 'Professional algorithmic trading terminal for Indian equity markets',
+  title: 'MAET Terminal OS',
+  description:
+    'Institutional broker-terminal and algorithmic trading workstation for Indian markets.',
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0b0e14',
+  themeColor: '#060810',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -20,8 +34,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="bg-background">
-      <body className="antialiased overflow-hidden">{children}</body>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetbrains.variable} bg-bg`}
+    >
+      <body className="bg-bg text-text antialiased overflow-hidden">
+        {children}
+      </body>
     </html>
   )
 }

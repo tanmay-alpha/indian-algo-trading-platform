@@ -1,15 +1,120 @@
-// Market Data Types
-export interface TickData {
-  type: 'TICK'
+// =====================================================
+// MAET Terminal OS — Type Definitions
+// =====================================================
+
+// ----- Workspace / Preset -----
+export type WorkspaceId =
+  | 'trade'
+  | 'markets'
+  | 'charts'
+  | 'portfolio'
+  | 'strategy'
+  | 'risk'
+  | 'journal'
+
+export type PresetId =
+  | 'scalper'
+  | 'swing'
+  | 'risk-monitor'
+  | 'strategy-lab'
+  | 'market-discovery'
+  | 'portfolio-review'
+
+export type RightPanelTab = 'order' | 'symbol' | 'risk' | 'signals' | 'notes'
+
+export type DockTabId =
+  | 'orders'
+  | 'positions'
+  | 'holdings'
+  | 'trades'
+  | 'pnl'
+  | 'signals'
+  | 'events'
+  | 'system-health'
+
+// ----- Data Quality -----
+export type DataQuality =
+  | 'LIVE'
+  | 'STALE'
+  | 'DELAYED'
+  | 'UNAVAILABLE'
+  | 'BACKEND OFFLINE'
+  | 'MOCK'
+  | 'LOADING'
+  | 'ERROR'
+
+export type OperatorState =
+  | 'ONLINE'
+  | 'DEGRADED'
+  | 'OFFLINE'
+  | 'LOCKED'
+  | 'STALE'
+  | 'UNAVAILABLE'
+  | 'BACKEND OFFLINE'
+
+// ----- Market data -----
+export interface Instrument {
   symbol: string
+  name: string
+  exchange: string
   token: string
-  price: number
+  instrument_type?: string
+  lot_size?: number
+  tick_size?: number
+}
+
+export interface MarketWatchRow {
+  symbol: string
+  name?: string
+  exchange?: string
+  token?: string
+  ltp?: number | null
+  previous_ltp?: number | null
+  change?: number | null
+  change_pct?: number | null
+  volume?: number | null
+  best_bid?: number | null
+  best_ask?: number | null
+  spread?: number | null
+  vwap?: number | null
+  last_update?: string | null
+  stale?: boolean
+  quality?: DataQuality
+}
+
+export interface IndexSnapshot {
+  symbol: string
+  name?: string
+  exchange?: string
+  token?: string | null
+  ltp: number | null
+  change: number | null
+  change_pct: number | null
+  status?: string
+  quality?: DataQuality
+}
+
+// ----- Live tick payload -----
+export interface TickPayload {
+  symbol: string
+  token?: string
+  exchange?: string
+  ltp?: number
+  price?: number
+  best_bid?: number
+  best_ask?: number
+  spread?: number
   vwap?: number
+  volume?: number
+  bid_qty?: number
+  ask_qty?: number
+  ltq?: number
+  exchange_timestamp?: string
+  received_at?: string
   signal?: 'BUY' | 'SELL' | 'NEUTRAL'
-  portfolio: PortfolioPerformance
-  mode: 'PAPER' | 'LIVE'
-  auto_pilot: boolean
-  timestamp?: number
+  portfolio?: PortfolioPerformance
+  mode?: 'PAPER' | 'LIVE'
+  auto_pilot?: boolean
 }
 
 export interface PortfolioPerformance {
@@ -21,111 +126,154 @@ export interface PortfolioPerformance {
   max_drawdown: number
 }
 
+// ----- System / Operator status -----
 export interface GatewayStatus {
+  connection_state?: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED'
+  tick_count?: number
+  dropped_tick_count?: number
+  drop_rate_pct?: number
+  subscribed_symbols?: string[] | number
+  last_tick_age_seconds?: number
+  last_error?: string | null
+}
+
+export interface BrokerStatus {
   configured: boolean
   logged_in: boolean
   feed_token_available: boolean
   websocket_started: boolean
   last_error: string | null
+  gateway?: GatewayStatus
 }
 
+export interface TickBusStats {
+  total?: number
+  dropped?: number
+  drop_rate_pct?: number
+  current_size?: number
+  maxsize?: number
+}
+
+export interface EventBusStats {
+  published?: number
+  subscribers?: number
+  failures?: number
+}
+
+export interface CandleStoreStats {
+  symbols?: number
+  candles?: number
+  last_update?: string
+}
+
+export interface TerminalStatus {
+  app?: { status: string }
+  broker?: BrokerStatus
+  gateway?: GatewayStatus | null
+  event_bus?: EventBusStats
+  tick_bus?: TickBusStats | null
+  candles?: CandleStoreStats
+  trading_mode?: 'PAPER' | 'LIVE'
+}
+
+// ----- Health endpoint -----
 export interface HealthResponse {
   status: 'online' | 'offline'
   mode: 'PAPER' | 'LIVE'
-  broker: GatewayStatus
+  broker: BrokerStatus
   portfolio: PortfolioPerformance
 }
 
-export interface IndexData {
-  symbol: string
-  name: string
-  price: number
-  change: number
-  change_percent: number
+// ----- Candle -----
+export interface Candle {
+  time: string | number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume?: number
 }
 
-export interface Instrument {
-  symbol: string
-  token: string
-  name: string
-  exchange: string
-  tradingsymbol: string
-}
+// ----- Events / Logs / Signals -----
+export type EventSeverity = 'info' | 'success' | 'warning' | 'error'
 
-export interface WatchlistItem {
-  symbol: string
-  token: string
-  name: string
-  ltp: number
-  change: number
-  changePercent: number
-  prevClose?: number
-}
-
-export interface Order {
+export interface SystemEvent {
   id: string
+  event_type: string
+  ts: number
+  component?: string
+  severity: EventSeverity
+  message: string
+  symbol?: string
+  payload?: unknown
+  quality?: DataQuality
+}
+
+export interface SignalEvent {
+  symbol: string
+  strategy_name?: string
+  action: 'BUY' | 'SELL' | 'NEUTRAL'
+  strength?: number
+  reason?: string
+  ltp?: number
+  generated_at?: string
+  ts?: number
+  quality?: DataQuality
+}
+
+// ----- Watchlist -----
+export interface WatchlistGroup {
+  id: string
+  name: string
+  symbols: string[]
+}
+
+// ----- Right panel rows (placeholders) -----
+export interface OrderRow {
+  id: string
+  ts: number
   symbol: string
   side: 'BUY' | 'SELL'
   qty: number
-  price: number
-  status: 'PENDING' | 'EXECUTED' | 'REJECTED' | 'CANCELLED'
-  timestamp: number
+  price: number | null
+  status: string
   mode: 'PAPER' | 'LIVE'
 }
 
-export interface Position {
+export interface PositionRow {
   symbol: string
   side: 'BUY' | 'SELL'
   qty: number
-  avgPrice: number
-  currentPrice: number
-  pnl: number
-  pnlPercent: number
+  avg_price: number
+  ltp: number | null
+  unrealized_pnl: number | null
 }
 
-export interface WebSocketMessage {
-  type: 'TICK' | 'SIGNAL' | 'GATEWAY_STATUS' | 'ERROR'
-  data?: TickData
-  signal?: string
-  status?: GatewayStatus
-  error?: string
+export interface HoldingRow {
+  symbol: string
+  qty: number
+  avg_price: number
+  ltp: number | null
+  pnl: number | null
 }
 
-// Terminal Store State
-export interface TerminalState {
-  // Connection
-  isConnected: boolean
-  connectionError: string | null
-  lastUpdate: number | null
-  
-  // Market Data
-  currentTick: TickData | null
-  watchlist: WatchlistItem[]
-  indices: IndexData[]
-  
-  // Trading
-  executionMode: 'PAPER' | 'LIVE'
-  autoPilot: boolean
-  
-  // Portfolio
-  portfolio: PortfolioPerformance | null
-  
-  // Orders & Positions
-  orders: Order[]
-  positions: Position[]
-  
-  // Gateway
-  gatewayStatus: GatewayStatus | null
-  
-  // Actions
-  setConnected: (connected: boolean) => void
-  setConnectionError: (error: string | null) => void
-  updateTick: (tick: TickData) => void
-  setIndices: (indices: IndexData[]) => void
-  addToWatchlist: (item: WatchlistItem) => void
-  removeFromWatchlist: (symbol: string) => void
-  setExecutionMode: (mode: 'PAPER' | 'LIVE') => void
-  setAutoPilot: (enabled: boolean) => void
-  setGatewayStatus: (status: GatewayStatus) => void
-  reset: () => void
+export interface TradeRow {
+  ts: number
+  symbol: string
+  side: 'BUY' | 'SELL'
+  qty: number
+  price: number
+  mode: 'PAPER' | 'LIVE'
 }
+
+// ----- WebSocket envelope -----
+export interface WsEnvelope<T = unknown> {
+  type: string
+  payload?: T
+  ts?: string
+  // Some legacy events may flatten fields onto root
+  [k: string]: unknown
+}
+
+// ----- Chart timeframe -----
+export type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '1d'
