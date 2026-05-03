@@ -7,3 +7,7 @@ websocket-client
 numpy
 pandas
 pydantic-settings
+ntplib
+loguru
+pytest
+pytest-asyncio
