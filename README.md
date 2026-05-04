@@ -44,25 +44,19 @@ Vercel Frontend
 
 ## Local Setup
 
+1. Clone repo.
+2. Copy `.env.example` to `.env` and fill values locally.
+3. Install backend dependencies.
+4. Start FastAPI.
+5. Install and start the Next.js frontend.
+
 ```bash
 git clone <repo-url>
 cd indian-algo-trading-platform
-```
-
-Backend:
-
-```bash
-# If a backend/.env.example template is added later:
-# cp backend/.env.example backend/.env
-#
-# Current repo intentionally does not include backend secrets.
-# Create backend/.env privately using the variable names in docs/ENVIRONMENT.md.
-# Do not commit backend/.env.
+cp .env.example .env
 pip install -r requirements.txt
 uvicorn backend.api_server:app --reload
 ```
-
-Frontend:
 
 ```bash
 cd frontend
@@ -70,7 +64,7 @@ npm install
 npm run dev
 ```
 
-Required backend environment variable names are documented in `docs/ENVIRONMENT.md`. Use `frontend/.env.example` for public frontend URL variable names.
+Do not commit real `.env` files. Required backend environment variable names are documented in `docs/ENVIRONMENT.md`. Use `frontend/.env.example` for public frontend URL variable names.
 
 ## Deployment
 
@@ -117,6 +111,7 @@ Production path:
 
 - C++ indicator core
 - `pybind11` bridge
+- Full instrument master coverage for index, derivatives, and production-grade symbol metadata
 - Full strategy engine
 - Backtesting engine
 - Persistent database

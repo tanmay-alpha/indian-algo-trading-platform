@@ -56,6 +56,20 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 - `backend/routers/*`: API routers for candles and portfolio.
 - `frontend/*`: Next.js trading terminal UI, WebSocket client, REST fallback, market/watchlist/portfolio surfaces.
 
+## Phase Completion Summary
+
+| Phase | Summary |
+|---|---|
+| Phase 7 | EventBus wiring, candle engine, and chart foundation |
+| Phase 8 | Order intent model, execution safety layer, kill switch, risk gate, paper/live parity |
+| Phase 9 | Portfolio reconciliation, holdings, PnL, equity curve |
+| Phase 9.5 | Frontend portfolio API wiring and cleanup |
+| Phase 10 | Vercel frontend and Render backend staging deployment hardening |
+| Phase 10A/10B | WebSocket route stabilization, heartbeat, exponential reconnect, REST fallback |
+| Phase 11A | Angel One public instrument master loader with fallback registry |
+| Phase 11B | Security audit, sanitizer, rate limiting, credential rotation docs |
+| Phase 11C | Presentation-ready README, architecture docs, demo-mode banner |
+
 ## Market Data Flow
 
 ```text
@@ -112,6 +126,20 @@ Render
 ```
 
 Render is currently a staging target. Production should move to a persistent VPS/cloud VM with systemd, Nginx, HTTPS/WSS, a persistent database, and a secrets manager.
+
+## Technology Decisions and Rationale
+
+- **FastAPI backend**: async-friendly Python service with clear REST/WebSocket support and enough flexibility for broker integrations.
+- **Next.js frontend**: deployable on Vercel with a typed React terminal interface and public runtime configuration through `NEXT_PUBLIC_*` variables.
+- **Angel One SmartAPI isolated in backend**: broker credentials and session tokens never enter the browser.
+- **SessionManager**: keeps broker login out of import time and stores only safe status in health responses.
+- **SmartWebSocketV2 gateway thread + TickBus**: keeps blocking broker WebSocket callbacks away from the asyncio event loop.
+- **EventBus**: provides a typed internal backbone for strategy, risk, execution, portfolio, candles, and future C++ bridge integration.
+- **CandleStore in memory for now**: enough for live terminal behavior while avoiding fake OHLCV data. Persistent candle storage is a later production step.
+- **ExecutionRouter + PreTradeRiskGate**: separates order intent, risk approval, routing, and order state changes so live trading can remain locked.
+- **PortfolioEngine**: keeps PAPER portfolio state internal and prepares reconciliation paths for future broker-backed LIVE mode.
+- **Render for staging**: quick public backend hosting, with known limitations around sleep and ephemeral storage.
+- **VPS/systemd/Nginx later**: required for durable broker sessions, stable WebSocket operation, persistent storage, and production observability.
 
 ## Current Limitations
 
