@@ -1,10 +1,10 @@
-import math
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from backend.candles.candle_store import CandleStore
+from backend.core.json_utils import json_safe
 from backend.indicators.engine import IndicatorEngine
 from backend.indicators.python_fallback import INDICATORS
 
@@ -82,7 +82,7 @@ def get_indicators_for_symbol(
     clean_candles = [_candle_for_indicator(candle) for candle in candles]
     close = [candle["close"] for candle in clean_candles]
     result = engine.calculate(close=close, candles=clean_candles, indicators=requested, params=params)
-    return _json_safe({
+    return json_safe({
         "symbol": normalized_symbol,
         "timeframe": timeframe,
         "engine": result["engine"],
@@ -110,7 +110,7 @@ def calculate_indicators(payload: IndicatorCalculateRequest, request: Request):
         indicators=requested,
         params=params,
     )
-    return _json_safe({
+    return json_safe({
         "engine": result["engine"],
         "available": True,
         "count": max(len(payload.close or []), len(clean_candles or [])),
@@ -226,13 +226,3 @@ def _candle_for_indicator(candle: dict[str, Any]) -> dict[str, float]:
         }
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail="Malformed candle input") from exc
-
-
-def _json_safe(value):
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, list):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
-    return value

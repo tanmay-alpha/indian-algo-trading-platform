@@ -1,10 +1,10 @@
-import math
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from backend.candles.candle_store import CandleStore
+from backend.core.json_utils import json_safe
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.models import StrategyConfig
@@ -61,7 +61,7 @@ def run_backtest(payload: StrategyBacktestRequest, request: Request):
         result = engine.run_backtest(config, candles)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _json_safe(_dump_model(result))
+    return json_safe(_dump_model(result))
 
 
 @router.post("/signal-preview")
@@ -73,7 +73,7 @@ def signal_preview(payload: StrategySignalPreviewRequest, request: Request):
         signals = engine.generate_signals(config, candles)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _json_safe({
+    return json_safe({
         "strategy_name": config.strategy_name,
         "symbol": config.symbol.strip().upper(),
         "timeframe": config.timeframe,
@@ -141,14 +141,3 @@ def _dump_model(value):
     if isinstance(value, dict):
         return {key: _dump_model(item) for key, item in value.items()}
     return value
-
-
-def _json_safe(value):
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, list):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
-    return value
-

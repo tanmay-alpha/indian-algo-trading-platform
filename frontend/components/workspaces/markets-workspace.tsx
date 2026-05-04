@@ -23,7 +23,7 @@ import type {
   ScreenerResult,
   Timeframe,
 } from '@/lib/types'
-import { cn, fmtPct, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
+import { cn, fmtPct, fmtPrice, fmtVolume, marketNoDataLabel } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 
 type MarketsTab = 'all' | 'gainers' | 'losers' | 'active' | 'screener'
@@ -251,14 +251,13 @@ export function MarketsWorkspace() {
           <div className="p-2 space-y-1">
             {['NIFTY 50', 'NIFTY BANK'].map((label) => {
               const index = indices.find((item) => item.name === label || item.symbol === label.replace(' ', ''))
-              const noDataLabel = marketSessionLabel() === 'LIVE' ? 'WAITING' : marketSessionLabel()
               return (
                 <div key={label} className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
                   <div className="flex items-center justify-between">
                     <span className="text-text">{label}</span>
                     <span className="text-text-dim">{fmtPrice(index?.ltp)}</span>
                   </div>
-                  <div className="mt-0.5 text-text-faint">{index?.ltp == null ? noDataLabel : fmtPct(index.change_pct)}</div>
+                  <div className="mt-0.5 text-text-faint">{index?.ltp == null ? marketNoDataLabel() : fmtPct(index.change_pct)}</div>
                 </div>
               )
             })}

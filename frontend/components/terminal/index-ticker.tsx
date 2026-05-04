@@ -1,7 +1,7 @@
 'use client'
 
 import type { DataQuality, IndexSnapshot } from '@/lib/types'
-import { cn, fmtPct, fmtPrice, marketSessionLabel, priceDirClass } from '@/lib/utils'
+import { cn, fmtPct, fmtPrice, marketNoDataLabel, priceDirClass } from '@/lib/utils'
 import { DataQualityBadge } from './data-quality-badge'
 
 interface Props {
@@ -14,18 +14,14 @@ export function IndexTicker({ label, snapshot, className }: Props) {
   const hasData = snapshot?.ltp != null
   const change = snapshot?.change ?? null
   const changePct = snapshot?.change_pct ?? null
-  const session = marketSessionLabel()
+  const noDataLabel = marketNoDataLabel()
   const quality: DataQuality =
     snapshot?.quality ??
     (snapshot?.status === 'unavailable'
-      ? session === 'LIVE'
-        ? 'WAITING'
-        : session
+      ? noDataLabel
       : hasData
       ? 'LIVE'
-      : session === 'LIVE'
-      ? 'WAITING'
-      : session)
+      : noDataLabel)
 
   return (
     <div

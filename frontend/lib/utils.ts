@@ -190,6 +190,11 @@ export function marketSessionLabel(): 'PRE-MARKET' | 'POST-MARKET' | 'MARKET CLO
   return 'MARKET CLOSED'
 }
 
+export function marketNoDataLabel(): 'WAITING' | 'PRE-MARKET' | 'POST-MARKET' | 'MARKET CLOSED' {
+  const session = marketSessionLabel()
+  return session === 'LIVE' ? 'WAITING' : session
+}
+
 export type UiSeverity = 'ok' | 'info' | 'warn' | 'bad' | 'muted' | 'locked'
 
 export interface UiStatusMeta {
