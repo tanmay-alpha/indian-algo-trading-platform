@@ -10,6 +10,7 @@ JSON_PATH = INSTRUMENT_DIR / "angel_instruments.json"
 CSV_PATH = INSTRUMENT_DIR / "angel_instruments.csv"
 
 _CACHE: Optional[list[dict]] = None
+_MASTER_SOURCE = "fallback"
 
 _FALLBACK_INSTRUMENTS = [
     {
@@ -60,6 +61,38 @@ def load_instruments(force_reload: bool = False) -> list[dict]:
 
     _CACHE = [item for item in _CACHE if item.get("symbol") and item.get("token")]
     return _CACHE
+
+
+def load_from_instrument_master(instruments: list[dict]) -> int:
+    global _CACHE, _MASTER_SOURCE
+    normalized = [_normalize_instrument(item) for item in instruments if isinstance(item, dict)]
+    normalized = [
+        item
+        for item in normalized
+        if item.get("symbol") and item.get("token") and item.get("exchange") == "NSE"
+    ]
+    if not normalized:
+        if _CACHE is None:
+            _CACHE = [item.copy() for item in _FALLBACK_INSTRUMENTS]
+            _MASTER_SOURCE = "fallback"
+        return 0
+
+    _CACHE = normalized
+    return len(_CACHE)
+
+
+def set_master_source(source: str) -> None:
+    global _MASTER_SOURCE
+    _MASTER_SOURCE = source
+
+
+def registry_status() -> dict:
+    instruments = load_instruments()
+    return {
+        "loaded": len(instruments),
+        "source": _MASTER_SOURCE,
+        "fallback_active": _is_fallback_active(instruments),
+    }
 
 
 def get_token(symbol: str, exchange: str = "NSE") -> Optional[str]:
@@ -180,6 +213,12 @@ def _normalize_instrument(raw: dict) -> dict:
         "lot_size": _to_number_or_none(lot_size, int),
         "tick_size": _to_number_or_none(tick_size, float),
     }
+
+
+def _is_fallback_active(instruments: list[dict]) -> bool:
+    fallback_symbols = {item["symbol"] for item in _FALLBACK_INSTRUMENTS}
+    loaded_symbols = {item.get("symbol") for item in instruments}
+    return loaded_symbols.issubset(fallback_symbols)
 
 
 def _to_number_or_none(value, caster):

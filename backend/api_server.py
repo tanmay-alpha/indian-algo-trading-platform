@@ -17,6 +17,7 @@ from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.routers import candles as candles_router
 from backend.routers import portfolio as portfolio_router
 from backend.gateway import instrument_registry
+from backend.gateway.instrument_loader import InstrumentLoader
 from backend.gateway.market_gateway import MarketDataGateway
 from backend.gateway.tick_bus import TickBus
 from backend.gateway.market_watch import MarketWatch
@@ -101,6 +102,13 @@ broker_status = {
     "feed_token_available": False,
     "websocket_started": False,
     "last_error": None,
+}
+instrument_master_status = {
+    "loaded": len(instrument_registry.load_instruments()),
+    "source": "fallback",
+    "cached_at": None,
+    "cache_fresh": False,
+    "fallback_active": True,
 }
 
 class MarketWatchRequest(BaseModel):
@@ -229,6 +237,68 @@ async def start_gateway(loop):
 async def start_gateway_background(loop):
     await start_gateway(loop)
 
+async def load_instrument_master_best_effort():
+    global instrument_master_status
+    loader = InstrumentLoader(timeout_seconds=8)
+    source = "fallback"
+    try:
+        cache_fresh = loader.cache_is_fresh()
+        cached = loader.load_from_cache()
+        if cached:
+            filtered = loader.filter_nse_equity(cached)
+            loaded = instrument_registry.load_from_instrument_master(filtered)
+            if loaded:
+                source = "cache"
+
+        if source == "fallback" or not cache_fresh:
+            try:
+                await asyncio.wait_for(loader.download_and_cache(), timeout=12)
+                downloaded = loader.load_from_cache()
+                filtered = loader.filter_nse_equity(downloaded)
+                loaded = instrument_registry.load_from_instrument_master(filtered)
+                if loaded:
+                    source = "download"
+            except Exception as e:
+                logger.warning(
+                    "Instrument master download failed: %s; using existing symbols",
+                    e.__class__.__name__,
+                )
+
+        status = instrument_registry.registry_status()
+        instrument_registry.set_master_source(source if status["loaded"] > 0 else "fallback")
+        instrument_master_status = {
+            "loaded": status["loaded"],
+            "source": source if not status["fallback_active"] else "fallback",
+            "cached_at": get_instrument_cache_timestamp(loader),
+            "cache_fresh": loader.cache_is_fresh(),
+            "fallback_active": status["fallback_active"],
+        }
+        logger.info(
+            "Instrument master loaded: %s symbols from %s",
+            instrument_master_status["loaded"],
+            instrument_master_status["source"],
+        )
+    except Exception as e:
+        status = instrument_registry.registry_status()
+        instrument_master_status = {
+            "loaded": status["loaded"],
+            "source": "fallback",
+            "cached_at": get_instrument_cache_timestamp(loader),
+            "cache_fresh": loader.cache_is_fresh(),
+            "fallback_active": True,
+        }
+        logger.warning("Instrument master load failed: %s; using fallback symbols", e.__class__.__name__)
+
+def get_instrument_cache_timestamp(loader: InstrumentLoader) -> str | None:
+    try:
+        if not loader.meta_path.exists():
+            return None
+        meta = json.loads(loader.meta_path.read_text(encoding="utf-8"))
+        cached_at = meta.get("cached_at")
+        return str(cached_at) if cached_at else None
+    except (OSError, json.JSONDecodeError):
+        return None
+
 async def consume_tick_bus():
     while True:
         event = await tick_bus.get()
@@ -319,6 +389,8 @@ async def startup_event():
     
     # Start Broadcaster Service
     broadcaster.start(loop)
+
+    await load_instrument_master_best_effort()
     
     # Start broker connectivity separately so failed login cannot crash the API.
     asyncio.create_task(start_gateway_background(loop))
@@ -365,6 +437,10 @@ def search_instruments(q: str = Query(default=""), limit: int = Query(default=20
         "query": q,
         "results": search_symbols(q, limit=limit) if q else [],
     }
+
+@app.get("/instruments/master/status")
+def get_instrument_master_status():
+    return instrument_master_status.copy()
 
 @app.get("/market-watch")
 def get_market_watch():
