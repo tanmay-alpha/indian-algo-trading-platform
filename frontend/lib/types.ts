@@ -563,6 +563,87 @@ export interface DiscoveryStatus {
   note: string
 }
 
+// ----- Observability -----
+export interface MetricPoint {
+  ts: string
+  value: number
+}
+
+export interface ObservabilitySummary {
+  uptime_seconds: number
+  sample_count: number
+  series_names: string[]
+  latest: Record<string, number | null>
+  started_at: string
+}
+
+export interface ObservabilityMetricsResponse {
+  summary: ObservabilitySummary
+  series: Record<string, MetricPoint[]>
+  note: string
+}
+
+export interface ObservabilityEventEntry {
+  id: number
+  event_type: string
+  symbol: string | null
+  summary: string
+  payload_preview: string
+  ts: string
+}
+
+export interface ObservabilityEventsResponse {
+  entries: ObservabilityEventEntry[]
+  total_matched: number
+  total_stored: number
+  filters: {
+    event_type: string | null
+    symbol: string | null
+  }
+}
+
+export interface HealthTimelineEvent {
+  ts: string
+  component: string
+  state: string
+  detail: string
+}
+
+export interface HealthTimelineResponse {
+  events: HealthTimelineEvent[]
+  current_states: Record<string, string>
+}
+
+export interface DowntimeIncident {
+  component: string
+  started_at: string
+  ended_at: string | null
+  duration_seconds: number | null
+}
+
+export interface ObservabilityStatus {
+  metrics_samples: number
+  event_log_entries: number
+  health_events: number
+  uptime_seconds: number
+  error_count: number
+  sampler_running: boolean
+}
+
+export interface StrategyRunHistoryEntry {
+  strategy_name: string
+  symbol: string
+  timeframe: string
+  params: Record<string, unknown>
+  metrics: Partial<BacktestMetrics>
+  ts: string
+}
+
+export interface StrategyRunHistoryResponse {
+  runs: StrategyRunHistoryEntry[]
+  count: number
+}
+
 // ----- Events / Logs / Signals -----
 export type EventSeverity = 'info' | 'success' | 'warning' | 'error'
 

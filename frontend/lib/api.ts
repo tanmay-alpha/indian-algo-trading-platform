@@ -26,6 +26,13 @@ import type {
   PaginatedInstruments,
   ScreenerFilters,
   ScreenerResult,
+  ObservabilityMetricsResponse,
+  ObservabilityEventsResponse,
+  HealthTimelineResponse,
+  DowntimeIncident,
+  ObservabilityStatus,
+  StrategyRunHistoryResponse,
+  MetricPoint,
 } from './types'
 
 export class APIError extends Error {
@@ -391,6 +398,120 @@ export async function getInstrumentsPaginated(
     return await request<PaginatedInstruments>(`/discovery/instruments?${params.toString()}`)
   } catch {
     return { instruments: [], page, page_size: pageSize, total: 0, total_pages: 1 }
+  }
+}
+
+// ----- Observability -----
+const emptyObservabilitySummary = {
+  uptime_seconds: 0,
+  sample_count: 0,
+  series_names: [],
+  latest: {},
+  started_at: '',
+}
+
+export async function getObservabilityMetrics(): Promise<ObservabilityMetricsResponse> {
+  try {
+    return await request<ObservabilityMetricsResponse>('/observability/metrics')
+  } catch {
+    return {
+      summary: emptyObservabilitySummary,
+      series: {},
+      note: 'Observability backend unavailable',
+    }
+  }
+}
+
+export async function getMetricSeries(seriesName: string, limit = 60): Promise<MetricPoint[]> {
+  try {
+    const data = await request<{ series_name: string; points: MetricPoint[] }>(
+      `/observability/metrics/${encodeURIComponent(seriesName)}?limit=${limit}`
+    )
+    return data.points || []
+  } catch {
+    return []
+  }
+}
+
+export async function getObservabilityEvents(params: {
+  event_type?: string
+  symbol?: string
+  limit?: number
+  offset?: number
+} = {}): Promise<ObservabilityEventsResponse> {
+  const query = new URLSearchParams({
+    limit: String(params.limit ?? 100),
+    offset: String(params.offset ?? 0),
+  })
+  if (params.event_type) query.set('event_type', params.event_type)
+  if (params.symbol?.trim()) query.set('symbol', params.symbol.trim())
+  try {
+    return await request<ObservabilityEventsResponse>(`/observability/events?${query.toString()}`)
+  } catch {
+    return {
+      entries: [],
+      total_matched: 0,
+      total_stored: 0,
+      filters: { event_type: params.event_type ?? null, symbol: params.symbol ?? null },
+    }
+  }
+}
+
+export async function getObservabilityErrors(limit = 50): Promise<ObservabilityEventsResponse> {
+  try {
+    const data = await request<{ entries: ObservabilityEventsResponse['entries']; count: number }>(
+      `/observability/events/errors?limit=${limit}`
+    )
+    return {
+      entries: data.entries || [],
+      total_matched: data.count || 0,
+      total_stored: data.count || 0,
+      filters: { event_type: 'ERROR', symbol: null },
+    }
+  } catch {
+    return { entries: [], total_matched: 0, total_stored: 0, filters: { event_type: 'ERROR', symbol: null } }
+  }
+}
+
+export async function getHealthTimeline(component?: string, limit = 50): Promise<HealthTimelineResponse> {
+  const query = new URLSearchParams({ limit: String(limit) })
+  if (component) query.set('component', component)
+  try {
+    return await request<HealthTimelineResponse>(`/observability/health-timeline?${query.toString()}`)
+  } catch {
+    return { events: [], current_states: {} }
+  }
+}
+
+export async function getHealthIncidents(): Promise<DowntimeIncident[]> {
+  try {
+    const data = await request<{ incidents: DowntimeIncident[] }>('/observability/health-timeline/incidents')
+    return data.incidents || []
+  } catch {
+    return []
+  }
+}
+
+export async function getObservabilityStatus(): Promise<ObservabilityStatus> {
+  try {
+    return await request<ObservabilityStatus>('/observability/status')
+  } catch {
+    return {
+      metrics_samples: 0,
+      event_log_entries: 0,
+      health_events: 0,
+      uptime_seconds: 0,
+      error_count: 0,
+      sampler_running: false,
+    }
+  }
+}
+
+export async function getStrategyRuns(): Promise<StrategyRunHistoryResponse> {
+  try {
+    return await request<StrategyRunHistoryResponse>('/observability/strategy-runs')
+  } catch {
+    return { runs: [], count: 0 }
   }
 }
 

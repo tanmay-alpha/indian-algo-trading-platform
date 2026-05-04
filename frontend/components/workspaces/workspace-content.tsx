@@ -29,6 +29,7 @@ import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
 import { StrategyLab } from '@/components/strategy/strategy-lab'
 import { MarketsWorkspace } from './markets-workspace'
+import { JournalWorkspace as ObservabilityJournalWorkspace } from './journal-workspace'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -324,11 +325,7 @@ function RiskWorkspace() {
 function JournalWorkspace() {
   return (
     <WorkspaceFrame id="journal" icon={<BookOpen className="w-4 h-4" />}>
-      <EmptyState
-        title="JOURNAL READY"
-        hint="Operator notes and trade review workflows will be wired here. Nothing is persisted in this build."
-        icon={<BookOpen className="w-8 h-8" />}
-      />
+      <ObservabilityJournalWorkspace />
     </WorkspaceFrame>
   )
 }

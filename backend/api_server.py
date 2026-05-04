@@ -21,6 +21,7 @@ from backend.routers import indicators as indicators_router
 from backend.routers import portfolio as portfolio_router
 from backend.routers import strategies as strategies_router
 from backend.routers import discovery as discovery_router
+from backend.routers import observability as observability_router
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.templates import get_strategy_templates
@@ -39,6 +40,9 @@ from backend.risk.risk_manager import RiskManager
 from backend.engine.strategy_engine import StrategyEngine
 from backend.core.broadcaster import WebSocketBroadcaster
 from backend.core.session_manager import SessionManager
+from backend.observability.metrics_store import MetricsStore, start_sampler
+from backend.observability.event_log import ObservabilityEventLog
+from backend.observability.health_timeline import HealthTimeline
 
 # --- Global Logger ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -80,6 +84,8 @@ app.include_router(indicators_router.router)
 app.include_router(portfolio_router.router)
 app.include_router(strategies_router.router)
 app.include_router(discovery_router.router)
+app.include_router(observability_router.router)
+app.include_router(observability_router.prometheus_router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
@@ -87,6 +93,7 @@ gateway = None
 tick_bus = None
 session_manager = None
 tick_consumer_task = None
+sampler_task = None
 event_bus = EventBus()
 candle_store = CandleStore()
 indicator_engine = IndicatorEngine()
@@ -129,10 +136,16 @@ instrument_master_status = {
 instrument_loader = InstrumentLoader(timeout_seconds=8)
 market_board = MarketBoard(market_watch)
 screener_engine = ScreenerEngine(indicator_engine, candle_store, market_watch)
+obs_metrics = MetricsStore()
+obs_event_log = ObservabilityEventLog()
+obs_timeline = HealthTimeline()
 
 class MarketWatchRequest(BaseModel):
     symbols: list[str]
 
+app.state.broadcaster = broadcaster
+app.state.gateway = gateway
+app.state.tick_bus = tick_bus
 app.state.event_bus = event_bus
 app.state.candle_store = candle_store
 app.state.indicator_engine = indicator_engine
@@ -144,6 +157,10 @@ app.state.portfolio_engine = portfolio_engine
 app.state.instrument_loader = instrument_loader
 app.state.market_board = market_board
 app.state.screener_engine = screener_engine
+app.state.obs_metrics = obs_metrics
+app.state.obs_event_log = obs_event_log
+app.state.obs_timeline = obs_timeline
+app.state.backtest_history = []
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -179,8 +196,28 @@ async def event_to_ws_bridge(event):
         "ts": utc_timestamp(),
     })
 
+async def observability_event_recorder(event):
+    obs_event_log.record(event)
+
+async def gateway_status_to_timeline(event):
+    obs_timeline.record_state_change(
+        "gateway",
+        getattr(event, "status", None) or getattr(event, "connection_state", None) or "UNKNOWN",
+        getattr(event, "detail", "") or "",
+    )
+
+async def session_to_timeline(event):
+    obs_timeline.record_state_change(
+        "session",
+        getattr(event, "status", None) or "UNKNOWN",
+        getattr(event, "detail", "") or "",
+    )
+
 event_bus.subscribe(EventType.TICK.value, candle_store.on_tick_event)
 event_bus.subscribe(EventType.ORDER_STATE.value, portfolio_engine.on_order_state_event)
+event_bus.subscribe("*", observability_event_recorder)
+event_bus.subscribe(EventType.GATEWAY_STATUS.value, gateway_status_to_timeline)
+event_bus.subscribe(EventType.SESSION.value, session_to_timeline)
 for bridged_type in (
     EventType.SIGNAL.value,
     EventType.PORTFOLIO.value,
@@ -237,10 +274,12 @@ async def start_gateway(loop):
 
         if tick_bus is None:
             tick_bus = TickBus()
+            app.state.tick_bus = tick_bus
 
         if gateway is None:
             gateway = MarketDataGateway(session_manager=session_manager, tick_bus=tick_bus, loop=loop)
             gateway.set_event_bus(event_bus)
+            app.state.gateway = gateway
 
         if tick_consumer_task is None or tick_consumer_task.done():
             tick_consumer_task = asyncio.create_task(consume_tick_bus())
@@ -391,10 +430,16 @@ def toggle_auto_pilot():
 @app.on_event("startup")
 async def startup_event():
     """Initializes the backend services on startup."""
+    global sampler_task
     loop = asyncio.get_running_loop()
     
     # Start Broadcaster Service
     broadcaster.start(loop)
+    if sampler_task is None or sampler_task.done():
+        sampler_task = asyncio.create_task(
+            start_sampler(obs_metrics, app.state, interval_seconds=60)
+        )
+        app.state.sampler_task = sampler_task
 
     await load_instrument_master_best_effort()
     
@@ -405,6 +450,15 @@ async def startup_event():
         logger.info("DEMO MODE enabled")
 
     logger.info(f"TERMINAL: Backend operational in {execution_mode} mode")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    if sampler_task and not sampler_task.done():
+        sampler_task.cancel()
+        try:
+            await sampler_task
+        except asyncio.CancelledError:
+            pass
 
 @app.get("/")
 @app.get("/health")
@@ -576,6 +630,7 @@ def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
 async def websocket_terminal(websocket: WebSocket):
     """Handles frontend terminal connections via the unified broadcaster."""
     await broadcaster.connect(websocket)
+    obs_timeline.record_state_change("websocket", "CONNECTED", websocket.url.path)
     await websocket.send_json({
         "type": "gateway_status",
         "payload": gateway.status() if gateway else {"connection_state": "DISCONNECTED"},
@@ -592,9 +647,11 @@ async def websocket_terminal(websocket: WebSocket):
                 })
     except WebSocketDisconnect as e:
         broadcaster.disconnect(websocket, close_code=getattr(e, "code", None))
+        obs_timeline.record_state_change("websocket", "DISCONNECTED", websocket.url.path)
     except Exception as e:
         logger.error("WS: Client connection error: %s", e.__class__.__name__)
         broadcaster.disconnect(websocket)
+        obs_timeline.record_state_change("websocket", "ERROR", e.__class__.__name__)
 
 def is_client_ping(message: str) -> bool:
     if message.strip().lower() == "ping":

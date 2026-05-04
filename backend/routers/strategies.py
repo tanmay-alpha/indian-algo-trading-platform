@@ -1,3 +1,5 @@
+from collections import deque
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -61,6 +63,7 @@ def run_backtest(payload: StrategyBacktestRequest, request: Request):
         result = engine.run_backtest(config, candles)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_backtest_history(request, config, result)
     return json_safe(_dump_model(result))
 
 
@@ -141,3 +144,23 @@ def _dump_model(value):
     if isinstance(value, dict):
         return {key: _dump_model(item) for key, item in value.items()}
     return value
+
+
+def _record_backtest_history(request: Request, config: StrategyConfig, result) -> None:
+    history = getattr(request.app.state, "backtest_history", None)
+    if history is None:
+        history = deque(maxlen=50)
+        request.app.state.backtest_history = history
+    elif isinstance(history, list):
+        history = deque(history[-50:], maxlen=50)
+        request.app.state.backtest_history = history
+
+    metrics = _dump_model(getattr(result, "metrics", None))
+    history.append({
+        "strategy_name": config.strategy_name,
+        "symbol": config.symbol.strip().upper(),
+        "timeframe": config.timeframe,
+        "params": dict(config.params or {}),
+        "metrics": metrics if isinstance(metrics, dict) else {},
+        "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    })

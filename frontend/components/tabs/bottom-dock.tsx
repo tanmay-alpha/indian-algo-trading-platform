@@ -16,6 +16,7 @@ import { DOCK_TABS } from '@/lib/constants'
 import type { DockTabId } from '@/lib/types'
 import { cn, fmtPrice, fmtTime } from '@/lib/utils'
 import { EmptyState } from '@/components/terminal/empty-state'
+import { SystemHealthTab } from './system-health-tab'
 
 const ICONS: Record<DockTabId, ReactNode> = {
   orders: <ShoppingCart className="w-3.5 h-3.5" />,
@@ -59,7 +60,7 @@ export function BottomDock() {
         {tab === 'pnl' && <PnLContent />}
         {tab === 'signals' && <SignalsContent />}
         {tab === 'events' && <EventsContent />}
-        {tab === 'system-health' && <HealthContent />}
+        {tab === 'system-health' && <SystemHealthTab />}
       </div>
     </section>
   )
