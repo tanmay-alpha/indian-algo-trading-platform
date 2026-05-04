@@ -191,6 +191,8 @@ export interface TerminalStatus {
   candles?: CandleStoreStats
   portfolio?: PortfolioSummary
   trading_mode?: 'PAPER' | 'LIVE'
+  demo_mode?: boolean
+  demo_banner?: string | null
 }
 
 export interface PortfolioSummary {

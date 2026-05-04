@@ -30,7 +30,7 @@ try:
     totp = get_totp(totp_secret)
     data = smart.generateSession(client_id, password, totp)
     if not data or not data.get("status"):
-        logger.error(f"Login failed. Response: {data}")
+        logger.error("Login failed. Response status unavailable or false.")
         # Try time drift compensation
         logger.info("Retrying with -30s drift...")
         time.sleep(1)
@@ -40,11 +40,15 @@ try:
             logger.error("Login failed completely.")
             exit(1)
 except Exception as e:
-    logger.error(f"Login exception: {e}")
+    logger.error("Login exception: %s", e.__class__.__name__)
     exit(1)
 
 # 3. EXTRACTION
-logger.info(f"Login Response: {data}")
+logger.info(
+    "Login Response: status=%s message_present=%s",
+    bool(data.get("status")) if isinstance(data, dict) else False,
+    bool(data.get("message")) if isinstance(data, dict) else False,
+)
 jwt_token = data.get("data", {}).get("jwtToken")
 feed_token = smart.getfeedToken()
 
@@ -60,7 +64,7 @@ ticks_received = 0
 def on_data(ws, message):
     global ticks_received
     ticks_received += 1
-    logger.info(f"Tick received: {message}")
+    logger.info("Tick received. Count=%s", ticks_received)
 
 def on_open(ws):
     logger.info("WS Opened. Subscribing...")

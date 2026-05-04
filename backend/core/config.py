@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     jwt_refresh_interval_minutes: int = 30
     ws_reconnect_delay_seconds: int = 3
     live_trading_enabled: bool = False
+    demo_mode: bool = False
     allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
     environment: str = "LOCAL"
     public_backend_url: Optional[str] = None

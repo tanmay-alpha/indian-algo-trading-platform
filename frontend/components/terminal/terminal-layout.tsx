@@ -6,6 +6,7 @@ import { TopMarketBar } from './top-market-bar'
 import { WatchlistPanel } from './watchlist-panel'
 import { RightTradePanel } from './right-trade-panel'
 import { StatusBar } from './status-bar'
+import { DemoBanner } from './demo-banner'
 import { CommandPalette } from './command-palette'
 import { KeyboardShortcutsOverlay } from './keyboard-shortcuts-overlay'
 import { WorkspaceContent } from '@/components/workspaces/workspace-content'
@@ -61,6 +62,7 @@ export function TerminalLayout() {
       <div className="flex flex-1 min-h-0">
         <WorkspaceRail />
         <div className="flex-1 min-w-0 flex flex-col">
+          <DemoBanner />
           <TopMarketBar />
           <div className="flex-1 min-h-0 flex">
             <WatchlistPanel />

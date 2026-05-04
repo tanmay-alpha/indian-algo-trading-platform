@@ -48,7 +48,7 @@ class AngelSession:
         
         # Handle time drift retry
         if not data or not data.get("status"):
-            logger.warning("SESSION: Login failed, possible TOTP time drift. Retrying...")
+            logger.warning("SESSION: Login failed, possible clock drift. Retrying...")
             time.sleep(1) # Wait for potential window rollover
             totp = self._get_totp()
             data = self.smart.generateSession(self.client_id, self.password, totp)
@@ -56,7 +56,7 @@ class AngelSession:
             if not data or not data.get("status"):
                 error_msg = data.get("message", "Unknown error") if data else "Empty response"
                 if "Invalid TOTP" in error_msg:
-                    raise Exception("Login failed: Invalid TOTP. Check PC time sync.")
+                    raise Exception("Login failed: one-time code rejected. Check PC time sync.")
                 else:
                     raise Exception(f"Login failed: {error_msg}")
 

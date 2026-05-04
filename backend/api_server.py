@@ -1,6 +1,6 @@
 # backend/api_server.py
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
@@ -14,6 +14,8 @@ from backend.candles.candle_store import CandleStore
 from backend.core.config import settings
 from backend.core.event_bus import EventBus
 from backend.core.events import EventType, TickEvent, event_to_dict
+from backend.core.rate_limit import limiter, register_rate_limiter
+from backend.core.security import sanitize_response
 from backend.routers import candles as candles_router
 from backend.routers import portfolio as portfolio_router
 from backend.gateway import instrument_registry
@@ -42,6 +44,7 @@ def safe_error_message(error):
     return message
 
 app = FastAPI(title="High-Frequency Trading Terminal")
+register_rate_limiter(app)
 
 def get_cors_origins() -> list[str]:
     local_origins = [
@@ -395,18 +398,21 @@ async def startup_event():
     # Start broker connectivity separately so failed login cannot crash the API.
     asyncio.create_task(start_gateway_background(loop))
     
+    if settings.demo_mode:
+        logger.info("DEMO MODE enabled")
+
     logger.info(f"TERMINAL: Backend operational in {execution_mode} mode")
 
 @app.get("/")
 @app.get("/health")
 def health_check():
-    return {
+    return sanitize_response({
         "status": "online",
         "mode": execution_mode,
         "broker": get_broker_status(),
         "portfolio": portfolio.get_performance(),
         "portfolio_engine": portfolio_engine.get_summary(),
-    }
+    })
 
 @app.get("/live")
 def live_check():
@@ -417,7 +423,7 @@ def ready_check():
     db_path = Path(settings.db_path)
     db_parent = db_path.parent if db_path.parent != Path("") else Path(".")
     gateway_status = gateway.status() if gateway else None
-    return {
+    return sanitize_response({
         "status": "ready",
         "app": {"status": "online", "environment": settings.environment},
         "broker": get_broker_status(),
@@ -429,10 +435,11 @@ def ready_check():
         },
         "trading_mode": execution_mode,
         "live_trading_enabled": settings.live_trading_enabled,
-    }
+    })
 
 @app.get("/instruments/search")
-def search_instruments(q: str = Query(default=""), limit: int = Query(default=20, ge=1, le=100)):
+@limiter.limit("60/minute")
+def search_instruments(request: Request, q: str = Query(default=""), limit: int = Query(default=20, ge=1, le=100)):
     return {
         "query": q,
         "results": search_symbols(q, limit=limit) if q else [],
@@ -492,7 +499,7 @@ def get_indices():
 @app.get("/terminal/status")
 def terminal_status():
     gateway_status = gateway.status() if gateway else None
-    return {
+    return sanitize_response({
         "app": {"status": "online"},
         "broker": get_broker_status(),
         "gateway": gateway_status,
@@ -502,11 +509,13 @@ def terminal_status():
         "execution": router.status(),
         "portfolio": portfolio_engine.get_summary(),
         "trading_mode": execution_mode,
-    }
+        "demo_mode": settings.demo_mode,
+        "demo_banner": "DEMO MODE - No real trading" if settings.demo_mode else None,
+    })
 
 @app.get("/ws/status")
 def websocket_status():
-    return broadcaster.status(route_paths=websocket_route_paths())
+    return sanitize_response(broadcaster.status(route_paths=websocket_route_paths()))
 
 @app.post("/toggle_mode")
 async def toggle_mode(mode: str, confirm: bool = False):
