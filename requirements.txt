@@ -9,6 +9,7 @@ pandas
 pydantic-settings
 ntplib
 loguru
+logzero
 pytest
 pytest-asyncio
 aiosqlite
