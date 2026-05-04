@@ -39,6 +39,10 @@ Vercel Frontend
 | Indicators | `GET /indicators/status` | Indicator engine status |
 | Indicators | `GET /indicators/{symbol}` | CandleStore-backed indicator results |
 | Indicators | `POST /indicators/calculate` | Offline indicator calculation from posted arrays |
+| Strategies | `GET /strategies/status` | Offline strategy research engine status |
+| Strategies | `GET /strategies/templates` | Strategy template metadata |
+| Strategies | `POST /strategies/backtest` | Offline backtest using posted or cached candles |
+| Strategies | `POST /strategies/signal-preview` | Research-only signal preview |
 | Portfolio | `GET /portfolio/summary` | Portfolio summary |
 | Portfolio | `GET /portfolio/positions` | Position list |
 | Portfolio | `GET /portfolio/holdings` | Holdings snapshot |
@@ -97,6 +101,30 @@ Frontend visualization:
 - MACD subpanel
 
 Safety note: indicator routes perform offline calculations on provided or cached candle data. They do not place orders, do not call live execution APIs, and do not fabricate market data.
+
+### Strategy Research and Backtesting
+
+MAET Terminal includes backend-only strategy research primitives for a future Strategy Lab. Strategy routes run offline against posted candle arrays or existing CandleStore candles. They do not fetch broker candles, do not call SmartAPI, and do not connect signals to live execution.
+
+```text
+Candles
+  -> IndicatorEngine
+  -> Strategy Template
+  -> BacktestEngine
+  -> BacktestResult
+  -> Strategy API
+  -> Future Strategy Lab frontend
+```
+
+Supported research templates:
+
+- EMA crossover
+- RSI mean reversion
+- MACD trend
+- VWAP pullback
+- Bollinger breakout
+
+Backtesting is deterministic, long-only, fixed-quantity, and research-only. It calculates signals, simulated trades, equity points, fees, slippage, drawdown, and summary metrics from supplied candle data only.
 
 ## Local Setup
 
@@ -167,13 +195,13 @@ Production path:
 | Phase 12C | Complete | FastAPI indicator routes and CandleStore integration |
 | Phase 12D | Complete | Frontend chart overlays and RSI/MACD subpanels |
 | Phase 12E | Complete | Indicator milestone QA and release documentation |
+| Phase 13A-C | Complete | Strategy templates and offline backend backtesting routes |
 
 ## Future Roadmap
 
 - Expanded C++ indicator core
 - Full instrument master coverage for index, derivatives, and production-grade symbol metadata
-- Full strategy engine
-- Backtesting engine
+- Strategy Lab frontend
 - Persistent database
 - Authentication
 - Observability

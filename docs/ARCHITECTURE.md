@@ -52,6 +52,7 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 - `backend/candles/candle_store.py`: in-memory OHLCV candle store.
 - `backend/candles/candle_fetcher.py`: SmartAPI historical candle fetcher.
 - `backend/indicators/*`: IndicatorEngine wrapper, optional C++ bridge, and Python fallback calculations.
+- `backend/strategy/*`: strategy template metadata and offline backtesting engine for research workflows.
 - `backend/execution/*`: order intent, risk gate, routing, paper/live managers, state machine, poller, fees, kill switch.
 - `backend/portfolio/*`: position tracker, holdings tracker, equity curve, reconciliation, portfolio engine.
 - `backend/routers/*`: API routers for candles, indicators, and portfolio.
@@ -72,6 +73,7 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 | Phase 11B | Security audit, sanitizer, rate limiting, credential rotation docs |
 | Phase 11C | Presentation-ready README, architecture docs, demo-mode banner |
 | Phase 12 | C++/Python indicator engine, FastAPI routes, and frontend chart overlays |
+| Phase 13A-C | Strategy models, templates, offline backtesting engine, and strategy API routes |
 
 ## Market Data Flow
 
@@ -158,6 +160,43 @@ CandleStore
           -> Chart overlays/subpanels
 ```
 
+## Phase 13 - Strategy Research
+
+Phase 13 adds the backend foundation for a future Strategy Lab. It is intentionally offline and research-only. Strategy routes do not fetch broker candles, do not call SmartAPI, do not place orders, and do not route signals into the execution layer.
+
+```text
+Candles
+  -> IndicatorEngine
+  -> Strategy Template
+  -> BacktestEngine
+  -> BacktestResult
+  -> Strategy API
+  -> Future Strategy Lab frontend
+```
+
+### Strategy Templates
+
+Supported templates:
+
+- EMA crossover
+- RSI mean reversion
+- MACD trend
+- VWAP pullback
+- Bollinger breakout
+
+Each template exposes metadata, default parameters, required indicators, and `live_execution_enabled: false`.
+
+### Backtest Engine
+
+The backtest engine normalizes posted or cached CandleStore candles, generates long-only BUY/EXIT research signals, simulates fixed-quantity trades, applies simple fee and slippage assumptions, and returns trades, equity points, drawdown, and summary metrics. It does not fabricate candles or performance results.
+
+### Strategy API Routes
+
+- `GET /strategies/status`
+- `GET /strategies/templates`
+- `POST /strategies/backtest`
+- `POST /strategies/signal-preview`
+
 ## Deployment Architecture
 
 ```text
@@ -195,11 +234,11 @@ Render is currently a staging target. Production should move to a persistent VPS
 - Market closed means no live ticks.
 - The current frontend is a terminal shell, not a full TradingView replacement.
 - Live order execution remains disabled by default.
+- Strategy routes are offline/research-only and are not connected to live execution.
 
 ## Roadmap
 
-- Full strategy engine
-- Backtesting
+- Strategy Lab frontend
 - Persistent database
 - Authentication
 - Observability
