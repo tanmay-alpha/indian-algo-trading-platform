@@ -4,6 +4,7 @@ pyotp
 python-dotenv
 smartapi-python
 websocket-client
+websockets
 numpy
 pandas
 pydantic-settings

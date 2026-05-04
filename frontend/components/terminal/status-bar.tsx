@@ -45,13 +45,15 @@ export function StatusBar() {
       ? 'STALE'
       : 'LIVE'
     : reconnect > 0
-    ? `RECONNECT ${reconnect}`
+    ? `RECONNECTING ${reconnect}`
     : 'OFFLINE'
 
   const wsCls = wsConnected
     ? quality === 'STALE'
       ? 'text-warn'
       : 'text-up'
+    : reconnect > 0
+    ? 'text-warn'
     : 'text-down'
 
   const wsLabelObj = WORKSPACES.find((w) => w.id === ws)

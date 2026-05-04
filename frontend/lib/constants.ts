@@ -8,10 +8,10 @@ import type {
 
 // ----- API / WS -----
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL, 'http://localhost:8000')
 
 export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/market_stream'
+  normalizeWsUrl(process.env.NEXT_PUBLIC_WS_URL, API_URL)
 
 export const ENDPOINTS = {
   health: '/health',
@@ -193,3 +193,19 @@ export const BUILD_ENV =
   (typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'LOCAL'
     : 'CLOUD')
+
+function normalizeBaseUrl(value: string | undefined, fallback: string): string {
+  return (value || fallback).replace(/\/+$/, '')
+}
+
+function normalizeWsUrl(value: string | undefined, apiUrl: string): string {
+  if (value) return value.replace(/\/+$/, '')
+
+  try {
+    const parsed = new URL(apiUrl)
+    const protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${protocol}//${parsed.host}/ws/market_stream`
+  } catch {
+    return 'ws://localhost:8000/ws/market_stream'
+  }
+}

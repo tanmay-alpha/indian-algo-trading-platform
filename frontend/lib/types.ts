@@ -54,6 +54,7 @@ export type PortfolioDataQuality =
 export type OperatorState =
   | 'ONLINE'
   | 'DEGRADED'
+  | 'RECONNECTING'
   | 'OFFLINE'
   | 'LOCKED'
   | 'STALE'

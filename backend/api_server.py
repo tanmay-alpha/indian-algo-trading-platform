@@ -469,6 +469,11 @@ def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
 async def websocket_terminal(websocket: WebSocket):
     """Handles frontend terminal connections via the unified broadcaster."""
     await broadcaster.connect(websocket)
+    await websocket.send_json({
+        "type": "gateway_status",
+        "payload": gateway.status() if gateway else {"connection_state": "DISCONNECTED"},
+        "ts": utc_timestamp(),
+    })
     try:
         while True:
             # Keep connection alive; messages are pushed by the broadcaster
@@ -476,5 +481,5 @@ async def websocket_terminal(websocket: WebSocket):
     except WebSocketDisconnect:
         broadcaster.disconnect(websocket)
     except Exception as e:
-        logger.error(f"WS: Error on client connection: {e}")
+        logger.error("WS: Client connection error: %s", e.__class__.__name__)
         broadcaster.disconnect(websocket)

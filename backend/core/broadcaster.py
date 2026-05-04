@@ -2,8 +2,11 @@
 
 import asyncio
 import json
+import logging
 from typing import Set
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class WebSocketBroadcaster:
@@ -15,11 +18,11 @@ class WebSocketBroadcaster:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.add(websocket)
-        print(f"BROADCASTER: Client connected. Total: {len(self.active_connections)}")
+        logger.info("BROADCASTER: Client connected. Total: %s", len(self.active_connections))
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-        print(f"BROADCASTER: Client disconnected. Total: {len(self.active_connections)}")
+        self.active_connections.discard(websocket)
+        logger.info("BROADCASTER: Client disconnected. Total: %s", len(self.active_connections))
 
     async def broadcast(self, message: dict):
         """Adds a message to the broadcast queue."""
@@ -55,10 +58,10 @@ class WebSocketBroadcaster:
 
                 self.queue.task_done()
             except Exception as e:
-                print(f"BROADCASTER Error: {e}")
+                logger.warning("BROADCASTER: Broadcast loop error: %s", e.__class__.__name__)
                 await asyncio.sleep(0.1)
 
     def start(self, loop: asyncio.AbstractEventLoop):
         """Starts the background broadcast task."""
         loop.create_task(self._broadcast_loop())
-        print("BROADCASTER: Service started")
+        logger.info("BROADCASTER: Service started")

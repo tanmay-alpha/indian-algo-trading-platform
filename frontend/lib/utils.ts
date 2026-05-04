@@ -102,6 +102,7 @@ export function operatorClass(state: OperatorState): string {
     case 'ONLINE':
       return 'text-up bg-up-dim border-up/20'
     case 'DEGRADED':
+    case 'RECONNECTING':
       return 'text-warn bg-warn-dim border-warn/20'
     case 'STALE':
       return 'text-warn bg-warn-dim border-warn/20'
@@ -122,6 +123,7 @@ export function operatorDot(state: OperatorState): string {
     case 'ONLINE':
       return 'bg-up shadow-[0_0_6px_rgba(22,199,132,0.6)]'
     case 'DEGRADED':
+    case 'RECONNECTING':
     case 'STALE':
       return 'bg-warn'
     case 'OFFLINE':

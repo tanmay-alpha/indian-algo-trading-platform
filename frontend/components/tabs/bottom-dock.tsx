@@ -246,9 +246,10 @@ function HealthContent() {
   const status = useTerminalStore((s) => s.terminalStatus)
   const broker = useTerminalStore((s) => s.brokerStatus)
   const wsConnected = useTerminalStore((s) => s.wsConnected)
+  const reconnectAttempts = useTerminalStore((s) => s.wsReconnectAttempts)
   const rows = [
     ['API', status ? 'ONLINE' : '\u2014'],
-    ['WebSocket', wsConnected ? 'ONLINE' : 'OFFLINE'],
+    ['WebSocket', wsConnected ? 'ONLINE' : reconnectAttempts > 0 ? 'RECONNECTING' : 'OFFLINE'],
     ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '\u2014'],
     ['Feed', broker?.feed_token_available ? 'AVAILABLE' : broker ? 'WAITING' : '\u2014'],
     ['EventBus', String(status?.event_bus?.total ?? '\u2014')],

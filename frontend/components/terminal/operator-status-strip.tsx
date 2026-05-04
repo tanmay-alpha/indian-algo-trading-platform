@@ -8,6 +8,7 @@ export function OperatorStatusStrip() {
   const broker = useTerminalStore((s) => s.brokerStatus)
   const status = useTerminalStore((s) => s.terminalStatus)
   const wsConnected = useTerminalStore((s) => s.wsConnected)
+  const reconnectAttempts = useTerminalStore((s) => s.wsReconnectAttempts)
   const backendOffline = useTerminalStore((s) => s.backendOffline)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const mode = useTerminalStore((s) => s.executionMode)
@@ -34,6 +35,8 @@ export function OperatorStatusStrip() {
     ? 'BACKEND OFFLINE'
     : wsConnected
     ? 'ONLINE'
+    : reconnectAttempts > 0
+    ? 'RECONNECTING'
     : 'OFFLINE'
 
   const eventBusState: OperatorState = backendOffline
@@ -89,6 +92,8 @@ export function OperatorStatusStrip() {
         detail={
           lastTickAt
             ? `last tick ${Math.round((Date.now() - lastTickAt) / 1000)}s ago`
+            : reconnectAttempts > 0
+            ? `attempt ${reconnectAttempts}`
             : undefined
         }
       />

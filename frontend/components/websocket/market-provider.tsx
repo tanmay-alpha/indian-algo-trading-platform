@@ -28,7 +28,12 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return
-    if (wsRef.current?.readyState === WebSocket.OPEN) return
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    ) {
+      return
+    }
 
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
@@ -36,6 +41,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.info(`[WS] connecting to ${safeWsTarget(WS_URL)}`)
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
 
@@ -46,7 +52,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         setConnectionError(null)
       }
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         if (!mountedRef.current) return
         setWsConnected(false)
         const attempts = useTerminalStore.getState().wsReconnectAttempts
@@ -61,13 +67,26 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
           return
         }
         incrementReconnect()
+        setConnectionError('WebSocket reconnecting')
+        ingestEvent({
+          event_type: 'log',
+          component: 'WS',
+          severity: 'warning',
+          message: `WebSocket closed; reconnecting (${event.code || 'no-code'})`,
+        })
         const delay = Math.min(WS_RECONNECT_DELAY * 2 ** attempts, 30_000)
         reconnectTimeoutRef.current = setTimeout(connect, delay)
       }
 
       ws.onerror = () => {
         if (!mountedRef.current) return
-        setConnectionError('WebSocket connection error')
+        setConnectionError('WebSocket transport error; reconnecting')
+        ingestEvent({
+          event_type: 'error',
+          component: 'WS',
+          severity: 'warning',
+          message: 'WebSocket transport error; reconnecting',
+        })
       }
 
       ws.onmessage = (event) => {
@@ -75,7 +94,17 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         handleEnvelope(event.data)
       }
     } catch {
-      setConnectionError('Failed to create WebSocket connection')
+      if (!mountedRef.current) return
+      setWsConnected(false)
+      incrementReconnect()
+      setConnectionError('Failed to create WebSocket connection; reconnecting')
+      ingestEvent({
+        event_type: 'error',
+        component: 'WS',
+        severity: 'warning',
+        message: 'Failed to create WebSocket connection; reconnecting',
+      })
+      reconnectTimeoutRef.current = setTimeout(connect, WS_RECONNECT_DELAY)
     }
   }, [
     incrementReconnect,
@@ -249,4 +278,13 @@ function extractMessage(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return String(payload ?? 'Event received')
   const data = payload as Record<string, unknown>
   return String(data.safe_message ?? data.message ?? data.error ?? 'Event received')
+}
+
+function safeWsTarget(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`
+  } catch {
+    return 'configured WebSocket endpoint'
+  }
 }
