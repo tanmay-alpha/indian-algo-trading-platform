@@ -36,11 +36,67 @@ Vercel Frontend
 | Candles | `GET /candles/{symbol}` | Cached/live candles |
 | Candles | `POST /candles/{symbol}/fetch` | Broker candle fetch when session is available |
 | Candles | `GET /candles/status` | Candle store status |
+| Indicators | `GET /indicators/status` | Indicator engine status |
+| Indicators | `GET /indicators/{symbol}` | CandleStore-backed indicator results |
+| Indicators | `POST /indicators/calculate` | Offline indicator calculation from posted arrays |
 | Portfolio | `GET /portfolio/summary` | Portfolio summary |
 | Portfolio | `GET /portfolio/positions` | Position list |
 | Portfolio | `GET /portfolio/holdings` | Holdings snapshot |
 | Portfolio | `GET /portfolio/equity-curve` | Equity curve points |
 | Portfolio | `GET /portfolio/reconciliation/status` | Reconciliation status |
+
+### C++ / Python Indicator Engine
+
+MAET Terminal includes a modular technical indicator engine for offline market analytics. The engine uses a C++17 calculation core when available through `pybind11`, and otherwise falls back to a pure Python implementation so the backend remains deployable on environments without native extension builds.
+
+```text
+CandleStore OHLCV Data
+        |
+        v
+FastAPI Indicator Routes
+        |
+        v
+Python IndicatorEngine
+        |
+        v
+ +-------------------------+
+ | C++17 Core via pybind11 |  if available
+ +-------------------------+
+        |
+        v fallback
+ +-------------------------+
+ | Pure Python Engine      |
+ +-------------------------+
+        |
+        v
+Next.js Chart Overlays + RSI/MACD Panels
+```
+
+Supported indicators:
+
+- SMA
+- EMA
+- RSI
+- MACD
+- ATR
+- VWAP
+- Bollinger Bands
+
+API routes:
+
+- `GET /indicators/status`
+- `GET /indicators/{symbol}`
+- `POST /indicators/calculate`
+
+Frontend visualization:
+
+- EMA overlay
+- VWAP overlay
+- Bollinger Bands overlay
+- RSI subpanel
+- MACD subpanel
+
+Safety note: indicator routes perform offline calculations on provided or cached candle data. They do not place orders, do not call live execution APIs, and do not fabricate market data.
 
 ## Local Setup
 
@@ -108,6 +164,9 @@ Production path:
 | Phase 11B | Complete | Security hardening pass |
 | Phase 12A | Complete | C++ indicator core skeleton |
 | Phase 12B | Complete | `pybind11` bridge with Python fallback |
+| Phase 12C | Complete | FastAPI indicator routes and CandleStore integration |
+| Phase 12D | Complete | Frontend chart overlays and RSI/MACD subpanels |
+| Phase 12E | Complete | Indicator milestone QA and release documentation |
 
 ## Future Roadmap
 

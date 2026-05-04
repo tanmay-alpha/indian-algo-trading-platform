@@ -30,8 +30,16 @@ async def test_indicators_status(client):
     data = response.json()
     assert response.status_code == 200
     assert data["available"] is True
+    assert "selected_engine" in data
+    assert "cpp_available" in data
     assert data["fallback_available"] is True
     assert "ema" in data["indicators"]
+    serialized = str(data).lower()
+    assert "password" not in serialized
+    assert "api_key" not in serialized
+    assert "jwt" not in serialized
+    assert "refresh" not in serialized
+    assert "token" not in serialized
 
 
 @pytest.mark.asyncio
@@ -57,6 +65,15 @@ async def test_calculate_post_rejects_unknown_indicator(client):
     response = await client.post(
         "/indicators/calculate",
         json={"close": [1, 2, 3], "indicators": ["unknown"], "params": {}},
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_calculate_post_rejects_invalid_param_type(client):
+    response = await client.post(
+        "/indicators/calculate",
+        json={"close": [1, 2, 3], "indicators": ["ema"], "params": {"ema_period": "bad"}},
     )
     assert response.status_code == 400
 

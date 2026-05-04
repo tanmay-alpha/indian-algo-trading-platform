@@ -173,7 +173,7 @@ def _params(
 
 
 def _validate_params(params: dict[str, Any]) -> None:
-    for key in (
+    integer_params = (
         "sma_period",
         "ema_period",
         "rsi_period",
@@ -182,12 +182,20 @@ def _validate_params(params: dict[str, Any]) -> None:
         "macd_signal",
         "atr_period",
         "bb_period",
-    ):
-        if key in params and int(params[key]) <= 0:
-            raise HTTPException(status_code=400, detail=f"Invalid parameter: {key}")
-    if "bb_stddev" in params and float(params["bb_stddev"]) <= 0:
-        raise HTTPException(status_code=400, detail="Invalid parameter: bb_stddev")
-    if "macd_fast" in params and "macd_slow" in params and int(params["macd_fast"]) >= int(params["macd_slow"]):
+    )
+    parsed_ints: dict[str, int] = {}
+    try:
+        for key in integer_params:
+            if key in params:
+                parsed_ints[key] = int(params[key])
+                if parsed_ints[key] <= 0:
+                    raise HTTPException(status_code=400, detail=f"Invalid parameter: {key}")
+        if "bb_stddev" in params and float(params["bb_stddev"]) <= 0:
+            raise HTTPException(status_code=400, detail="Invalid parameter: bb_stddev")
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid indicator parameter type") from exc
+
+    if "macd_fast" in parsed_ints and "macd_slow" in parsed_ints and parsed_ints["macd_fast"] >= parsed_ints["macd_slow"]:
         raise HTTPException(status_code=400, detail="Invalid MACD periods")
 
 

@@ -51,9 +51,11 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 - `backend/gateway/tick_bus.py`: asyncio queue bridge from WebSocket thread.
 - `backend/candles/candle_store.py`: in-memory OHLCV candle store.
 - `backend/candles/candle_fetcher.py`: SmartAPI historical candle fetcher.
+- `backend/indicators/*`: IndicatorEngine wrapper, optional C++ bridge, and Python fallback calculations.
 - `backend/execution/*`: order intent, risk gate, routing, paper/live managers, state machine, poller, fees, kill switch.
 - `backend/portfolio/*`: position tracker, holdings tracker, equity curve, reconciliation, portfolio engine.
-- `backend/routers/*`: API routers for candles and portfolio.
+- `backend/routers/*`: API routers for candles, indicators, and portfolio.
+- `cpp/*`: deterministic C++17 indicator core and optional `pybind11` binding module.
 - `frontend/*`: Next.js trading terminal UI, WebSocket client, REST fallback, market/watchlist/portfolio surfaces.
 
 ## Phase Completion Summary
@@ -69,6 +71,7 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 | Phase 11A | Angel One public instrument master loader with fallback registry |
 | Phase 11B | Security audit, sanitizer, rate limiting, credential rotation docs |
 | Phase 11C | Presentation-ready README, architecture docs, demo-mode banner |
+| Phase 12 | C++/Python indicator engine, FastAPI routes, and frontend chart overlays |
 
 ## Market Data Flow
 
@@ -112,6 +115,49 @@ Filled OrderStateEvent
 
 PAPER mode treats internal fills and the trade journal as source of truth. LIVE mode is designed to reconcile with broker positions and holdings.
 
+## Phase 12 - Indicator Engine
+
+### C++ Core
+
+The C++ core under `cpp/` performs deterministic C++17 indicator calculations for SMA, EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands. Indicator outputs preserve input length. Values that cannot be computed yet because of insufficient history use NaN internally. The C++ core has no broker dependency and does not read credentials, subscribe to market data, or place orders.
+
+### pybind11 Bridge
+
+The optional native Python module is `maet_cpp_indicators`. It is built with `pybind11` and converts Python price arrays and candle dictionaries into C++ vectors and structs. The bridge is optional; backend import must not depend on it being compiled.
+
+### Python Fallback
+
+`backend.indicators.python_fallback` mirrors the indicator API in pure Python. `IndicatorEngine` selects the C++ bridge when available and automatically falls back to Python when the native module is unavailable. This keeps Render staging and other systems without native builds deployable.
+
+### FastAPI Routes
+
+- `GET /indicators/status`: selected engine and supported indicators.
+- `GET /indicators/{symbol}`: CandleStore-backed indicator calculation for a symbol/timeframe.
+- `POST /indicators/calculate`: offline indicator calculation from posted arrays.
+
+### Frontend Visualization
+
+The Next.js terminal renders:
+
+- EMA overlay
+- VWAP overlay
+- Bollinger Bands overlay
+- RSI subpanel
+- MACD subpanel
+
+### Data Safety
+
+Indicator routes use CandleStore data or explicit request payloads only. They do not fetch broker data, do not place orders, and do not fabricate candles or indicator values. NaN and Infinity values are converted to JSON `null` before responses reach the frontend.
+
+```text
+CandleStore
+  -> IndicatorEngine
+    -> C++ pybind11 or Python fallback
+      -> FastAPI JSON response
+        -> Zustand store
+          -> Chart overlays/subpanels
+```
+
 ## Deployment Architecture
 
 ```text
@@ -152,8 +198,6 @@ Render is currently a staging target. Production should move to a persistent VPS
 
 ## Roadmap
 
-- C++ indicator core
-- `pybind11` bridge
 - Full strategy engine
 - Backtesting
 - Persistent database

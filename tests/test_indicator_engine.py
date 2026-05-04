@@ -71,9 +71,37 @@ def test_python_fallback_bollinger_shape():
 
 def test_indicator_engine_status_has_fallback():
     status = IndicatorEngine(prefer_cpp=False).status()
+    assert "selected_engine" in status
+    assert "cpp_available" in status
     assert status["selected_engine"] == "python"
     assert status["fallback_available"] is True
+    assert isinstance(status["indicators"], list)
     assert "sma" in status["indicators"]
+
+
+def test_python_fallback_empty_inputs_are_safe():
+    assert python_fallback.sma([], 3) == []
+    assert python_fallback.ema([], 3) == []
+    assert python_fallback.rsi([], 14) == []
+    assert python_fallback.atr([], 14) == []
+    assert python_fallback.vwap([]) == []
+    assert python_fallback.macd([]) == {"macd": [], "signal": [], "histogram": []}
+    assert python_fallback.bollinger_bands([], 20) == {"middle": [], "upper": [], "lower": []}
+
+
+def test_python_fallback_invalid_periods_raise():
+    with pytest.raises(ValueError):
+        python_fallback.sma([1.0, 2.0], 0)
+    with pytest.raises(ValueError):
+        python_fallback.ema([1.0, 2.0], -1)
+    with pytest.raises(ValueError):
+        python_fallback.rsi([1.0, 2.0], 0)
+    with pytest.raises(ValueError):
+        python_fallback.atr([{"open": 1, "high": 2, "low": 1, "close": 2, "volume": 10}], 0)
+    with pytest.raises(ValueError):
+        python_fallback.macd([1.0, 2.0], 12, 12, 9)
+    with pytest.raises(ValueError):
+        python_fallback.bollinger_bands([1.0, 2.0], 2, 0.0)
 
 
 def test_indicator_engine_uses_python_when_cpp_missing(monkeypatch):

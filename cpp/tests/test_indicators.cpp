@@ -117,6 +117,15 @@ void test_vwap_basic() {
     assert(approx_equal(result[1], 10.0));
 }
 
+void test_vwap_zero_volume_outputs_nan() {
+    const std::vector<maet::Candle> candles = {
+        {9, 10, 8, 9, 0},
+    };
+    const auto result = maet::vwap(candles);
+    assert_vector_size(result, candles.size());
+    assert(is_nan(result[0]));
+}
+
 void test_bollinger_basic() {
     const auto result = maet::bollinger_bands({1, 2, 3, 4, 5}, 3);
     assert_vector_size(result.middle, 5);
@@ -162,6 +171,7 @@ int main() {
     test_macd_shape();
     test_atr_basic();
     test_vwap_basic();
+    test_vwap_zero_volume_outputs_nan();
     test_bollinger_basic();
     test_empty_input();
     test_invalid_parameters();
