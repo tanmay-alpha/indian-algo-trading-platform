@@ -22,6 +22,8 @@ import type {
   MarketWatchRow,
   StatusSource,
   WsConnectionStatus,
+  ApiStatus,
+  BackendWakeState,
   IndicatorEngineStatus,
   IndicatorName,
   IndicatorOverlayName,
@@ -84,7 +86,12 @@ export interface TerminalState {
   wsStatus: WsConnectionStatus
   statusSource: StatusSource
   reconnectAttempt: number
+  apiStatus: ApiStatus
+  backendReachable: boolean
+  backendWakeState: BackendWakeState
   backendOffline: boolean
+  lastStatusFetchAt: number | null
+  lastStatusError: string | null
   connectionError: string | null
 
   // Backend status
@@ -163,6 +170,8 @@ export interface TerminalActions {
   incrementReconnect: () => void
   resetReconnect: () => void
   setBackendOffline: (v: boolean) => void
+  setBackendWakeState: (state: BackendWakeState) => void
+  setApiReachability: (reachable: boolean, error?: string | null) => void
   setConnectionError: (e: string | null) => void
 
   setTerminalStatus: (s: TerminalStatus | null) => void
@@ -225,7 +234,12 @@ const initialState: TerminalState = {
   wsStatus: 'OFFLINE',
   statusSource: 'NONE',
   reconnectAttempt: 0,
+  apiStatus: 'UNKNOWN',
+  backendReachable: false,
+  backendWakeState: 'IDLE',
   backendOffline: false,
+  lastStatusFetchAt: null,
+  lastStatusError: null,
   connectionError: null,
 
   terminalStatus: null,
@@ -410,9 +424,35 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         : sysEvent('API', 'success', 'Backend HTTP reachable')
       return {
         backendOffline: v,
+        backendReachable: !v,
+        apiStatus: v ? 'OFFLINE' : 'ONLINE',
+        backendWakeState: v ? 'UNAVAILABLE' : 'ONLINE',
+        lastStatusFetchAt: v ? state.lastStatusFetchAt : Date.now(),
+        lastStatusError: v ? state.lastStatusError : null,
         events: [evt, ...state.events].slice(0, MAX_EVENTS),
       }
     }),
+  setBackendWakeState: (backendWakeState) =>
+    set({
+      backendWakeState,
+      apiStatus:
+        backendWakeState === 'WAKING'
+          ? 'WAKING'
+          : backendWakeState === 'ONLINE'
+          ? 'ONLINE'
+          : backendWakeState === 'UNAVAILABLE'
+          ? 'OFFLINE'
+          : 'UNKNOWN',
+    }),
+  setApiReachability: (reachable, error = null) =>
+    set((state) => ({
+      backendReachable: reachable,
+      backendOffline: !reachable,
+      apiStatus: reachable ? 'ONLINE' : 'OFFLINE',
+      backendWakeState: reachable ? 'ONLINE' : state.backendWakeState === 'WAKING' ? 'WAKING' : 'UNAVAILABLE',
+      lastStatusFetchAt: reachable ? Date.now() : state.lastStatusFetchAt,
+      lastStatusError: reachable ? null : error,
+    })),
 
   setConnectionError: (e) => set({ connectionError: e }),
 
@@ -826,7 +866,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         sysEvent(
           'STRATEGY',
           'info',
-          `${s.action} ${s.symbol}${s.strategy_name ? ` · ${s.strategy_name}` : ''}`,
+          `${s.action} ${s.symbol}${s.strategy_name ? ` / ${s.strategy_name}` : ''}`,
           s.symbol
         ),
         ...state.events,

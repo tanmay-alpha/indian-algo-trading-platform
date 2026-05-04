@@ -25,8 +25,8 @@ export function SymbolDetails() {
         <div className="mt-1 text-2xs font-mono text-text-dim">{row?.name ?? 'Instrument metadata unavailable'}</div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <InfoRow label="Exchange" value={row?.exchange ?? '—'} />
-        <InfoRow label="Token" value={row?.token ?? '—'} />
+        <InfoRow label="Exchange" value={row?.exchange ?? '\u2014'} />
+        <InfoRow label="Metadata" value={row ? 'Loaded' : '\u2014'} />
       </div>
       <InfoRow label="LTP" value={fmtPrice(row?.ltp)} />
       <InfoRow label="Best Bid" value={fmtPrice(row?.best_bid)} />
@@ -39,7 +39,7 @@ export function SymbolDetails() {
           <span className="text-xs font-semibold">Candle status</span>
         </div>
         <p className="mt-1 text-2xs font-mono leading-relaxed text-text-dim">
-          Waiting for historical candle source. No synthetic chart data is displayed.
+          Candle history is required for symbol analytics. No synthetic chart data is shown.
         </p>
       </div>
     </div>

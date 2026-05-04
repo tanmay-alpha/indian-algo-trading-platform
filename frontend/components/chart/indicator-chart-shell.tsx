@@ -9,6 +9,7 @@ import {
   mapBollingerSeries,
   mapLineSeries,
 } from '@/lib/indicator-series'
+import { marketSessionLabel } from '@/lib/utils'
 import { IndicatorEmptyState } from './indicator-empty-state'
 
 const WIDTH = 1000
@@ -23,6 +24,8 @@ export function IndicatorChartShell({
   result,
   overlays,
   signalMarkers = [],
+  apiStatus = 'ONLINE',
+  backendWakeState = 'ONLINE',
 }: {
   symbol: string | null
   timeframe: string
@@ -30,14 +33,17 @@ export function IndicatorChartShell({
   result?: IndicatorResultsResponse
   overlays: ChartOverlayState
   signalMarkers?: ChartSignalMarker[]
+  apiStatus?: string
+  backendWakeState?: string
 }) {
   if (candles.length === 0) {
+    const empty = chartEmptyCopy(apiStatus, backendWakeState)
     return (
       <div className="relative flex-1 min-h-[360px] overflow-hidden bg-[#070b12]">
         <div className="absolute inset-0 opacity-70 chart-grid" />
         <IndicatorEmptyState
-          title="No candle data loaded"
-          hint="Fetch or stream candles from the backend to render chart overlays. No synthetic OHLCV is rendered."
+          title={empty.title}
+          hint={empty.hint}
         />
       </div>
     )
@@ -296,6 +302,32 @@ function yAt(value: number, range: PriceRange): number {
 
 function isFiniteNumber(value: number | null): value is number {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+function chartEmptyCopy(apiStatus: string, backendWakeState: string): { title: string; hint: string } {
+  const session = marketSessionLabel()
+  if (backendWakeState === 'WAKING') {
+    return {
+      title: 'Waiting for backend data',
+      hint: 'The backend is waking up. Chart data will load automatically when REST status returns.',
+    }
+  }
+  if (apiStatus === 'OFFLINE') {
+    return {
+      title: 'Backend unavailable',
+      hint: 'Chart data cannot be loaded until the backend is reachable. No synthetic data is shown.',
+    }
+  }
+  if (session !== 'LIVE') {
+    return {
+      title: 'Market closed - no live candles expected',
+      hint: 'Use fetched historical candles for this symbol/timeframe. No synthetic data is shown.',
+    }
+  }
+  return {
+    title: 'No candle data available',
+    hint: 'Load candles for this symbol/timeframe to enable chart overlays and indicators.',
+  }
 }
 
 function markerIndex(candles: Candle[], time: string | number): number {

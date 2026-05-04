@@ -1,42 +1,22 @@
 'use client'
 
 import { Activity, LockKeyhole } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { BUILD_ENV, INDEX_TILES, WORKSPACES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { useIstClock } from '@/lib/use-ist-clock'
 import { IndexTicker } from './index-ticker'
 import { OperatorStatusStrip } from './operator-status-strip'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
 import type { IndexSnapshot } from '@/lib/types'
 
-function useIstClock() {
-  const [now, setNow] = useState('00:00:00')
-  useEffect(() => {
-    const tick = () => {
-      const date = new Date()
-      setNow(
-        date.toLocaleTimeString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-      )
-    }
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
-  return now
-}
-
 export function TopMarketBar() {
   const indices = useTerminalStore((s) => s.indices)
   const mode = useTerminalStore((s) => s.executionMode)
   const activeWorkspace = useTerminalStore((s) => s.activeWorkspace)
-  const ist = useIstClock()
+  const backendWakeState = useTerminalStore((s) => s.backendWakeState)
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const clock = useIstClock()
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
   for (const index of indices) indexBySymbol[index.symbol] = index
@@ -45,7 +25,15 @@ export function TopMarketBar() {
   const locked = mode === 'PAPER'
 
   return (
-    <header className="h-topbar shrink-0 border-b border-border bg-bg-2 flex items-stretch shadow-panel">
+    <header className="relative h-topbar shrink-0 border-b border-border bg-bg-2 flex items-stretch shadow-panel">
+      {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
+        <div className="absolute right-4 top-full z-40 mt-2 rounded-sm border border-info/25 bg-bg-2/95 px-3 py-2 text-[10px] font-mono text-info shadow-panel">
+          <span className="inline-block mr-2 h-1.5 w-1.5 rounded-full bg-info animate-pulse-soft" />
+          {backendWakeState === 'WAKING'
+            ? 'Backend waking up on free tier... this can take about 30 seconds.'
+            : 'Backend unavailable - retrying.'}
+        </div>
+      )}
       <div className="w-[330px] px-3 flex items-center gap-3 border-r border-border">
         <div className="h-8 w-8 grid place-items-center rounded-md border border-info/25 bg-info-dim text-info">
           <Activity className="w-4 h-4" />
@@ -93,7 +81,10 @@ export function TopMarketBar() {
           {locked ? 'Paper locked' : 'Live gated'}
         </span>
         <span className="inline-flex items-center px-2 h-[24px] rounded-sm border border-border bg-panel/70 text-[10px] font-mono text-text-2">
-          {ist} <span className="ml-1 text-text-faint">IST</span>
+          {clock.time} <span className="ml-1 text-text-faint">IST</span>
+        </span>
+        <span className="hidden 2xl:inline-flex items-center px-2 h-[24px] rounded-sm border border-border bg-panel/70 text-[10px] font-mono text-text-dim">
+          {clock.sessionLabel}
         </span>
         <div className="h-6 w-px bg-border mx-1" />
         <OperatorStatusStrip />

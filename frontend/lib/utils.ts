@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { DataQuality, OperatorState } from './types'
+import type { DataQuality, NseMarketSession, OperatorState } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -82,6 +82,12 @@ export function qualityClass(q: DataQuality | undefined): string {
       return 'text-warn bg-warn-dim border-warn/20'
     case 'DELAYED':
       return 'text-warn bg-warn-dim border-warn/20'
+    case 'WAITING':
+      return 'text-text-2 bg-white/[0.03] border-border'
+    case 'READY':
+      return 'text-up bg-up-dim border-up/20'
+    case 'WARMING':
+      return 'text-info bg-info-dim border-info/20'
     case 'UNAVAILABLE':
       return 'text-text-dim bg-white/[0.03] border-border'
     case 'BACKEND OFFLINE':
@@ -161,23 +167,75 @@ export function qualityFromAge(
 }
 
 export function isMarketHours(): boolean {
-  const now = new Date()
+  return getNseMarketSession() === 'OPEN'
+}
+
+export function getNseMarketSession(now: Date = new Date()): NseMarketSession {
   const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
   const day = ist.getDay()
-  if (day === 0 || day === 6) return false
+  if (day === 0 || day === 6) return 'WEEKEND'
   const h = ist.getHours()
   const m = ist.getMinutes()
   const minutes = h * 60 + m
-  return minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30
+  if (minutes < 9 * 60 + 15) return 'PRE_MARKET'
+  if (minutes >= 15 * 60 + 30) return 'POST_MARKET'
+  return 'OPEN'
 }
 
 export function marketSessionLabel(): 'PRE-MARKET' | 'POST-MARKET' | 'MARKET CLOSED' | 'LIVE' {
-  const now = new Date()
-  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
-  const day = ist.getDay()
-  if (day === 0 || day === 6) return 'MARKET CLOSED'
-  const minutes = ist.getHours() * 60 + ist.getMinutes()
-  if (minutes < 9 * 60 + 15) return 'PRE-MARKET'
-  if (minutes >= 15 * 60 + 30) return 'POST-MARKET'
-  return 'LIVE'
+  const session = getNseMarketSession()
+  if (session === 'OPEN') return 'LIVE'
+  if (session === 'PRE_MARKET') return 'PRE-MARKET'
+  if (session === 'POST_MARKET') return 'POST-MARKET'
+  return 'MARKET CLOSED'
+}
+
+export type UiSeverity = 'ok' | 'info' | 'warn' | 'bad' | 'muted' | 'locked'
+
+export interface UiStatusMeta {
+  label: string
+  shortLabel: string
+  severity: UiSeverity
+  dotClass: string
+  badgeClass: string
+}
+
+export function uiStatusMeta(status: string | null | undefined): UiStatusMeta {
+  const normalized = String(status || 'UNAVAILABLE').replace(/_/g, ' ').toUpperCase()
+  const compact = normalized.replace(/\s+/g, ' ')
+  const severity = severityForStatus(compact)
+  return {
+    label: compact,
+    shortLabel: compact,
+    severity,
+    dotClass: dotClassForSeverity(severity),
+    badgeClass: badgeClassForSeverity(severity),
+  }
+}
+
+function severityForStatus(status: string): UiSeverity {
+  if (['ONLINE', 'LIVE', 'READY', 'CONNECTED', 'OPEN', 'MARKET OPEN'].includes(status)) return 'ok'
+  if (['LOCKED', 'PAPER LOCKED'].includes(status)) return 'locked'
+  if (['CONNECTING', 'RECONNECTING', 'WAKING', 'WARMING', 'WAITING', 'STALE', 'DELAYED'].includes(status)) return 'warn'
+  if (['OFFLINE', 'BACKEND OFFLINE', 'ERROR', 'DISCONNECTED'].includes(status)) return 'bad'
+  if (['POST-MARKET', 'PRE-MARKET', 'MARKET CLOSED', 'WEEKEND'].includes(status)) return 'info'
+  return 'muted'
+}
+
+function dotClassForSeverity(severity: UiSeverity): string {
+  if (severity === 'ok') return 'bg-up shadow-[0_0_6px_rgba(22,199,132,0.55)]'
+  if (severity === 'warn') return 'bg-warn'
+  if (severity === 'bad') return 'bg-down'
+  if (severity === 'info') return 'bg-info'
+  if (severity === 'locked') return 'bg-locked'
+  return 'bg-text-faint'
+}
+
+function badgeClassForSeverity(severity: UiSeverity): string {
+  if (severity === 'ok') return 'text-up border-up/20 bg-up-dim'
+  if (severity === 'warn') return 'text-warn border-warn/20 bg-warn-dim'
+  if (severity === 'bad') return 'text-down border-down/25 bg-down-dim'
+  if (severity === 'info') return 'text-info border-info/20 bg-info-dim'
+  if (severity === 'locked') return 'text-text-2 border-border-strong bg-white/[0.04]'
+  return 'text-text-dim border-border bg-white/[0.03]'
 }

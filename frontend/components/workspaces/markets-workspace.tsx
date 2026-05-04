@@ -23,7 +23,7 @@ import type {
   ScreenerResult,
   Timeframe,
 } from '@/lib/types'
-import { cn, fmtPct, fmtPrice, fmtVolume } from '@/lib/utils'
+import { cn, fmtPct, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 
 type MarketsTab = 'all' | 'gainers' | 'losers' | 'active' | 'screener'
@@ -251,13 +251,14 @@ export function MarketsWorkspace() {
           <div className="p-2 space-y-1">
             {['NIFTY 50', 'NIFTY BANK'].map((label) => {
               const index = indices.find((item) => item.name === label || item.symbol === label.replace(' ', ''))
+              const noDataLabel = marketSessionLabel() === 'LIVE' ? 'WAITING' : marketSessionLabel()
               return (
                 <div key={label} className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
                   <div className="flex items-center justify-between">
                     <span className="text-text">{label}</span>
                     <span className="text-text-dim">{fmtPrice(index?.ltp)}</span>
                   </div>
-                  <div className="mt-0.5 text-text-faint">{index?.ltp == null ? 'Waiting' : fmtPct(index.change_pct)}</div>
+                  <div className="mt-0.5 text-text-faint">{index?.ltp == null ? noDataLabel : fmtPct(index.change_pct)}</div>
                 </div>
               )
             })}
@@ -401,7 +402,7 @@ function ScreenerPanel({
               <span>{fmtPrice(row.indicators.rsi)}</span>
               <span>{fmtPrice(row.indicators.ema_20)}</span>
               <span>{fmtPrice(row.indicators.vwap)}</span>
-              <span className={row.is_live ? 'text-up' : 'text-text-faint'}>{row.is_live ? 'LIVE' : '—'}</span>
+              <span className={row.is_live ? 'text-up' : 'text-text-faint'}>{row.is_live ? 'LIVE' : '\u2014'}</span>
             </div>
           ))}
         </div>
@@ -498,4 +499,3 @@ function parseFilters(filters: Record<string, string | boolean>): ScreenerFilter
   }
   return parsed
 }
-

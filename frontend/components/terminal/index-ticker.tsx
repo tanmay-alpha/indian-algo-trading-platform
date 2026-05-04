@@ -19,18 +19,18 @@ export function IndexTicker({ label, snapshot, className }: Props) {
     snapshot?.quality ??
     (snapshot?.status === 'unavailable'
       ? session === 'LIVE'
-        ? 'UNAVAILABLE'
+        ? 'WAITING'
         : session
       : hasData
       ? 'LIVE'
       : session === 'LIVE'
-      ? 'UNAVAILABLE'
+      ? 'WAITING'
       : session)
 
   return (
     <div
       className={cn(
-        'min-w-[142px] flex items-center gap-2 px-2.5 h-8 rounded-md border border-border bg-panel/70 hover:border-border-strong transition-colors shrink-0',
+        'min-w-[156px] flex items-center gap-2 px-2.5 h-8 rounded-md border border-border bg-panel/70 hover:border-border-strong transition-colors shrink-0',
         className
       )}
     >
@@ -43,7 +43,7 @@ export function IndexTicker({ label, snapshot, className }: Props) {
           hasData ? 'text-text' : 'text-text-faint'
         )}
       >
-        {hasData ? fmtPrice(snapshot!.ltp, 2) : '—'}
+        {hasData ? fmtPrice(snapshot!.ltp, 2) : '\u2014'}
       </span>
       <span
         className={cn(
@@ -51,7 +51,7 @@ export function IndexTicker({ label, snapshot, className }: Props) {
           hasData ? priceDirClass(change) : 'text-text-faint'
         )}
       >
-        {hasData ? fmtPct(changePct) : '—'}
+        {hasData ? fmtPct(changePct) : '\u2014'}
       </span>
       <DataQualityBadge quality={quality} showDot={false} />
     </div>

@@ -368,6 +368,8 @@ function PremiumChartPanel() {
   const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
   const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
   const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const fetchIndicatorStatus = useTerminalStore((s) => s.fetchIndicatorStatus)
   const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
   const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
@@ -399,6 +401,8 @@ function PremiumChartPanel() {
           result={indicatorResults}
           overlays={chartOverlays}
           signalMarkers={chartSignalMarkers}
+          apiStatus={apiStatus}
+          backendWakeState={backendWakeState}
         />
         {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
         {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
@@ -468,7 +472,7 @@ function IndicatorSummaryPanel({
           </>
         ) : (
           <div className="rounded-sm border border-border bg-panel/60 px-2 py-1.5 text-text-faint">
-            Toggle indicators after candles are available.
+            Indicator engine ready - candle data required.
           </div>
         )}
       </div>

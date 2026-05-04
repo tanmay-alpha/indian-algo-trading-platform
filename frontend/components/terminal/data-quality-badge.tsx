@@ -16,7 +16,7 @@ export function DataQualityBadge({
   className,
   showDot = true,
 }: Props) {
-  const display = quality === 'UNAVAILABLE' ? 'Waiting' : quality
+  const display = quality === 'BACKEND OFFLINE' ? 'API OFFLINE' : quality
   return (
     <span
       className={cn(
@@ -35,6 +35,9 @@ export function DataQualityBadge({
             quality === 'LIVE' && 'bg-up shadow-[0_0_4px_rgba(22,199,132,0.7)]',
             quality === 'STALE' && 'bg-warn',
             quality === 'DELAYED' && 'bg-warn',
+            quality === 'WAITING' && 'bg-text-faint',
+            quality === 'READY' && 'bg-up',
+            quality === 'WARMING' && 'bg-info animate-pulse-soft',
             quality === 'UNAVAILABLE' && 'bg-text-faint',
             quality === 'BACKEND OFFLINE' && 'bg-down',
             quality === 'MOCK' && 'bg-info',

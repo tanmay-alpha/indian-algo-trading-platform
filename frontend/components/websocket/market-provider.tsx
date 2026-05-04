@@ -15,7 +15,10 @@ import type {
 
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000, 30000]
 const CLIENT_PING_INTERVAL_MS = 25_000
-const REST_STATUS_POLL_MS = 10_000
+const REST_POLL_FIRST_SUCCESS_MS = 5_000
+const REST_POLL_RECONNECTING_MS = 10_000
+const REST_POLL_STEADY_MS = 15_000
+const BACKEND_WAKE_NOTICE_MS = 3_000
 
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null)
@@ -29,7 +32,8 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const setReconnectAttempt = useTerminalStore((s) => s.setReconnectAttempt)
   const setStatusSource = useTerminalStore((s) => s.setStatusSource)
   const setTerminalStatus = useTerminalStore((s) => s.setTerminalStatus)
-  const setBackendOffline = useTerminalStore((s) => s.setBackendOffline)
+  const setBackendWakeState = useTerminalStore((s) => s.setBackendWakeState)
+  const setApiReachability = useTerminalStore((s) => s.setApiReachability)
   const setBrokerStatus = useTerminalStore((s) => s.setBrokerStatus)
   const ingestTick = useTerminalStore((s) => s.ingestTick)
   const ingestSignal = useTerminalStore((s) => s.ingestSignal)
@@ -91,7 +95,8 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         setWsStatus('CONNECTED')
         setReconnectAttempt(0)
         setStatusSource('WS')
-        setBackendOffline(false)
+        setApiReachability(true)
+        setBackendWakeState('ONLINE')
         setConnectionError(null)
         startPingInterval()
       }
@@ -145,7 +150,8 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   }, [
     clearPingInterval,
     ingestEvent,
-    setBackendOffline,
+    setApiReachability,
+    setBackendWakeState,
     setConnectionError,
     setReconnectAttempt,
     setStatusSource,
@@ -255,27 +261,67 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   }, [clearPingInterval, connect])
 
   useEffect(() => {
+    let timer: number | null = null
+    let wakeTimer: number | null = null
+    let firstSuccess = false
+
+    const schedule = (delay: number) => {
+      if (timer) window.clearTimeout(timer)
+      timer = window.setTimeout(() => void pollStatus(), delay)
+    }
+
     const pollStatus = async () => {
-      const state = useTerminalStore.getState()
-      if (state.wsStatus === 'CONNECTED') return
+      if (!mountedRef.current) return
+      if (!firstSuccess) {
+        if (wakeTimer) window.clearTimeout(wakeTimer)
+        wakeTimer = window.setTimeout(() => {
+          if (!firstSuccess && mountedRef.current) {
+            setBackendWakeState('WAKING')
+          }
+        }, BACKEND_WAKE_NOTICE_MS)
+      }
+
       try {
         const status = await fetchTerminalStatus()
-        if (!mountedRef.current || useTerminalStore.getState().wsStatus === 'CONNECTED') return
+        if (!mountedRef.current) return
+        firstSuccess = true
+        if (wakeTimer) window.clearTimeout(wakeTimer)
         setTerminalStatus(status)
         setBrokerStatus(status.broker ?? null)
-        setBackendOffline(false)
-        setStatusSource('REST')
-      } catch {
+        setApiReachability(true)
+        setBackendWakeState('ONLINE')
+        setStatusSource(useTerminalStore.getState().wsStatus === 'CONNECTED' ? 'WS' : 'REST_FALLBACK')
+      } catch (error) {
         if (!mountedRef.current) return
-        setBackendOffline(true)
+        if (wakeTimer) window.clearTimeout(wakeTimer)
+        setApiReachability(false, error instanceof Error ? error.message : 'status fetch failed')
+        setBackendWakeState(firstSuccess ? 'UNAVAILABLE' : 'WAKING')
         setStatusSource('NONE')
+      } finally {
+        if (mountedRef.current) {
+          const state = useTerminalStore.getState()
+          const nextDelay = !firstSuccess
+            ? REST_POLL_FIRST_SUCCESS_MS
+            : state.wsStatus === 'CONNECTED'
+            ? REST_POLL_STEADY_MS
+            : REST_POLL_RECONNECTING_MS
+          schedule(nextDelay)
+        }
       }
     }
 
-    const id = setInterval(pollStatus, REST_STATUS_POLL_MS)
     void pollStatus()
-    return () => clearInterval(id)
-  }, [setBackendOffline, setBrokerStatus, setStatusSource, setTerminalStatus])
+    return () => {
+      if (timer) window.clearTimeout(timer)
+      if (wakeTimer) window.clearTimeout(wakeTimer)
+    }
+  }, [
+    setApiReachability,
+    setBackendWakeState,
+    setBrokerStatus,
+    setStatusSource,
+    setTerminalStatus,
+  ])
 
   return <>{children}</>
 }

@@ -2,7 +2,7 @@
 
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { DataQuality } from '@/lib/types'
+import type { ApiStatus, DataQuality } from '@/lib/types'
 import { cn, fmtAge, fmtPct, fmtVolume, marketSessionLabel, priceDirClass } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 import { DataQualityBadge } from './data-quality-badge'
@@ -20,8 +20,8 @@ export function WatchlistPanel() {
   const setSelected = useTerminalStore((s) => s.setSelectedSymbol)
   const addToWatchlist = useTerminalStore((s) => s.addToWatchlist)
   const removeFromWatchlist = useTerminalStore((s) => s.removeFromWatchlist)
-  const wsConnected = useTerminalStore((s) => s.wsConnected)
-  const backendOffline = useTerminalStore((s) => s.backendOffline)
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const terminalStatus = useTerminalStore((s) => s.terminalStatus)
 
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
@@ -67,7 +67,7 @@ export function WatchlistPanel() {
               onClick={() => setGroupOpen((open) => !open)}
               className="w-full h-7 px-2 flex items-center justify-between rounded-md border border-border bg-bg text-xs font-mono text-text hover:border-border-strong"
             >
-              <span className="truncate">{activeGroup?.name ?? '—'}</span>
+              <span className="truncate">{activeGroup?.name ?? '\u2014'}</span>
               <ChevronDown className="w-3 h-3 text-text-dim" />
             </button>
             {groupOpen && (
@@ -119,16 +119,18 @@ export function WatchlistPanel() {
             const row = market[symbol]
             const last = lastBy[symbol] ?? null
             const age = last ? Date.now() - last : null
-            const quality = qualityForRow({ backendOffline, wsConnected, last, age })
+            const quality = qualityForRow({ apiStatus, last, age })
             const isSelected = selected === symbol
             const ltp = row?.ltp ?? null
             const chgPct = row?.change_pct ?? null
             const volume = row?.volume ?? null
             const meta = row?.exchange
-              ? `${row.exchange}${row.token ? ` / ${row.token}` : ''}`
+              ? `${row.exchange} EQ`
               : last
               ? fmtAge(age)
-              : 'No tick yet'
+              : marketSessionLabel() === 'LIVE'
+              ? 'Awaiting tick'
+              : 'Market closed'
 
             return (
               <div
@@ -179,27 +181,30 @@ export function WatchlistPanel() {
             )
           })
         )}
+        {symbols.length > 0 && !terminalStatus && apiStatus !== 'ONLINE' && (
+          <div className="border-t border-border bg-bg/60 px-3 py-2 text-[10px] font-mono text-text-faint">
+            Loading terminal status...
+          </div>
+        )}
       </div>
     </aside>
   )
 }
 
 function qualityForRow({
-  backendOffline,
-  wsConnected,
+  apiStatus,
   last,
   age,
 }: {
-  backendOffline: boolean
-  wsConnected: boolean
+  apiStatus: ApiStatus
   last: number | null
   age: number | null
 }): DataQuality {
-  if (backendOffline) return 'BACKEND OFFLINE'
-  if (!wsConnected) return 'UNAVAILABLE'
+  if (apiStatus === 'OFFLINE') return 'BACKEND OFFLINE'
+  if (apiStatus === 'WAKING' || apiStatus === 'UNKNOWN') return 'WARMING'
   if (last == null || age == null) {
     const session = marketSessionLabel()
-    return session === 'LIVE' ? 'UNAVAILABLE' : session
+    return session === 'LIVE' ? 'WAITING' : session
   }
   const session = marketSessionLabel()
   if (session !== 'LIVE') return session
