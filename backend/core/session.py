@@ -58,9 +58,13 @@ class AngelSession:
                 if "Invalid TOTP" in error_msg:
                     raise Exception("Login failed: one-time code rejected. Check PC time sync.")
                 else:
-                    raise Exception(f"Login failed: {error_msg}")
+                    raise Exception("Login failed: broker rejected session")  # SECURITY: redacted
 
-        logger.info(f"SESSION: Structured Login Response: {{'status': {data.get('status')}, 'message': '{data.get('message')}'}}")
+        logger.info(
+            "SESSION: Login response status=%s message_present=%s",  # SECURITY: redacted
+            bool(data.get("status")),
+            bool(data.get("message")),
+        )
 
         self.jwt_token = data.get("data", {}).get("jwtToken")
         self.refresh_token = data.get("data", {}).get("refreshToken")

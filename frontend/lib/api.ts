@@ -509,7 +509,7 @@ export async function getObservabilityStatus(): Promise<ObservabilityStatus> {
 
 export async function getStrategyRuns(): Promise<StrategyRunHistoryResponse> {
   try {
-    return await request<StrategyRunHistoryResponse>('/observability/strategy-runs')
+    return await request<StrategyRunHistoryResponse>('/observability/backtest-history')
   } catch {
     return { runs: [], count: 0 }
   }

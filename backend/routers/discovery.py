@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from backend.candles.candle_store import CandleStore
+from backend.core.security import sanitize_response
 from backend.discovery.market_board import MarketBoard
 from backend.discovery.screener_engine import ScreenerEngine
 from backend.gateway import instrument_registry
@@ -62,7 +63,7 @@ def discovery_sector(
     if not instruments:
         raise HTTPException(status_code=404, detail="Sector not found")
     paginated = _paginate(instruments, page=page, page_size=page_size)
-    return {"sector": sector, **paginated}
+    return sanitize_response({"sector": sector, **paginated})
 
 
 @router.post("/screener")
@@ -86,8 +87,8 @@ def discovery_instruments(
 ):
     if q:
         instruments = instrument_registry.search_symbols(q, limit=5000)
-        return _paginate(instruments, page=page, page_size=page_size)
-    return instrument_registry.list_paginated(page=page, page_size=page_size)
+        return sanitize_response(_paginate(instruments, page=page, page_size=page_size))
+    return sanitize_response(instrument_registry.list_paginated(page=page, page_size=page_size))
 
 
 @router.get("/status")
@@ -154,4 +155,3 @@ def _paginate(instruments: list[dict], page: int = 1, page_size: int = 50) -> di
         "total": total,
         "total_pages": total_pages,
     }
-

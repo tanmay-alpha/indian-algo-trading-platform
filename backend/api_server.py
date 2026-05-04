@@ -1,6 +1,6 @@
 # backend/api_server.py
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
@@ -15,7 +15,7 @@ from backend.core.config import settings
 from backend.core.event_bus import EventBus
 from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.core.rate_limit import limiter, register_rate_limiter
-from backend.core.security import sanitize_response
+from backend.core.security import require_admin_token, sanitize_response
 from backend.routers import candles as candles_router
 from backend.routers import indicators as indicators_router
 from backend.routers import portfolio as portfolio_router
@@ -59,14 +59,7 @@ app = FastAPI(title="High-Frequency Trading Terminal")
 register_rate_limiter(app)
 
 def get_cors_origins() -> list[str]:
-    local_origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ]
-    configured = settings.allowed_origin_list
-    origins = list(dict.fromkeys([*local_origins, *configured]))
+    origins = settings.allowed_origin_list or ["http://localhost:3000"]
     if settings.environment.upper() == "PRODUCTION":
         origins = [origin for origin in origins if origin != "*"]
     return origins
@@ -294,7 +287,7 @@ async def start_gateway(loop):
             "websocket_started": False,
             "last_error": safe_error_message(e),
         })
-        logger.error(f"MDG: Gateway startup failed: {broker_status['last_error']}")
+        logger.error("MDG: Gateway startup failed: %s", broker_status["last_error"])  # SECURITY: redacted
         return False
 
 async def start_gateway_background(loop):
@@ -497,10 +490,10 @@ def ready_check():
 @app.get("/instruments/search")
 @limiter.limit("60/minute")
 def search_instruments(request: Request, q: str = Query(default=""), limit: int = Query(default=20, ge=1, le=100)):
-    return {
+    return sanitize_response({
         "query": q,
         "results": search_symbols(q, limit=limit) if q else [],
-    }
+    })
 
 @app.get("/instruments/master/status")
 def get_instrument_master_status():
@@ -508,12 +501,12 @@ def get_instrument_master_status():
 
 @app.get("/market-watch")
 def get_market_watch():
-    return {
+    return sanitize_response({
         "symbols": market_watch.symbols,
         "items": market_watch.snapshot(),
-    }
+    })
 
-@app.post("/market-watch")
+@app.post("/market-watch", dependencies=[Depends(require_admin_token)])
 async def update_market_watch(payload: MarketWatchRequest):
     valid, invalid = market_watch.set_symbols(payload.symbols)
     if invalid:
@@ -525,11 +518,34 @@ async def update_market_watch(payload: MarketWatchRequest):
     if gateway and gateway.connection_state in ["CONNECTING", "CONNECTED", "RECONNECTING"]:
         await gateway.update_subscriptions(valid)
 
-    return {
+    return sanitize_response({
         "status": "success",
         "symbols": valid,
         "items": market_watch.snapshot(),
-    }
+    })
+
+@app.delete("/market-watch/{symbol}", dependencies=[Depends(require_admin_token)])
+async def delete_market_watch_symbol(symbol: str):
+    normalized_symbol = str(symbol or "").strip().upper()
+    candidates = {normalized_symbol}
+    if normalized_symbol.endswith("-EQ"):
+        candidates.add(normalized_symbol[:-3])
+    remaining = [item for item in market_watch.symbols if item not in candidates]
+    if len(remaining) == len(market_watch.symbols):
+        raise HTTPException(status_code=404, detail="Symbol not in market watch")
+
+    valid, invalid = market_watch.set_symbols(remaining)
+    if invalid:
+        raise HTTPException(status_code=400, detail="Market watch update failed")
+
+    if gateway and gateway.connection_state in ["CONNECTING", "CONNECTED", "RECONNECTING"]:
+        await gateway.update_subscriptions(valid)
+
+    return sanitize_response({
+        "status": "success",
+        "symbols": valid,
+        "items": market_watch.snapshot(),
+    })
 
 @app.get("/indices")
 def get_indices():
@@ -545,7 +561,7 @@ def get_indices():
             "symbol": symbol,
             "name": instrument.get("name"),
             "exchange": instrument.get("exchange"),
-            "token": instrument.get("token"),
+            "token": None,  # SECURITY: redacted
             "ltp": None,
             "change": None,
             "change_pct": None,
@@ -601,9 +617,11 @@ async def toggle_mode(mode: str, confirm: bool = False):
 
 @app.post("/order")
 def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
-    # Find the token if we want to handle multiple symbols
-    # For now, default to SBIN-EQ mapping
-    token = "3045"
+    instrument = get_instrument(symbol)
+    token = str(instrument.get("token")) if instrument and instrument.get("token") else None
+    if not token:
+        raise HTTPException(status_code=404, detail="Unknown symbol")
+
     price_data = gateway.latest_data.get(token) if gateway else None
     
     if not price_data:

@@ -29,8 +29,8 @@ class StrategyEngine:
                 return "NEUTRAL"
 
             return self.evaluate()
-        except Exception as e:
-            logger.error(f"STRATEGY Error: {e}")
+        except Exception as exc:
+            logger.error("STRATEGY Error: %s", exc.__class__.__name__)  # SECURITY: redacted
             return "NEUTRAL"
 
     def evaluate(self):

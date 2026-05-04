@@ -2,11 +2,13 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from backend.candles.candle_store import CandleStore
 from backend.core.json_utils import json_safe
+from backend.core.rate_limit import limiter
+from backend.core.security import require_admin_token
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.models import StrategyConfig
@@ -54,7 +56,8 @@ def strategy_templates():
     return {"templates": get_strategy_templates()}
 
 
-@router.post("/backtest")
+@router.post("/backtest", dependencies=[Depends(require_admin_token)])
+@limiter.limit("10/minute")
 def run_backtest(payload: StrategyBacktestRequest, request: Request):
     config = _strategy_config(payload)
     candles = _request_candles(payload.candles, config.symbol, config.timeframe, request)
@@ -62,12 +65,13 @@ def run_backtest(payload: StrategyBacktestRequest, request: Request):
     try:
         result = engine.run_backtest(config, candles)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid backtest request") from exc  # SECURITY: redacted
     _record_backtest_history(request, config, result)
     return json_safe(_dump_model(result))
 
 
-@router.post("/signal-preview")
+@router.post("/signal-preview", dependencies=[Depends(require_admin_token)])
+@limiter.limit("20/minute")
 def signal_preview(payload: StrategySignalPreviewRequest, request: Request):
     config = _strategy_config(payload)
     candles = _request_candles(payload.candles, config.symbol, config.timeframe, request)
@@ -75,7 +79,7 @@ def signal_preview(payload: StrategySignalPreviewRequest, request: Request):
     try:
         signals = engine.generate_signals(config, candles)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail="Invalid signal preview request") from exc  # SECURITY: redacted
     return json_safe({
         "strategy_name": config.strategy_name,
         "symbol": config.symbol.strip().upper(),

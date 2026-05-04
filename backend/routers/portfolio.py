@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from backend.core.security import require_admin_token
 from backend.portfolio.portfolio_engine import PortfolioEngine
 
 
@@ -11,12 +12,12 @@ def portfolio_summary(request: Request):
     return _engine(request).get_summary()
 
 
-@router.get("/positions")
+@router.get("/positions", dependencies=[Depends(require_admin_token)])
 def portfolio_positions(request: Request):
     return {"positions": _engine(request).get_positions()}
 
 
-@router.get("/holdings")
+@router.get("/holdings", dependencies=[Depends(require_admin_token)])
 def portfolio_holdings(request: Request):
     engine = _engine(request)
     return {
@@ -25,12 +26,12 @@ def portfolio_holdings(request: Request):
     }
 
 
-@router.get("/equity-curve")
+@router.get("/equity-curve", dependencies=[Depends(require_admin_token)])
 def portfolio_equity_curve(request: Request, limit: int = 500):
     return {"points": _engine(request).get_equity_curve(limit=limit)}
 
 
-@router.get("/reconciliation/status")
+@router.get("/reconciliation/status", dependencies=[Depends(require_admin_token)])
 def portfolio_reconciliation_status(request: Request):
     engine = _engine(request)
     mismatches = engine._last_position_mismatches + engine._last_holding_mismatches

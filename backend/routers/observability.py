@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 
+from backend.core.security import require_admin_token
 from backend.observability.event_log import ObservabilityEventLog
 from backend.observability.health_timeline import HealthTimeline
 from backend.observability.metrics_store import MetricsStore
@@ -32,12 +33,12 @@ def observability_metric_series(
     return {"series_name": series_name, "points": metrics.get_series(series_name, limit=limit)}
 
 
-@router.get("/events/errors")
+@router.get("/events/errors", dependencies=[Depends(require_admin_token)])
 def observability_error_events(request: Request, limit: int = Query(default=50, ge=1, le=500)):
     return {"entries": _event_log(request).error_entries(limit), "count": len(_event_log(request).error_entries(limit))}
 
 
-@router.get("/events")
+@router.get("/events", dependencies=[Depends(require_admin_token)])
 def observability_events(
     request: Request,
     event_type: str | None = None,
@@ -48,12 +49,12 @@ def observability_events(
     return _event_log(request).query(event_type=event_type, symbol=symbol, limit=limit, offset=offset)
 
 
-@router.get("/health-timeline/incidents")
+@router.get("/health-timeline/incidents", dependencies=[Depends(require_admin_token)])
 def observability_health_incidents(request: Request):
     return {"incidents": _timeline(request).downtime_incidents()}
 
 
-@router.get("/health-timeline")
+@router.get("/health-timeline", dependencies=[Depends(require_admin_token)])
 def observability_health_timeline(
     request: Request,
     component: str | None = None,
@@ -66,10 +67,15 @@ def observability_health_timeline(
     }
 
 
-@router.get("/strategy-runs")
+@router.get("/strategy-runs", dependencies=[Depends(require_admin_token)])
 def observability_strategy_runs(request: Request):
     runs = list(getattr(request.app.state, "backtest_history", []) or [])
     return {"runs": runs, "count": len(runs)}
+
+
+@router.get("/backtest-history", dependencies=[Depends(require_admin_token)])
+def observability_backtest_history(request: Request):
+    return observability_strategy_runs(request)
 
 
 @router.get("/status")

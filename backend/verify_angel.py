@@ -5,6 +5,7 @@ import logging
 from SmartApi import SmartConnect
 from SmartApi.smartWebSocketV2 import SmartWebSocketV2
 from backend.core.config import settings
+from backend.gateway.instrument_registry import get_token
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -68,7 +69,11 @@ def on_data(ws, message):
 
 def on_open(ws):
     logger.info("WS Opened. Subscribing...")
-    tokens = [{"exchangeType": 1, "tokens": ["3045"]}] # SBIN-EQ
+    symbol_token = get_token("SBIN")
+    if not symbol_token:
+        logger.error("WS subscribe skipped: symbol token unavailable")
+        return
+    tokens = [{"exchangeType": 1, "tokens": [symbol_token]}]
     sws.subscribe(
         correlation_id="stream0001",
         mode=3,
@@ -76,10 +81,10 @@ def on_open(ws):
     )
 
 def on_error(ws, error):
-    logger.error(f"WS Error: {error}")
+    logger.error("WS Error: %s", error.__class__.__name__)  # SECURITY: redacted
 
 def on_close(ws, close_status_code, close_msg):
-    logger.warning(f"WS Closed: {close_status_code} - {close_msg}")
+    logger.warning("WS Closed: %s message_present=%s", close_status_code, bool(close_msg))  # SECURITY: redacted
 
 sws = SmartWebSocketV2(jwt_token, api_key, client_id, feed_token)
 sws.on_open = on_open
@@ -93,7 +98,7 @@ ws_thread.start()
 
 # 5. WAIT AND VERIFY
 time.sleep(10)
-logger.info(f"Test finished. Ticks received: {ticks_received}")
+logger.info("Test finished. Ticks received: %s", ticks_received)
 if ticks_received > 0:
     logger.info("SUCCESS")
 else:

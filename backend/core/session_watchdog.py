@@ -56,7 +56,10 @@ class SessionWatchdog:
                 try:
                     self.session_manager.check_clock_drift()
                 except RuntimeError as exc:
-                    logger.critical(f"{exc}; TODO: wire safe trading stop hook")
+                    logger.critical(
+                        "Clock drift check failed critically: %s; TODO: wire safe trading stop hook",
+                        exc.__class__.__name__,
+                    )  # SECURITY: redacted
                     self._running = False
                     break
                 except Exception as exc:

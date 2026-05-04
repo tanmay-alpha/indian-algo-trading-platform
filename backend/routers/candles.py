@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from backend.candles.candle_store import CandleStore
 from backend.core.rate_limit import limiter
+from backend.core.security import require_admin_token
 from backend.gateway.instrument_registry import get_instrument
 
 
@@ -65,7 +66,7 @@ async def get_candles(
     }
 
 
-@router.post("/{symbol}/fetch")
+@router.post("/{symbol}/fetch", dependencies=[Depends(require_admin_token)])
 @limiter.limit("10/minute")
 async def fetch_candles(symbol: str, payload: CandleFetchRequest, request: Request):
     _validate_timeframe(payload.timeframe)
