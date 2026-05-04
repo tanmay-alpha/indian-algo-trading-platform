@@ -10,6 +10,8 @@ add_library(maet_indicators STATIC
     src/indicators.cpp
 )
 
+set_target_properties(maet_indicators PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(maet_indicators
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -29,3 +31,21 @@ target_link_libraries(maet_indicator_tests
     PRIVATE
         maet_indicators
 )
+
+find_package(pybind11 CONFIG QUIET)
+
+if(pybind11_FOUND)
+    pybind11_add_module(maet_cpp_indicators
+        bindings/pybind_module.cpp
+    )
+    target_link_libraries(maet_cpp_indicators
+        PRIVATE
+            maet_indicators
+    )
+    target_include_directories(maet_cpp_indicators
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+else()
+    message(WARNING "pybind11 not found; Python extension will not be built")
+endif()

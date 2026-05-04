@@ -4,7 +4,7 @@ This directory contains the offline C++ numerical core for MAET Terminal indicat
 
 ## Purpose
 
-The C++ core is the foundation for future high-performance calculations that can later be exposed to Python through `pybind11`.
+The C++ core is the foundation for future high-performance calculations. Phase 12B adds an optional `pybind11` bridge so Python can call the native engine when the extension is built.
 
 ## Indicators Implemented
 
@@ -50,9 +50,31 @@ Indicator outputs always preserve input length. Values that cannot be computed b
 
 Invalid parameters, such as `period <= 0`, throw `std::invalid_argument`. Insufficient candle or price history does not throw.
 
-## Future Python Integration
+## pybind11 Bridge
 
-The next phase can add a `pybind11` bridge that exposes these functions to the FastAPI backend while keeping this core deterministic and separately testable.
+The optional Python extension module is named `maet_cpp_indicators`. It exposes:
+
+- `sma`
+- `ema`
+- `rsi`
+- `macd`
+- `atr`
+- `vwap`
+- `bollinger_bands`
+- `engine_info`
+
+Build helper:
+
+```bash
+pip install pybind11
+python scripts/build_cpp_indicators.py
+```
+
+The backend does not require this extension at import time. `backend.indicators.IndicatorEngine` selects the C++ module when available and otherwise uses the pure Python fallback implementation.
+
+## Future FastAPI Integration
+
+Phase 12C can add safe FastAPI indicator routes that read candle arrays from existing stores and calculate indicators through `IndicatorEngine`. This should remain offline numerical computation only.
 
 ## Safety
 

@@ -1,0 +1,114 @@
+import math
+
+import pytest
+
+from backend.indicators import cpp_bridge, python_fallback
+from backend.indicators.engine import IndicatorEngine
+
+
+def _is_nan(value: float) -> bool:
+    return math.isnan(value)
+
+
+def test_python_fallback_sma_basic():
+    result = python_fallback.sma([1, 2, 3, 4, 5], 3)
+    assert _is_nan(result[0])
+    assert _is_nan(result[1])
+    assert result[2:] == [2.0, 3.0, 4.0]
+
+
+def test_python_fallback_ema_seed():
+    result = python_fallback.ema([1, 2, 3, 4, 5], 3)
+    assert _is_nan(result[0])
+    assert _is_nan(result[1])
+    assert result[2] == pytest.approx(2.0)
+
+
+def test_python_fallback_rsi_flat_is_50():
+    result = python_fallback.rsi([10.0] * 20, 14)
+    assert result[-1] == pytest.approx(50.0)
+
+
+def test_python_fallback_macd_shape():
+    close = [float(i) for i in range(1, 61)]
+    result = python_fallback.macd(close)
+    assert len(result["macd"]) == len(close)
+    assert len(result["signal"]) == len(close)
+    assert len(result["histogram"]) == len(close)
+    assert _is_nan(result["macd"][0])
+    assert not _is_nan(result["macd"][-1])
+
+
+def test_python_fallback_atr_shape():
+    candles = [
+        {"open": 10.0, "high": 12.0, "low": 9.0, "close": 11.0, "volume": 100.0},
+        {"open": 11.0, "high": 13.0, "low": 10.0, "close": 12.0, "volume": 120.0},
+        {"open": 12.0, "high": 14.0, "low": 11.0, "close": 13.0, "volume": 130.0},
+    ]
+    result = python_fallback.atr(candles, 3)
+    assert len(result) == 3
+    assert _is_nan(result[0])
+    assert _is_nan(result[1])
+    assert not _is_nan(result[2])
+
+
+def test_python_fallback_vwap_basic():
+    candles = [
+        {"open": 9.0, "high": 10.0, "low": 8.0, "close": 9.0, "volume": 100.0},
+        {"open": 11.0, "high": 12.0, "low": 10.0, "close": 11.0, "volume": 100.0},
+    ]
+    result = python_fallback.vwap(candles)
+    assert result == pytest.approx([9.0, 10.0])
+
+
+def test_python_fallback_bollinger_shape():
+    result = python_fallback.bollinger_bands([1, 2, 3, 4, 5], 3)
+    assert len(result["middle"]) == 5
+    assert result["middle"][2] == pytest.approx(2.0)
+    assert result["upper"][2] > result["middle"][2]
+    assert result["lower"][2] < result["middle"][2]
+
+
+def test_indicator_engine_status_has_fallback():
+    status = IndicatorEngine(prefer_cpp=False).status()
+    assert status["selected_engine"] == "python"
+    assert status["fallback_available"] is True
+    assert "sma" in status["indicators"]
+
+
+def test_indicator_engine_uses_python_when_cpp_missing(monkeypatch):
+    monkeypatch.setattr(cpp_bridge, "CPP_AVAILABLE", False)
+    engine = IndicatorEngine(prefer_cpp=True)
+    assert engine.selected_engine == "python"
+
+
+def test_indicator_engine_calculate_multiple():
+    close = [float(i) for i in range(1, 61)]
+    candles = [
+        {"open": value, "high": value + 1, "low": value - 1, "close": value, "volume": 100.0}
+        for value in close
+    ]
+    result = IndicatorEngine(prefer_cpp=False).calculate(
+        close=close,
+        candles=candles,
+        indicators=["ema", "rsi", "macd", "vwap"],
+        params={"ema_period": 3, "rsi_period": 14},
+    )
+    assert result["engine"] == "python"
+    assert {"ema", "rsi", "macd", "vwap"}.issubset(result["results"])
+
+
+def test_backend_import_safe_without_cpp():
+    import backend.api_server  # noqa: F401
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_sma_matches_fallback():
+    values = [1, 2, 3, 4, 5]
+    cpp_result = cpp_bridge.sma(values, 3)
+    fallback_result = python_fallback.sma(values, 3)
+    for cpp_value, fallback_value in zip(cpp_result, fallback_result):
+        if math.isnan(fallback_value):
+            assert math.isnan(cpp_value)
+        else:
+            assert cpp_value == pytest.approx(fallback_value)
