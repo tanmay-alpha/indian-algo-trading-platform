@@ -106,11 +106,12 @@ Production path:
 | Phase 10A/10B | Complete | WebSocket and REST fallback stabilization |
 | Phase 11A | Complete | Angel One instrument master loader |
 | Phase 11B | Complete | Security hardening pass |
+| Phase 12A | Complete | C++ indicator core skeleton |
 
 ## Future Roadmap
 
-- C++ indicator core
 - `pybind11` bridge
+- Expanded C++ indicator core
 - Full instrument master coverage for index, derivatives, and production-grade symbol metadata
 - Full strategy engine
 - Backtesting engine
