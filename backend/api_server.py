@@ -4,6 +4,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Quer
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -128,6 +129,14 @@ def parse_event_datetime(value) -> datetime:
 
 async def websocket_broadcast(message: dict):
     await broadcaster.broadcast(message)
+
+def websocket_route_paths() -> list[str]:
+    return sorted(
+        getattr(route, "path", "")
+        for route in app.routes
+        if getattr(route, "path", "").startswith("/ws/")
+        and getattr(route, "methods", None) is None
+    )
 
 async def event_to_ws_bridge(event):
     event_type = getattr(event, "event_type", "unknown")
@@ -419,6 +428,10 @@ def terminal_status():
         "trading_mode": execution_mode,
     }
 
+@app.get("/ws/status")
+def websocket_status():
+    return broadcaster.status(route_paths=websocket_route_paths())
+
 @app.post("/toggle_mode")
 async def toggle_mode(mode: str, confirm: bool = False):
     global execution_mode, router
@@ -476,10 +489,27 @@ async def websocket_terminal(websocket: WebSocket):
     })
     try:
         while True:
-            # Keep connection alive; messages are pushed by the broadcaster
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        broadcaster.disconnect(websocket)
+            message = await websocket.receive_text()
+            if is_client_ping(message):
+                await websocket.send_json({
+                    "type": "pong",
+                    "payload": {"source": "server"},
+                    "ts": utc_timestamp(),
+                })
+    except WebSocketDisconnect as e:
+        broadcaster.disconnect(websocket, close_code=getattr(e, "code", None))
     except Exception as e:
         logger.error("WS: Client connection error: %s", e.__class__.__name__)
         broadcaster.disconnect(websocket)
+
+def is_client_ping(message: str) -> bool:
+    if message.strip().lower() == "ping":
+        return True
+    try:
+        payload = json.loads(message)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    message_type = str(payload.get("type", "")).strip().lower()
+    return message_type == "ping"

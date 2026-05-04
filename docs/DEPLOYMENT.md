@@ -27,7 +27,13 @@ Frontend environment variables:
 Run the backend as a long-running process:
 
 ```bash
-uvicorn backend.api_server:app --host 0.0.0.0 --port 8000
+uvicorn backend.api_server:app --host 0.0.0.0 --port 8000 --ws-ping-interval 20 --ws-ping-timeout 30
+```
+
+Render start command:
+
+```bash
+uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 30
 ```
 
 For production-style operation, use:

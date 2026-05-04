@@ -8,3 +8,9 @@ This directory contains example deployment files for the FastAPI backend.
 - `scripts/deploy-backend.sh.example`: example VPS update/restart flow.
 
 All files use placeholders. Do not put credentials directly in these files.
+
+Render backend start command:
+
+```bash
+uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 30
+```
