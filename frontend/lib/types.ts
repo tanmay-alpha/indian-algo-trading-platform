@@ -293,6 +293,39 @@ export type IndicatorName =
   | 'vwap'
   | 'bollinger_bands'
 
+export type IndicatorOverlayName = 'ema' | 'vwap' | 'bollinger_bands'
+export type IndicatorSubpanelName = 'rsi' | 'macd'
+
+export interface ChartOverlayState {
+  ema: boolean
+  vwap: boolean
+  bollinger_bands: boolean
+}
+
+export interface IndicatorSubpanelState {
+  rsi: boolean
+  macd: boolean
+}
+
+export interface IndicatorPoint {
+  time: string | number
+  value: number | null
+}
+
+export interface MacdPoint {
+  time: string | number
+  macd: number | null
+  signal: number | null
+  histogram: number | null
+}
+
+export interface BollingerPoint {
+  time: string | number
+  middle: number | null
+  upper: number | null
+  lower: number | null
+}
+
 export interface IndicatorEngineStatus {
   available: boolean
   selected_engine: 'cpp' | 'python' | string

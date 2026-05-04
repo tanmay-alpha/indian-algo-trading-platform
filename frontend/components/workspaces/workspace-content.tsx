@@ -1,12 +1,10 @@
 'use client'
 
 import {
-  Activity,
   BarChart3,
   BookOpen,
   Briefcase,
   Cpu,
-  Database,
   Globe2,
   LineChart,
   RefreshCw,
@@ -15,10 +13,20 @@ import {
 import { useEffect, type ReactNode } from 'react'
 import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
 import { TIMEFRAMES, WORKSPACES } from '@/lib/constants'
-import { cn, fmtPrice, fmtVolume, fmtPct } from '@/lib/utils'
-import type { IndicatorEngineStatus, IndicatorName, IndicatorResultsResponse, Timeframe, WorkspaceId } from '@/lib/types'
+import { cn, fmtPrice, fmtVolume, fmtPct, marketSessionLabel } from '@/lib/utils'
+import {
+  formatIndicatorValue,
+  latestNonNull,
+  mapLineSeries,
+  mapMacdSeries,
+} from '@/lib/indicator-series'
+import type { IndicatorResultsResponse, Timeframe, WorkspaceId } from '@/lib/types'
 import { DataQualityBadge } from '@/components/terminal/data-quality-badge'
 import { EmptyState } from '@/components/terminal/empty-state'
+import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
+import { IndicatorOverlayControls } from '@/components/chart/indicator-overlay-controls'
+import { RsiPanel } from '@/components/chart/rsi-panel'
+import { MacdPanel } from '@/components/chart/macd-panel'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -395,139 +403,66 @@ function WorkspaceFrame({
 function PremiumChartPanel() {
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const timeframe = useTerminalStore((s) => s.chartTimeframe)
-  const setWorkspace = useTerminalStore((s) => s.setWorkspace)
-  const setBottomDockTab = useTerminalStore((s) => s.setBottomDockTab)
   const tick = useTerminalStore((s) => s.currentTick)
   const indicatorStatus = useTerminalStore((s) => s.indicatorStatus)
-  const indicatorLoading = useTerminalStore((s) => s.indicatorLoading)
-  const indicatorError = useTerminalStore((s) => s.indicatorError)
+  const indicatorLoading = useTerminalStore((s) => s.indicatorChartLoading)
+  const indicatorError = useTerminalStore((s) => s.indicatorChartError)
+  const chartOverlays = useTerminalStore((s) => s.chartOverlays)
+  const indicatorSubpanels = useTerminalStore((s) => s.indicatorSubpanels)
+  const activeIndicatorNames = useTerminalStore((s) => s.activeIndicatorNames)
   const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
+  const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
   const fetchIndicatorStatus = useTerminalStore((s) => s.fetchIndicatorStatus)
-  const fetchIndicatorsForSelectedSymbol = useTerminalStore((s) => s.fetchIndicatorsForSelectedSymbol)
-  const indicatorResults = selected
-    ? indicatorResultsByKey[indicatorKey(selected, timeframe)]
-    : undefined
-  const indicators: Array<{ label: string; name: IndicatorName }> = [
-    { label: 'VWAP', name: 'vwap' },
-    { label: 'EMA', name: 'ema' },
-    { label: 'RSI', name: 'rsi' },
-    { label: 'MACD', name: 'macd' },
-    { label: 'BB', name: 'bollinger_bands' },
-    { label: 'ATR', name: 'atr' },
-  ]
-  const patterns = ['Doji', 'Hammer', 'Engulfing', 'Shooting Star']
+  const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
+  const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
+  const toggleIndicatorSubpanel = useTerminalStore((s) => s.toggleIndicatorSubpanel)
+  const chartKey = selected ? indicatorKey(selected, timeframe) : null
+  const indicatorResults = chartKey ? indicatorResultsByKey[chartKey] : undefined
+  const candles = chartKey ? chartCandlesByKey[chartKey] || [] : []
+  const noCandles = indicatorResults?.available === false && indicatorResults.reason === 'NO_CANDLES'
+  const rsiPoints = mapLineSeries(candles, indicatorResults?.results.rsi)
+  const macdPoints = mapMacdSeries(candles, indicatorResults?.results.macd)
 
   useEffect(() => {
     void fetchIndicatorStatus()
   }, [fetchIndicatorStatus])
 
+  useEffect(() => {
+    if (selected && activeIndicatorNames.length > 0) {
+      void fetchChartIndicators(selected, timeframe)
+    }
+  }, [activeIndicatorNames, fetchChartIndicators, selected, timeframe])
+
   return (
-    <div className="relative flex-1 overflow-hidden bg-[#070b12]">
-      <div className="absolute inset-0 opacity-70 chart-grid" />
-      <div className="absolute right-12 top-0 bottom-9 w-px bg-border/70" />
-      <div className="absolute left-0 right-0 bottom-9 h-px bg-border/70" />
-      <div className="absolute right-3 top-16 bottom-14 flex flex-col justify-between text-[9px] font-mono text-text-faint">
-        <span>H</span>
-        <span>MID</span>
-        <span>L</span>
+    <div className="relative flex-1 min-h-0 overflow-hidden bg-[#070b12]">
+      <div className="h-full min-h-0 flex flex-col">
+        <IndicatorChartShell
+          symbol={selected ?? tick?.symbol ?? null}
+          timeframe={timeframe}
+          candles={candles}
+          result={indicatorResults}
+          overlays={chartOverlays}
+        />
+        {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
+        {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
       </div>
-      <div className="absolute left-4 right-16 top-4 h-12 rounded-md border border-border bg-bg-2/85 backdrop-blur-sm flex items-center justify-between px-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text">{selected ?? tick?.symbol ?? 'Select a symbol'}</span>
-            <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-dim">
-              {timeframe}
-            </span>
-          </div>
-          <div className="mt-0.5 text-[10px] text-text-faint">
-            Candle source waiting for backend historical data
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusPill icon={<Database className="w-3 h-3" />} label="Candles" value="Not loaded" />
-          <StatusPill icon={<Activity className="w-3 h-3" />} label="Live ticks" value={tick ? 'Streaming' : 'Waiting'} />
-        </div>
-      </div>
-
-      <div className="absolute left-4 bottom-14 flex flex-col gap-2">
-        <div className="flex items-center gap-1.5">
-          {indicators.map((indicator) => (
-            <button
-              key={indicator.name}
-              onClick={() => fetchIndicatorsForSelectedSymbol([indicator.name])}
-              disabled={!selected || indicatorLoading}
-              className={cn(
-                'h-6 px-2 rounded border text-[10px] font-mono',
-                indicatorResults?.results[indicator.name]
-                  ? 'border-info/35 bg-info-dim text-info'
-                  : 'border-border bg-panel/70 text-text-dim hover:text-text',
-                (!selected || indicatorLoading) && 'opacity-55 cursor-not-allowed'
-              )}
-              title={selected ? `Fetch ${indicator.label}` : 'Select a symbol first'}
-            >
-              {indicator.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {patterns.map((pattern) => (
-            <button
-              key={pattern}
-              disabled
-              className="h-6 px-2 rounded border border-border bg-panel/50 text-[10px] font-mono text-text-faint"
-              title="Pattern detection placeholder"
-            >
-              {pattern}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <IndicatorEnginePanel
-        selected={selected}
-        timeframe={timeframe}
+      <IndicatorOverlayControls
+        overlays={chartOverlays}
+        subpanels={indicatorSubpanels}
         status={indicatorStatus}
-        result={indicatorResults}
         loading={indicatorLoading}
+        noCandles={Boolean(noCandles)}
         error={indicatorError}
-        onFetchDefault={() => fetchIndicatorsForSelectedSymbol(['ema', 'rsi', 'macd', 'vwap'])}
+        onToggleOverlay={toggleChartOverlay}
+        onToggleSubpanel={toggleIndicatorSubpanel}
       />
-
-      <div className="absolute inset-0 grid place-items-center pointer-events-none">
-        <div className="w-[420px] rounded-lg border border-border-strong bg-bg-2/92 shadow-panel pointer-events-auto">
-          <div className="border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2 text-text">
-              <LineChart className="w-4 h-4 text-info" />
-              <span className="text-sm font-semibold">No candle data loaded</span>
-            </div>
-            <p className="mt-1 text-xs text-text-dim leading-relaxed">
-              Connect historical candle source or fetch candles from the backend. No synthetic OHLCV is rendered.
-            </p>
-          </div>
-          <div className="p-3 flex items-center gap-2">
-            <button
-              disabled
-              className="h-8 px-3 rounded border border-border bg-panel text-xs font-medium text-text-dim"
-            >
-              <RefreshCw className="inline w-3.5 h-3.5 mr-1.5" />
-              Retry candles
-            </button>
-            <button
-              onClick={() => setWorkspace('risk')}
-              className="h-8 px-3 rounded border border-border bg-panel hover:border-info/40 text-xs text-text-2"
-            >
-              View backend status
-            </button>
-            <button
-              onClick={() => setBottomDockTab('system-health')}
-              className="h-8 px-3 rounded border border-info/30 bg-info-dim text-xs text-info"
-            >
-              Open System Health
-            </button>
-          </div>
-        </div>
-      </div>
-
+      <IndicatorSummaryPanel
+        result={indicatorResults}
+        status={indicatorStatus?.selected_engine ?? null}
+        marketState={marketSessionLabel()}
+        selected={selected ?? tick?.symbol ?? null}
+        timeframe={timeframe}
+      />
       <div className="absolute left-4 right-16 bottom-0 h-9 flex items-center justify-between border-t border-border bg-bg-2/85 px-3 text-[10px] font-mono text-text-faint">
         <span>Event timeline</span>
         <span>Signals, candle loads, and feed changes will appear here</span>
@@ -536,91 +471,50 @@ function PremiumChartPanel() {
   )
 }
 
-function IndicatorEnginePanel({
+function IndicatorSummaryPanel({
+  result,
+  status,
+  marketState,
   selected,
   timeframe,
-  status,
-  result,
-  loading,
-  error,
-  onFetchDefault,
 }: {
+  result?: IndicatorResultsResponse
+  status: string | null
+  marketState: string
   selected: string | null
   timeframe: Timeframe
-  status: IndicatorEngineStatus | null
-  result?: IndicatorResultsResponse
-  loading: boolean
-  error: string | null
-  onFetchDefault: () => void
 }) {
-  const engine = result?.engine ?? status?.selected_engine ?? 'python'
-  const noCandles = result?.available === false && result.reason === 'NO_CANDLES'
+  const bb = result?.results.bollinger_bands
   return (
-    <div className="absolute right-16 top-20 w-[270px] rounded-md border border-border bg-bg-2/90 backdrop-blur-sm shadow-panel">
+    <div className="absolute right-16 top-20 z-20 w-[280px] rounded-md border border-border bg-bg-2/90 backdrop-blur-sm shadow-panel">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div>
-          <div className="text-xs font-semibold text-text">Indicator Engine</div>
+          <div className="text-xs font-semibold text-text">Indicator Summary</div>
           <div className="text-[9px] font-mono text-text-faint">
             {selected ?? 'No symbol'} / {timeframe}
           </div>
         </div>
         <span className="rounded border border-info/30 bg-info-dim px-2 py-0.5 text-[10px] font-mono uppercase text-info">
-          {engine}
+          {result?.engine ?? status ?? 'python'}
         </span>
       </div>
       <div className="space-y-2 p-3 text-[10px] font-mono">
-        <div className="grid grid-cols-2 gap-2">
-          <StatusMini label="C++" value={status?.cpp_available ? 'AVAILABLE' : 'FALLBACK'} />
-          <StatusMini label="Supported" value={String(status?.indicators.length ?? 7)} />
-        </div>
-        <button
-          onClick={onFetchDefault}
-          disabled={!selected || loading}
-          className="h-7 w-full rounded-sm border border-border bg-panel text-[10px] text-text-2 hover:border-info/40 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Loading indicators' : 'Load EMA / RSI / MACD / VWAP'}
-        </button>
-        {noCandles ? (
-          <div className="rounded-sm border border-warn/20 bg-warn/5 px-2 py-1.5 text-warn">
-            No candle data available for indicators
-          </div>
-        ) : error ? (
-          <div className="rounded-sm border border-down/20 bg-down/5 px-2 py-1.5 text-down">
-            {error}
-          </div>
-        ) : result?.available ? (
-          <IndicatorSummary result={result} />
+        {result?.available ? (
+          <>
+            <IndicatorRow label="EMA latest" value={formatIndicatorValue(latestNonNull(result.results.ema))} />
+            <IndicatorRow label="RSI latest" value={formatIndicatorValue(latestNonNull(result.results.rsi))} />
+            <IndicatorRow label="MACD hist" value={formatIndicatorValue(latestNonNull(result.results.macd?.histogram))} />
+            <IndicatorRow label="VWAP latest" value={formatIndicatorValue(latestNonNull(result.results.vwap))} />
+            <IndicatorRow label="BB upper" value={formatIndicatorValue(latestNonNull(bb?.upper))} />
+            <IndicatorRow label="BB lower" value={formatIndicatorValue(latestNonNull(bb?.lower))} />
+            <IndicatorRow label="Market" value={marketState} />
+          </>
         ) : (
           <div className="rounded-sm border border-border bg-panel/60 px-2 py-1.5 text-text-faint">
-            Indicator values will appear after candles are available.
+            Toggle indicators after candles are available.
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function IndicatorSummary({ result }: { result: IndicatorResultsResponse }) {
-  const ema = result.results.ema
-  const rsi = result.results.rsi
-  const macdHistogram = result.results.macd?.histogram
-  const vwap = result.results.vwap
-  return (
-    <div className="space-y-1">
-      <IndicatorRow label="EMA points" value={String(countSeries(ema))} />
-      <IndicatorRow label="RSI latest" value={formatIndicatorValue(latestValue(rsi))} />
-      <IndicatorRow label="MACD hist" value={formatIndicatorValue(latestValue(macdHistogram))} />
-      <IndicatorRow label="VWAP latest" value={formatIndicatorValue(latestValue(vwap))} />
-      <IndicatorRow label="Count" value={String(result.count)} />
-    </div>
-  )
-}
-
-function StatusMini({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-sm border border-border bg-panel/70 px-2 py-1">
-      <div className="text-[8px] uppercase tracking-wider text-text-faint">{label}</div>
-      <div className="mt-0.5 truncate text-text-2">{value}</div>
     </div>
   )
 }
@@ -631,41 +525,6 @@ function IndicatorRow({ label, value }: { label: string; value: string }) {
       <span className="text-text-faint">{label}</span>
       <span className="text-text">{value}</span>
     </div>
-  )
-}
-
-function latestValue(values?: Array<number | null>): number | null {
-  if (!values) return null
-  for (let index = values.length - 1; index >= 0; index -= 1) {
-    const value = values[index]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
-  }
-  return null
-}
-
-function countSeries(values?: Array<number | null>): number {
-  return values?.filter((value) => typeof value === 'number' && Number.isFinite(value)).length ?? 0
-}
-
-function formatIndicatorValue(value: number | null): string {
-  return value == null ? '\u2014' : value.toFixed(2)
-}
-
-function StatusPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded border border-border bg-panel px-2 h-6 text-[10px] font-mono">
-      <span className="text-info">{icon}</span>
-      <span className="text-text-faint">{label}</span>
-      <span className="text-text-2">{value}</span>
-    </span>
   )
 }
 

@@ -24,7 +24,12 @@ import type {
   WsConnectionStatus,
   IndicatorEngineStatus,
   IndicatorName,
+  IndicatorOverlayName,
   IndicatorResultsResponse,
+  IndicatorSubpanelName,
+  ChartOverlayState,
+  IndicatorSubpanelState,
+  Candle,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -36,6 +41,7 @@ import {
   getPortfolioSummary,
   getIndicatorStatus,
   getIndicatorsForSymbol,
+  fetchCandles,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -86,6 +92,13 @@ export interface TerminalState {
   indicatorResultsBySymbolTimeframe: Record<string, IndicatorResultsResponse>
   indicatorLoading: boolean
   indicatorError: string | null
+  chartOverlays: ChartOverlayState
+  indicatorSubpanels: IndicatorSubpanelState
+  activeIndicatorNames: IndicatorName[]
+  latestIndicatorResults: IndicatorResultsResponse | null
+  indicatorChartError: string | null
+  indicatorChartLoading: boolean
+  chartCandlesBySymbolTimeframe: Record<string, Candle[]>
 
   // Live tick
   currentTick: TickPayload | null
@@ -142,6 +155,11 @@ export interface TerminalActions {
   fetchIndicatorStatus: () => Promise<void>
   fetchIndicatorsForSelectedSymbol: (names?: IndicatorName[]) => Promise<void>
   clearIndicatorResults: () => void
+  toggleChartOverlay: (name: IndicatorOverlayName) => void
+  toggleIndicatorSubpanel: (name: IndicatorSubpanelName) => void
+  setIndicatorOverlays: (overlays: Partial<ChartOverlayState>, subpanels?: Partial<IndicatorSubpanelState>) => void
+  fetchChartIndicators: (symbol: string, timeframe: Timeframe) => Promise<void>
+  clearChartIndicators: () => void
 
   ingestTick: (tick: TickPayload) => void
   ingestSignal: (s: SignalEvent) => void
@@ -194,6 +212,20 @@ const initialState: TerminalState = {
   indicatorResultsBySymbolTimeframe: {},
   indicatorLoading: false,
   indicatorError: null,
+  chartOverlays: {
+    ema: false,
+    vwap: false,
+    bollinger_bands: false,
+  },
+  indicatorSubpanels: {
+    rsi: false,
+    macd: false,
+  },
+  activeIndicatorNames: [],
+  latestIndicatorResults: null,
+  indicatorChartError: null,
+  indicatorChartLoading: false,
+  chartCandlesBySymbolTimeframe: {},
 
   currentTick: null,
   lastTickAt: null,
@@ -225,14 +257,26 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setRightPanelTab: (t) => set({ rightPanelTab: t }),
   setBottomDockTab: (t) => set({ bottomDockTab: t }),
-  setChartTimeframe: (t) => set({ chartTimeframe: t }),
+  setChartTimeframe: (t) => {
+    set({ chartTimeframe: t })
+    const { selectedSymbol, activeIndicatorNames } = get()
+    if (selectedSymbol && activeIndicatorNames.length > 0) {
+      void get().fetchChartIndicators(selectedSymbol, t)
+    }
+  },
 
   toggleCommandPalette: (open) =>
     set((s) => ({ commandPaletteOpen: open ?? !s.commandPaletteOpen })),
   toggleShortcuts: (open) =>
     set((s) => ({ shortcutsOpen: open ?? !s.shortcutsOpen })),
 
-  setSelectedSymbol: (s) => set({ selectedSymbol: s }),
+  setSelectedSymbol: (s) => {
+    set({ selectedSymbol: s })
+    const { chartTimeframe, activeIndicatorNames } = get()
+    if (s && activeIndicatorNames.length > 0) {
+      void get().fetchChartIndicators(s, chartTimeframe)
+    }
+  },
 
   setWatchlistGroup: (id) => set({ watchlistGroupId: id }),
 
@@ -412,6 +456,95 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       indicatorResultsBySymbolTimeframe: {},
       indicatorError: null,
     }),
+  toggleChartOverlay: (name) => {
+    set((state) => {
+      const chartOverlays = {
+        ...state.chartOverlays,
+        [name]: !state.chartOverlays[name],
+      }
+      return {
+        chartOverlays,
+        activeIndicatorNames: activeNames(chartOverlays, state.indicatorSubpanels),
+      }
+    })
+    fetchOrClearActiveIndicators(get)
+  },
+  toggleIndicatorSubpanel: (name) => {
+    set((state) => {
+      const indicatorSubpanels = {
+        ...state.indicatorSubpanels,
+        [name]: !state.indicatorSubpanels[name],
+      }
+      return {
+        indicatorSubpanels,
+        activeIndicatorNames: activeNames(state.chartOverlays, indicatorSubpanels),
+      }
+    })
+    fetchOrClearActiveIndicators(get)
+  },
+  setIndicatorOverlays: (overlays, subpanels) => {
+    set((state) => {
+      const chartOverlays = { ...state.chartOverlays, ...overlays }
+      const indicatorSubpanels = { ...state.indicatorSubpanels, ...(subpanels || {}) }
+      return {
+        chartOverlays,
+        indicatorSubpanels,
+        activeIndicatorNames: activeNames(chartOverlays, indicatorSubpanels),
+      }
+    })
+    fetchOrClearActiveIndicators(get)
+  },
+  fetchChartIndicators: async (symbol, timeframe) => {
+    const names = get().activeIndicatorNames
+    if (!symbol || names.length === 0) {
+      get().clearChartIndicators()
+      return
+    }
+
+    set({
+      indicatorChartLoading: true,
+      indicatorLoading: true,
+      indicatorChartError: null,
+      indicatorError: null,
+    })
+
+    const key = indicatorKey(symbol, timeframe)
+    let candles: Candle[] = []
+    try {
+      const candleResponse = await fetchCandles(symbol, timeframe)
+      candles = candleResponse.candles || []
+    } catch {
+      candles = []
+    }
+
+    const response = await getIndicatorsForSymbol(symbol, timeframe, names)
+    const unavailable =
+      !response.available && response.reason !== 'NO_CANDLES'
+        ? response.reason || 'Indicator backend unavailable'
+        : null
+
+    set((state) => ({
+      indicatorChartLoading: false,
+      indicatorLoading: false,
+      indicatorChartError: unavailable,
+      indicatorError: unavailable,
+      latestIndicatorResults: response,
+      indicatorResultsBySymbolTimeframe: {
+        ...state.indicatorResultsBySymbolTimeframe,
+        [key]: response,
+      },
+      chartCandlesBySymbolTimeframe: {
+        ...state.chartCandlesBySymbolTimeframe,
+        [key]: candles,
+      },
+    }))
+  },
+  clearChartIndicators: () =>
+    set({
+      latestIndicatorResults: null,
+      indicatorChartError: null,
+      indicatorChartLoading: false,
+    }),
 
   ingestTick: (tick) =>
     set((state) => {
@@ -549,4 +682,26 @@ export const _internal = { sysEvent, workspaceForPreset }
 
 export function indicatorKey(symbol: string, timeframe: Timeframe): string {
   return `${symbol}:${timeframe}`
+}
+
+function activeNames(
+  overlays: ChartOverlayState,
+  subpanels: IndicatorSubpanelState
+): IndicatorName[] {
+  const names: IndicatorName[] = []
+  if (overlays.ema) names.push('ema')
+  if (overlays.vwap) names.push('vwap')
+  if (overlays.bollinger_bands) names.push('bollinger_bands')
+  if (subpanels.rsi) names.push('rsi')
+  if (subpanels.macd) names.push('macd')
+  return names
+}
+
+function fetchOrClearActiveIndicators(get: () => TerminalStore): void {
+  const { selectedSymbol, chartTimeframe, activeIndicatorNames } = get()
+  if (!selectedSymbol || activeIndicatorNames.length === 0) {
+    get().clearChartIndicators()
+    return
+  }
+  void get().fetchChartIndicators(selectedSymbol, chartTimeframe)
 }
