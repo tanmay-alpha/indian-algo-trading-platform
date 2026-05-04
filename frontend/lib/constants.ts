@@ -28,6 +28,8 @@ export const ENDPOINTS = {
   portfolioHoldings: '/portfolio/holdings',
   portfolioEquityCurve: '/portfolio/equity-curve',
   portfolioReconciliation: '/portfolio/reconciliation/status',
+  indicators: '/indicators',
+  indicatorStatus: '/indicators/status',
 } as const
 
 export const STALE_THRESHOLD_MS = 8000
