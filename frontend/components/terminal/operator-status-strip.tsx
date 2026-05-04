@@ -1,127 +1,110 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { ConnectionBadge } from './connection-badge'
-import type { OperatorState } from '@/lib/types'
+import { cn } from '@/lib/utils'
+
+type DotStatus = 'ok' | 'warn' | 'bad' | 'unavailable' | 'locked'
 
 export function OperatorStatusStrip() {
   const broker = useTerminalStore((s) => s.brokerStatus)
   const status = useTerminalStore((s) => s.terminalStatus)
-  const wsConnected = useTerminalStore((s) => s.wsConnected)
-  const reconnectAttempts = useTerminalStore((s) => s.wsReconnectAttempts)
+  const wsStatus = useTerminalStore((s) => s.wsStatus)
   const backendOffline = useTerminalStore((s) => s.backendOffline)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const mode = useTerminalStore((s) => s.executionMode)
 
-  const brokerState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : !broker
-    ? 'UNAVAILABLE'
-    : broker.last_error
-    ? 'DEGRADED'
-    : broker.logged_in
-    ? 'ONLINE'
-    : 'OFFLINE'
-
-  const feedState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : !broker
-    ? 'UNAVAILABLE'
-    : broker.feed_token_available
-    ? 'ONLINE'
-    : 'OFFLINE'
-
-  const wsState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : wsConnected
-    ? 'ONLINE'
-    : reconnectAttempts > 0
-    ? 'RECONNECTING'
-    : 'OFFLINE'
-
-  const eventBusState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : status?.event_bus
-    ? 'ONLINE'
-    : 'UNAVAILABLE'
-
   const tickBus = status?.tick_bus
-  const tickBusState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : !tickBus
-    ? 'UNAVAILABLE'
-    : (tickBus.drop_rate_pct ?? 0) > 5
-    ? 'DEGRADED'
-    : 'ONLINE'
-
-  const candleState: OperatorState = backendOffline
-    ? 'BACKEND OFFLINE'
-    : status?.candles
-    ? 'ONLINE'
-    : 'UNAVAILABLE'
-
-  const lockState: OperatorState = mode === 'PAPER' ? 'LOCKED' : 'ONLINE'
-
-  const apiState: OperatorState = backendOffline ? 'OFFLINE' : 'ONLINE'
-
-  // Stale flag if last tick is too old
   const stale = lastTickAt != null && Date.now() - lastTickAt > 12_000
-
-  const tickDetailParts: string[] = []
-  if (tickBus) {
-    if (tickBus.total != null) tickDetailParts.push(`total ${tickBus.total}`)
-    if (tickBus.drop_rate_pct != null)
-      tickDetailParts.push(`drop ${tickBus.drop_rate_pct.toFixed(2)}%`)
-  }
 
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto" role="status">
-      <ConnectionBadge
+      <StatusDot
         label="BRK"
-        state={brokerState}
+        status={
+          backendOffline
+            ? 'bad'
+            : broker?.logged_in
+            ? 'ok'
+            : broker?.last_error
+            ? 'warn'
+            : 'unavailable'
+        }
         detail={broker?.last_error ?? undefined}
       />
-      <ConnectionBadge
+      <StatusDot
         label="FEED"
-        state={feedState}
+        status={backendOffline ? 'bad' : broker?.feed_token_available ? 'ok' : 'unavailable'}
         detail={broker?.feed_token_available ? 'feed token present' : 'no feed token'}
       />
-      <ConnectionBadge
+      <StatusDot
         label="WS"
-        state={stale && wsConnected ? 'STALE' : wsState}
-        detail={
-          lastTickAt
-            ? `last tick ${Math.round((Date.now() - lastTickAt) / 1000)}s ago`
-            : reconnectAttempts > 0
-            ? `attempt ${reconnectAttempts}`
-            : undefined
+        status={
+          backendOffline
+            ? 'bad'
+            : wsStatus === 'CONNECTED'
+            ? stale
+              ? 'warn'
+              : 'ok'
+            : wsStatus === 'CONNECTING' || wsStatus === 'RECONNECTING'
+            ? 'warn'
+            : 'bad'
         }
+        detail={wsStatus}
       />
-      <ConnectionBadge label="EVT" state={eventBusState} />
-      <ConnectionBadge
+      <StatusDot label="EVT" status={backendOffline ? 'bad' : status?.event_bus ? 'ok' : 'unavailable'} />
+      <StatusDot
         label="TICK"
-        state={tickBusState}
-        detail={tickDetailParts.join(' · ') || undefined}
+        status={
+          backendOffline
+            ? 'bad'
+            : !tickBus
+            ? 'unavailable'
+            : (tickBus.drop_rate_pct ?? 0) > 5
+            ? 'warn'
+            : 'ok'
+        }
+        detail={tickBus?.drop_rate_pct != null ? `drop ${tickBus.drop_rate_pct.toFixed(2)}%` : undefined}
       />
-      <ConnectionBadge
+      <StatusDot
         label="CDL"
-        state={candleState}
-        detail={
-          status?.candles?.symbols != null
-            ? `${status.candles.symbols.length} symbol(s)`
-            : undefined
-        }
+        status={backendOffline ? 'bad' : status?.candles ? 'ok' : 'unavailable'}
+        detail={status?.candles?.symbols ? `${status.candles.symbols.length} symbol(s)` : undefined}
       />
-      <ConnectionBadge
+      <StatusDot
         label="LOCK"
-        state={lockState}
-        detail={
-          mode === 'PAPER'
-            ? 'Live execution disabled'
-            : 'Live mode (execution gated)'
-        }
+        status={mode === 'PAPER' ? 'locked' : 'warn'}
+        detail={mode === 'PAPER' ? 'Live execution disabled' : 'Live mode (execution gated)'}
       />
-      <ConnectionBadge label="API" state={apiState} />
+      <StatusDot label="API" status={backendOffline ? 'bad' : 'ok'} />
     </div>
+  )
+}
+
+function StatusDot({
+  label,
+  status,
+  detail,
+}: {
+  label: string
+  status: DotStatus
+  detail?: string
+}) {
+  return (
+    <span
+      title={detail ? `${label}: ${detail}` : label}
+      className="inline-flex h-[22px] items-center gap-1.5 rounded-sm border border-border bg-panel/60 px-1.5 text-[10px] font-mono text-text-2"
+    >
+      <span>{label}</span>
+      <span
+        className={cn(
+          'h-1.5 w-1.5 rounded-full',
+          status === 'ok' && 'bg-up shadow-[0_0_6px_rgba(22,199,132,0.6)]',
+          status === 'warn' && 'bg-warn',
+          status === 'bad' && 'bg-down',
+          status === 'locked' && 'bg-locked',
+          status === 'unavailable' && 'bg-text-faint'
+        )}
+      />
+    </span>
   )
 }

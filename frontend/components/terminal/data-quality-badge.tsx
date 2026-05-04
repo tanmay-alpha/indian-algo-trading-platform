@@ -39,7 +39,11 @@ export function DataQualityBadge({
             quality === 'BACKEND OFFLINE' && 'bg-down',
             quality === 'MOCK' && 'bg-info',
             quality === 'LOADING' && 'bg-info animate-pulse-soft',
-            quality === 'ERROR' && 'bg-down'
+            quality === 'ERROR' && 'bg-down',
+            (quality === 'MARKET CLOSED' ||
+              quality === 'PRE-MARKET' ||
+              quality === 'POST-MARKET') &&
+              'bg-warn'
           )}
         />
       )}

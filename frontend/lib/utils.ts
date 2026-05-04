@@ -92,6 +92,10 @@ export function qualityClass(q: DataQuality | undefined): string {
       return 'text-info bg-info-dim border-info/20'
     case 'ERROR':
       return 'text-down bg-down-dim border-down/25'
+    case 'MARKET CLOSED':
+    case 'PRE-MARKET':
+    case 'POST-MARKET':
+      return 'text-warn bg-warn-dim border-warn/20'
     default:
       return 'text-text-dim bg-white/[0.03] border-border'
   }
@@ -154,4 +158,26 @@ export function qualityFromAge(
   if (age < 3_000) return 'LIVE'
   if (age < 8_000) return 'DELAYED'
   return 'STALE'
+}
+
+export function isMarketHours(): boolean {
+  const now = new Date()
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  const day = ist.getDay()
+  if (day === 0 || day === 6) return false
+  const h = ist.getHours()
+  const m = ist.getMinutes()
+  const minutes = h * 60 + m
+  return minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30
+}
+
+export function marketSessionLabel(): 'PRE-MARKET' | 'POST-MARKET' | 'MARKET CLOSED' | 'LIVE' {
+  const now = new Date()
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  const day = ist.getDay()
+  if (day === 0 || day === 6) return 'MARKET CLOSED'
+  const minutes = ist.getHours() * 60 + ist.getMinutes()
+  if (minutes < 9 * 60 + 15) return 'PRE-MARKET'
+  if (minutes >= 15 * 60 + 30) return 'POST-MARKET'
+  return 'LIVE'
 }

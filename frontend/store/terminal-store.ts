@@ -20,6 +20,8 @@ import type {
   Timeframe,
   DataQuality,
   MarketWatchRow,
+  StatusSource,
+  WsConnectionStatus,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -57,6 +59,9 @@ export interface TerminalState {
   // Connection
   wsConnected: boolean
   wsReconnectAttempts: number
+  wsStatus: WsConnectionStatus
+  statusSource: StatusSource
+  reconnectAttempt: number
   backendOffline: boolean
   connectionError: string | null
 
@@ -108,6 +113,9 @@ export interface TerminalActions {
   setIndices: (idx: IndexSnapshot[]) => void
 
   setWsConnected: (v: boolean) => void
+  setWsStatus: (status: WsConnectionStatus) => void
+  setStatusSource: (source: StatusSource) => void
+  setReconnectAttempt: (attempt: number) => void
   incrementReconnect: () => void
   resetReconnect: () => void
   setBackendOffline: (v: boolean) => void
@@ -153,6 +161,9 @@ const initialState: TerminalState = {
 
   wsConnected: false,
   wsReconnectAttempts: 0,
+  wsStatus: 'OFFLINE',
+  statusSource: 'NONE',
+  reconnectAttempt: 0,
   backendOffline: false,
   connectionError: null,
 
@@ -253,13 +264,26 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         : null
       return {
         wsConnected: v,
+        wsStatus: v ? 'CONNECTED' : state.wsStatus === 'CONNECTED' ? 'OFFLINE' : state.wsStatus,
+        statusSource: v ? 'WS' : state.statusSource,
         events: evt ? [evt, ...state.events].slice(0, MAX_EVENTS) : state.events,
       }
     }),
 
+  setWsStatus: (wsStatus) =>
+    set({
+      wsStatus,
+      wsConnected: wsStatus === 'CONNECTED',
+    }),
+  setStatusSource: (statusSource) => set({ statusSource }),
+  setReconnectAttempt: (attempt) =>
+    set({ reconnectAttempt: attempt, wsReconnectAttempts: attempt }),
   incrementReconnect: () =>
-    set((s) => ({ wsReconnectAttempts: s.wsReconnectAttempts + 1 })),
-  resetReconnect: () => set({ wsReconnectAttempts: 0 }),
+    set((s) => ({
+      wsReconnectAttempts: s.wsReconnectAttempts + 1,
+      reconnectAttempt: s.reconnectAttempt + 1,
+    })),
+  resetReconnect: () => set({ wsReconnectAttempts: 0, reconnectAttempt: 0 }),
 
   setBackendOffline: (v) =>
     set((state) => {

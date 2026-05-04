@@ -3,7 +3,7 @@
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { DataQuality } from '@/lib/types'
-import { cn, fmtAge, fmtPct, fmtVolume, priceDirClass } from '@/lib/utils'
+import { cn, fmtAge, fmtPct, fmtVolume, marketSessionLabel, priceDirClass } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 import { DataQualityBadge } from './data-quality-badge'
 import { EmptyState } from './empty-state'
@@ -197,7 +197,12 @@ function qualityForRow({
 }): DataQuality {
   if (backendOffline) return 'BACKEND OFFLINE'
   if (!wsConnected) return 'UNAVAILABLE'
-  if (last == null || age == null) return 'UNAVAILABLE'
+  if (last == null || age == null) {
+    const session = marketSessionLabel()
+    return session === 'LIVE' ? 'UNAVAILABLE' : session
+  }
+  const session = marketSessionLabel()
+  if (session !== 'LIVE') return session
   if (age < 3000) return 'LIVE'
   if (age < 8000) return 'DELAYED'
   return 'STALE'

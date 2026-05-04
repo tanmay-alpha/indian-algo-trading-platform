@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { WS_MAX_RECONNECT_ATTEMPTS, WS_RECONNECT_DELAY, WS_URL } from '@/lib/constants'
+import { WS_URL } from '@/lib/constants'
+import { fetchTerminalStatus } from '@/lib/api'
 import type {
   BrokerStatus,
   GatewayStatus,
@@ -12,19 +13,44 @@ import type {
   WsEnvelope,
 } from '@/lib/types'
 
+const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000, 30000]
+const CLIENT_PING_INTERVAL_MS = 25_000
+const REST_STATUS_POLL_MS = 10_000
+
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mountedRef = useRef(false)
 
   const setWsConnected = useTerminalStore((s) => s.setWsConnected)
+  const setWsStatus = useTerminalStore((s) => s.setWsStatus)
   const setConnectionError = useTerminalStore((s) => s.setConnectionError)
-  const incrementReconnect = useTerminalStore((s) => s.incrementReconnect)
-  const resetReconnect = useTerminalStore((s) => s.resetReconnect)
+  const setReconnectAttempt = useTerminalStore((s) => s.setReconnectAttempt)
+  const setStatusSource = useTerminalStore((s) => s.setStatusSource)
+  const setTerminalStatus = useTerminalStore((s) => s.setTerminalStatus)
+  const setBackendOffline = useTerminalStore((s) => s.setBackendOffline)
   const setBrokerStatus = useTerminalStore((s) => s.setBrokerStatus)
   const ingestTick = useTerminalStore((s) => s.ingestTick)
   const ingestSignal = useTerminalStore((s) => s.ingestSignal)
   const ingestEvent = useTerminalStore((s) => s.ingestEvent)
+
+  const clearPingInterval = useCallback(() => {
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current)
+      pingIntervalRef.current = null
+    }
+  }, [])
+
+  const startPingInterval = useCallback(() => {
+    clearPingInterval()
+    pingIntervalRef.current = setInterval(() => {
+      const ws = wsRef.current
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping', ts: new Date().toISOString() }))
+      }
+    }, CLIENT_PING_INTERVAL_MS)
+  }, [clearPingInterval])
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return
@@ -40,47 +66,56 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       reconnectTimeoutRef.current = null
     }
 
+    const scheduleReconnect = (attempt: number) => {
+      if (!mountedRef.current) return
+      const delay = RECONNECT_DELAYS[Math.min(attempt, RECONNECT_DELAYS.length - 1)]
+      setWsStatus('RECONNECTING')
+      setWsConnected(false)
+      setReconnectAttempt(attempt + 1)
+      setConnectionError(`WebSocket reconnecting (attempt ${attempt + 1})`)
+      reconnectTimeoutRef.current = setTimeout(connect, delay)
+    }
+
     try {
+      setWsStatus(
+        useTerminalStore.getState().reconnectAttempt > 0 ? 'RECONNECTING' : 'CONNECTING'
+      )
       console.info(`[WS] connecting to ${safeWsTarget(WS_URL)}`)
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
 
       ws.onopen = () => {
         if (!mountedRef.current) return
+        clearPingInterval()
         setWsConnected(true)
-        resetReconnect()
+        setWsStatus('CONNECTED')
+        setReconnectAttempt(0)
+        setStatusSource('WS')
+        setBackendOffline(false)
         setConnectionError(null)
+        startPingInterval()
       }
 
       ws.onclose = (event) => {
         if (!mountedRef.current) return
+        clearPingInterval()
         setWsConnected(false)
-        const attempts = useTerminalStore.getState().wsReconnectAttempts
-        if (attempts >= WS_MAX_RECONNECT_ATTEMPTS) {
-          setConnectionError('WebSocket reconnect limit reached')
-          ingestEvent({
-            event_type: 'error',
-            component: 'WS',
-            severity: 'error',
-            message: 'WebSocket reconnect limit reached',
-          })
-          return
-        }
-        incrementReconnect()
-        setConnectionError('WebSocket reconnecting')
+        const attempt = useTerminalStore.getState().reconnectAttempt
         ingestEvent({
           event_type: 'log',
           component: 'WS',
           severity: 'warning',
-          message: `WebSocket closed; reconnecting (${event.code || 'no-code'})`,
+          message: `WebSocket closed; reconnecting attempt ${attempt + 1} (${event.code || 'no-code'})`,
         })
-        const delay = Math.min(WS_RECONNECT_DELAY * 2 ** attempts, 30_000)
-        reconnectTimeoutRef.current = setTimeout(connect, delay)
+        scheduleReconnect(attempt)
       }
 
       ws.onerror = () => {
         if (!mountedRef.current) return
-        setConnectionError('WebSocket transport error; reconnecting')
+        setWsStatus('RECONNECTING')
+        setConnectionError(
+          `WebSocket transport error; reconnecting (attempt ${useTerminalStore.getState().reconnectAttempt + 1})`
+        )
         ingestEvent({
           event_type: 'error',
           component: 'WS',
@@ -95,23 +130,28 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       if (!mountedRef.current) return
+      clearPingInterval()
       setWsConnected(false)
-      incrementReconnect()
-      setConnectionError('Failed to create WebSocket connection; reconnecting')
+      const attempt = useTerminalStore.getState().reconnectAttempt
+      setConnectionError(`Failed to create WebSocket connection; reconnecting (attempt ${attempt + 1})`)
       ingestEvent({
         event_type: 'error',
         component: 'WS',
         severity: 'warning',
         message: 'Failed to create WebSocket connection; reconnecting',
       })
-      reconnectTimeoutRef.current = setTimeout(connect, WS_RECONNECT_DELAY)
+      scheduleReconnect(attempt)
     }
   }, [
-    incrementReconnect,
+    clearPingInterval,
     ingestEvent,
-    resetReconnect,
+    setBackendOffline,
     setConnectionError,
+    setReconnectAttempt,
+    setStatusSource,
+    setWsStatus,
     setWsConnected,
+    startPingInterval,
   ])
 
   const handleEnvelope = useCallback(
@@ -132,9 +172,18 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       const type = normalizeType(message.type)
       const payload = message.payload ?? message
 
+      if (type === 'ping') return
+      if (type === 'pong') {
+        setStatusSource('WS')
+        return
+      }
+
       if (type === 'tick') {
         const tick = normalizeTickPayload(payload)
-        if (tick) ingestTick(tick)
+        if (tick) {
+          setStatusSource('WS')
+          ingestTick(tick)
+        }
         return
       }
 
@@ -146,6 +195,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
       if (type === 'gateway_status') {
         const gateway = payload as GatewayStatus
+        setStatusSource('WS')
         ingestEvent({
           event_type: 'gateway_status',
           component: 'GATEWAY',
@@ -158,6 +208,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
       if (type === 'session') {
         const sessionPayload = payload as Partial<BrokerStatus>
+        setStatusSource('WS')
         setBrokerStatus({
           configured: Boolean(sessionPayload.configured ?? true),
           logged_in: Boolean(sessionPayload.logged_in),
@@ -187,7 +238,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         payload: message,
       })
     },
-    [ingestEvent, ingestSignal, ingestTick, setBrokerStatus]
+    [ingestEvent, ingestSignal, ingestTick, setBrokerStatus, setStatusSource]
   )
 
   useEffect(() => {
@@ -197,10 +248,34 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     return () => {
       mountedRef.current = false
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
+      clearPingInterval()
       wsRef.current?.close()
       wsRef.current = null
     }
-  }, [connect])
+  }, [clearPingInterval, connect])
+
+  useEffect(() => {
+    const pollStatus = async () => {
+      const state = useTerminalStore.getState()
+      if (state.wsStatus === 'CONNECTED') return
+      try {
+        const status = await fetchTerminalStatus()
+        if (!mountedRef.current || useTerminalStore.getState().wsStatus === 'CONNECTED') return
+        setTerminalStatus(status)
+        setBrokerStatus(status.broker ?? null)
+        setBackendOffline(false)
+        setStatusSource('REST')
+      } catch {
+        if (!mountedRef.current) return
+        setBackendOffline(true)
+        setStatusSource('NONE')
+      }
+    }
+
+    const id = setInterval(pollStatus, REST_STATUS_POLL_MS)
+    void pollStatus()
+    return () => clearInterval(id)
+  }, [setBackendOffline, setBrokerStatus, setStatusSource, setTerminalStatus])
 
   return <>{children}</>
 }

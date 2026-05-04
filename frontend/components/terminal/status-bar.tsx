@@ -3,22 +3,22 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  Activity,
   Wifi,
   WifiOff,
   Server,
   Cpu,
-  Clock,
   Layers,
-  CircleDot,
 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { fmtAge, cn, qualityFromAge } from '@/lib/utils'
+import { fmtAge, cn, marketSessionLabel } from '@/lib/utils'
 import { BUILD_ENV, WORKSPACES } from '@/lib/constants'
+import type { WsConnectionStatus, StatusSource } from '@/lib/types'
 
 export function StatusBar() {
   const wsConnected = useTerminalStore((s) => s.wsConnected)
-  const reconnect = useTerminalStore((s) => s.wsReconnectAttempts)
+  const wsStatus = useTerminalStore((s) => s.wsStatus)
+  const reconnect = useTerminalStore((s) => s.reconnectAttempt)
+  const statusSource = useTerminalStore((s) => s.statusSource)
   const backendOffline = useTerminalStore((s) => s.backendOffline)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const status = useTerminalStore((s) => s.terminalStatus)
@@ -36,89 +36,43 @@ export function StatusBar() {
   }, [])
 
   const tickAge = lastTickAt ? Date.now() - lastTickAt : null
-  const quality = qualityFromAge(lastTickAt, !backendOffline, false)
   const tick = status?.tick_bus
   const dropPct = tick?.drop_rate_pct ?? null
-
-  const wsLabel = wsConnected
-    ? quality === 'STALE'
-      ? 'STALE'
-      : 'LIVE'
-    : reconnect > 0
-    ? `RECONNECTING ${reconnect}`
-    : 'OFFLINE'
-
-  const wsCls = wsConnected
-    ? quality === 'STALE'
-      ? 'text-warn'
-      : 'text-up'
-    : reconnect > 0
-    ? 'text-warn'
-    : 'text-down'
-
   const wsLabelObj = WORKSPACES.find((w) => w.id === ws)
+  const apiStatus = backendOffline ? 'OFFLINE' : 'OK'
+  const brokerValue = broker
+    ? broker.logged_in
+      ? 'LOGGED IN'
+      : 'OFFLINE'
+    : '\u2014'
+  const session = marketSessionLabel()
+  const ageValue = lastTickAt ? fmtAge(tickAge) : session === 'LIVE' ? '\u2014' : session
 
   return (
-    <footer className="h-statusbar shrink-0 px-2 flex items-center gap-3 bg-bg-2 border-t border-border text-[10px] font-mono">
-      {/* Left cluster */}
-      <Cell className={wsCls}>
-        {wsConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-        <span>WS</span>
-        <span>{wsLabel}</span>
-      </Cell>
+    <footer className="h-statusbar shrink-0 px-2 flex items-center gap-2 bg-bg-2 border-t border-border text-[10px] font-mono">
+      <WsIndicator status={wsStatus} attempts={reconnect} connected={wsConnected} />
+      <Separator />
+      <StatusItem label="API" value={apiStatus} tone={backendOffline ? 'bad' : 'ok'} />
+      <StatusItem
+        label="BRK"
+        value={brokerValue}
+        tone={broker?.logged_in ? 'ok' : broker ? 'muted' : 'muted'}
+        source={statusSource}
+      />
+      <StatusItem label="TICKS" value={tick?.total ?? '\u2014'} />
+      <StatusItem
+        label="DROP"
+        value={dropPct == null ? '\u2014' : `${dropPct.toFixed(2)}%`}
+        tone={dropPct != null && dropPct > 5 ? 'warn' : 'default'}
+      />
+      <StatusItem label="AGE" value={ageValue} tone={lastTickAt ? 'default' : session === 'LIVE' ? 'muted' : 'warn'} />
+      <Separator />
 
-      <Cell className={backendOffline ? 'text-down' : 'text-text-2'}>
-        <Server className="w-3 h-3" />
-        <span>API</span>
-        <span>{backendOffline ? 'OFFLINE' : 'OK'}</span>
-      </Cell>
-
-      <Cell className={broker?.logged_in ? 'text-up' : 'text-text-dim'}>
-        <CircleDot className="w-3 h-3" />
-        <span>BRK</span>
-        <span>
-          {broker
-            ? broker.logged_in
-              ? 'LOGGED IN'
-              : 'OFFLINE'
-            : '\u2014'}
-        </span>
-      </Cell>
-
-      <Cell className="text-text-2">
-        <Activity className="w-3 h-3" />
-        <span>TICKS</span>
-        <span className="tnum text-text">
-          {tick?.total ?? '\u2014'}
-        </span>
-        <span className="text-text-faint">DROP</span>
-        <span
-          className={cn(
-            'tnum',
-            dropPct == null
-              ? 'text-text-faint'
-              : dropPct > 5
-              ? 'text-warn'
-              : 'text-text'
-          )}
-        >
-          {dropPct == null ? '\u2014' : `${dropPct.toFixed(2)}%`}
-        </span>
-      </Cell>
-
-      <Cell className="text-text-2">
-        <Clock className="w-3 h-3" />
-        <span>TICK AGE</span>
-        <span className="tnum text-text">{fmtAge(tickAge)}</span>
-      </Cell>
-
-      {/* Spacer */}
       <span className="ml-auto" />
 
-      {/* Right cluster */}
       <Cell className="text-text-2">
         <Layers className="w-3 h-3" />
-        <span>WS</span>
+        <span>WORKSPACE</span>
         <span className="text-text">{wsLabelObj?.label ?? '\u2014'}</span>
       </Cell>
 
@@ -132,15 +86,7 @@ export function StatusBar() {
         <span className="text-text">{portfolioSummary?.net_pnl == null ? '\u2014' : portfolioSummary.net_pnl.toFixed(2)}</span>
       </Cell>
 
-      <Cell
-        className={cn(
-          mode === 'LIVE' ? 'text-live' : 'text-paper'
-        )}
-      >
-        <Cpu className="w-3 h-3" />
-        <span>MODE</span>
-        <span>{mode}</span>
-      </Cell>
+      <ModeIndicator mode={mode} />
 
       <Cell className="text-text-faint">
         <span>{BUILD_ENV}</span>
@@ -148,6 +94,70 @@ export function StatusBar() {
         <span>v0.2 / MAET.OS</span>
       </Cell>
     </footer>
+  )
+}
+
+function WsIndicator({
+  status,
+  attempts,
+  connected,
+}: {
+  status: WsConnectionStatus
+  attempts: number
+  connected: boolean
+}) {
+  const label =
+    status === 'RECONNECTING'
+      ? `RECONNECTING (${attempts})`
+      : status === 'CONNECTING'
+      ? 'CONNECTING'
+      : status === 'CONNECTED'
+      ? 'CONNECTED'
+      : 'OFFLINE'
+  return (
+    <Cell className={statusTone(status)}>
+      {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+      <span>WS</span>
+      <span>{label}</span>
+    </Cell>
+  )
+}
+
+function StatusItem({
+  label,
+  value,
+  tone = 'default',
+  source,
+}: {
+  label: string
+  value: ReactNode
+  tone?: 'default' | 'ok' | 'warn' | 'bad' | 'muted'
+  source?: StatusSource
+}) {
+  return (
+    <Cell className={toneClass(tone)}>
+      <span className="text-text-faint">{label}</span>
+      <span className="tnum text-text">{value}</span>
+      {source === 'REST' && (
+        <span className="rounded border border-info/25 bg-info-dim px-1 text-[8px] text-info">
+          REST
+        </span>
+      )}
+    </Cell>
+  )
+}
+
+function Separator() {
+  return <span className="h-4 w-px bg-border" />
+}
+
+function ModeIndicator({ mode }: { mode: 'PAPER' | 'LIVE' }) {
+  return (
+    <Cell className={cn(mode === 'LIVE' ? 'text-live' : 'text-paper')}>
+      <Cpu className="w-3 h-3" />
+      <span>MODE</span>
+      <span>{mode}</span>
+    </Cell>
   )
 }
 
@@ -163,4 +173,18 @@ function Cell({
       {children}
     </span>
   )
+}
+
+function statusTone(status: WsConnectionStatus): string {
+  if (status === 'CONNECTED') return 'text-up'
+  if (status === 'CONNECTING' || status === 'RECONNECTING') return 'text-warn'
+  return 'text-down'
+}
+
+function toneClass(tone: 'default' | 'ok' | 'warn' | 'bad' | 'muted') {
+  if (tone === 'ok') return 'text-up'
+  if (tone === 'warn') return 'text-warn'
+  if (tone === 'bad') return 'text-down'
+  if (tone === 'muted') return 'text-text-dim'
+  return 'text-text-2'
 }

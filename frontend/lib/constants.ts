@@ -30,8 +30,6 @@ export const ENDPOINTS = {
   portfolioReconciliation: '/portfolio/reconciliation/status',
 } as const
 
-export const WS_RECONNECT_DELAY = 2000
-export const WS_MAX_RECONNECT_ATTEMPTS = 12
 export const STALE_THRESHOLD_MS = 8000
 export const DELAYED_THRESHOLD_MS = 3000
 

@@ -42,6 +42,9 @@ export type DataQuality =
   | 'MOCK'
   | 'LOADING'
   | 'ERROR'
+  | 'MARKET CLOSED'
+  | 'PRE-MARKET'
+  | 'POST-MARKET'
 
 export type PortfolioDataQuality =
   | 'AVAILABLE'
@@ -60,6 +63,9 @@ export type OperatorState =
   | 'STALE'
   | 'UNAVAILABLE'
   | 'BACKEND OFFLINE'
+
+export type WsConnectionStatus = 'CONNECTED' | 'CONNECTING' | 'RECONNECTING' | 'OFFLINE'
+export type StatusSource = 'WS' | 'REST' | 'NONE'
 
 // ----- Market data -----
 export interface Instrument {

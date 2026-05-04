@@ -14,6 +14,7 @@ function TerminalInitializer() {
     setPortfolio,
     setMode,
     setBackendOffline,
+    setStatusSource,
     ingestMarketWatchRows,
     ingestEvent,
     refreshPortfolio,
@@ -48,6 +49,9 @@ function TerminalInitializer() {
       try {
         const status = await fetchTerminalStatus()
         setTerminalStatus(status)
+        if (useTerminalStore.getState().wsStatus !== 'CONNECTED') {
+          setStatusSource('REST')
+        }
       } catch {
         // Status can be unavailable while the backend is booting.
       }
@@ -79,6 +83,7 @@ function TerminalInitializer() {
     setIndices,
     setMode,
     setPortfolio,
+    setStatusSource,
     setTerminalStatus,
   ])
 
