@@ -17,7 +17,9 @@ from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.core.rate_limit import limiter, register_rate_limiter
 from backend.core.security import sanitize_response
 from backend.routers import candles as candles_router
+from backend.routers import indicators as indicators_router
 from backend.routers import portfolio as portfolio_router
+from backend.indicators.engine import IndicatorEngine
 from backend.gateway import instrument_registry
 from backend.gateway.instrument_loader import InstrumentLoader
 from backend.gateway.market_gateway import MarketDataGateway
@@ -68,6 +70,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(candles_router.router)
+app.include_router(indicators_router.router)
 app.include_router(portfolio_router.router)
 
 # --- Components ---
@@ -78,6 +81,7 @@ session_manager = None
 tick_consumer_task = None
 event_bus = EventBus()
 candle_store = CandleStore()
+indicator_engine = IndicatorEngine()
 candle_fetcher = None
 market_watch = MarketWatch(default_symbols=settings.symbols)
 portfolio = PortfolioManager(initial_capital=50000)
@@ -119,6 +123,7 @@ class MarketWatchRequest(BaseModel):
 
 app.state.event_bus = event_bus
 app.state.candle_store = candle_store
+app.state.indicator_engine = indicator_engine
 app.state.candle_fetcher = candle_fetcher
 app.state.market_watch_state = market_watch
 app.state.session_manager = session_manager
@@ -506,6 +511,7 @@ def terminal_status():
         "event_bus": event_bus.get_stats(),
         "tick_bus": tick_bus.stats() if tick_bus else None,
         "candles": candle_store.stats(),
+        "indicator_engine": {"available": True, **indicator_engine.status()},
         "execution": router.status(),
         "portfolio": portfolio_engine.get_summary(),
         "trading_mode": execution_mode,

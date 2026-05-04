@@ -189,6 +189,7 @@ export interface TerminalStatus {
   event_bus?: EventBusStats
   tick_bus?: TickBusStats | null
   candles?: CandleStoreStats
+  indicator_engine?: IndicatorEngineStatus
   portfolio?: PortfolioSummary
   trading_mode?: 'PAPER' | 'LIVE'
   demo_mode?: boolean
@@ -280,6 +281,63 @@ export interface Candle {
   low: number
   close: number
   volume?: number
+}
+
+// ----- Indicators -----
+export type IndicatorName =
+  | 'sma'
+  | 'ema'
+  | 'rsi'
+  | 'macd'
+  | 'atr'
+  | 'vwap'
+  | 'bollinger_bands'
+
+export interface IndicatorEngineStatus {
+  available: boolean
+  selected_engine: 'cpp' | 'python' | string
+  cpp_available: boolean
+  fallback_available: boolean
+  indicators: IndicatorName[]
+  cpp_import_error: string | null
+}
+
+export type IndicatorSeries = Array<number | null>
+
+export interface IndicatorResults {
+  sma?: IndicatorSeries
+  ema?: IndicatorSeries
+  rsi?: IndicatorSeries
+  atr?: IndicatorSeries
+  vwap?: IndicatorSeries
+  macd?: {
+    macd: IndicatorSeries
+    signal: IndicatorSeries
+    histogram: IndicatorSeries
+  }
+  bollinger_bands?: {
+    middle: IndicatorSeries
+    upper: IndicatorSeries
+    lower: IndicatorSeries
+  }
+  [key: string]: unknown
+}
+
+export interface IndicatorResultsResponse {
+  symbol?: string
+  timeframe?: string
+  engine: 'cpp' | 'python' | string
+  available: boolean
+  reason?: string
+  count: number
+  results: IndicatorResults
+}
+
+export interface IndicatorCalculatePayload {
+  close?: number[]
+  candles?: Array<Pick<Candle, 'open' | 'high' | 'low' | 'close' | 'volume'>>
+  indicators: IndicatorName[]
+  params?: Record<string, number>
 }
 
 // ----- Events / Logs / Signals -----

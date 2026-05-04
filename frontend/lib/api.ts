@@ -11,6 +11,10 @@ import type {
   PortfolioHolding,
   EquityCurvePoint,
   ReconciliationStatus,
+  IndicatorCalculatePayload,
+  IndicatorEngineStatus,
+  IndicatorName,
+  IndicatorResultsResponse,
 } from './types'
 
 export class APIError extends Error {
@@ -99,6 +103,64 @@ export const fetchCandles = (symbol: string, timeframe = '5m') =>
   request<{ symbol: string; timeframe: string; candles: Candle[] }>(
     `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}`
   )
+
+// ----- Indicators -----
+const unavailableIndicatorStatus: IndicatorEngineStatus = {
+  available: false,
+  selected_engine: 'python',
+  cpp_available: false,
+  fallback_available: true,
+  indicators: ['sma', 'ema', 'rsi', 'macd', 'atr', 'vwap', 'bollinger_bands'],
+  cpp_import_error: null,
+}
+
+export async function getIndicatorStatus(): Promise<IndicatorEngineStatus> {
+  try {
+    return await request<IndicatorEngineStatus>(ENDPOINTS.indicatorStatus)
+  } catch {
+    return unavailableIndicatorStatus
+  }
+}
+
+export async function getIndicatorsForSymbol(
+  symbol: string,
+  timeframe: string,
+  names: IndicatorName[] = ['ema', 'rsi', 'macd'],
+  params: Record<string, number> = {}
+): Promise<IndicatorResultsResponse> {
+  if (!symbol) {
+    return unavailableIndicators(symbol, timeframe, 'NO_SYMBOL')
+  }
+
+  const query = new URLSearchParams({
+    timeframe,
+    names: names.join(','),
+  })
+  for (const [key, value] of Object.entries(params)) {
+    query.set(key, String(value))
+  }
+
+  try {
+    return await request<IndicatorResultsResponse>(
+      `${ENDPOINTS.indicators}/${encodeURIComponent(symbol)}?${query.toString()}`
+    )
+  } catch {
+    return unavailableIndicators(symbol, timeframe, 'BACKEND_UNAVAILABLE')
+  }
+}
+
+export async function calculateIndicators(
+  payload: IndicatorCalculatePayload
+): Promise<IndicatorResultsResponse> {
+  try {
+    return await request<IndicatorResultsResponse>(`${ENDPOINTS.indicators}/calculate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    return unavailableIndicators(undefined, undefined, 'BACKEND_UNAVAILABLE')
+  }
+}
 
 // ----- Portfolio -----
 const unavailablePortfolioSummary: PortfolioSummary = {
@@ -248,4 +310,20 @@ function addNullable(a: number | null, b: number | null): number | null {
 function subtractNullable(a: number | null, b: number | null): number | null {
   if (a == null && b == null) return null
   return (a ?? 0) - (b ?? 0)
+}
+
+function unavailableIndicators(
+  symbol?: string,
+  timeframe?: string,
+  reason = 'UNAVAILABLE'
+): IndicatorResultsResponse {
+  return {
+    symbol,
+    timeframe,
+    engine: 'python',
+    available: false,
+    reason,
+    count: 0,
+    results: {},
+  }
 }

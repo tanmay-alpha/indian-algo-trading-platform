@@ -22,6 +22,9 @@ import type {
   MarketWatchRow,
   StatusSource,
   WsConnectionStatus,
+  IndicatorEngineStatus,
+  IndicatorName,
+  IndicatorResultsResponse,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -31,6 +34,8 @@ import {
   getPortfolioPositions,
   getPortfolioReconciliationStatus,
   getPortfolioSummary,
+  getIndicatorStatus,
+  getIndicatorsForSymbol,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -77,6 +82,10 @@ export interface TerminalState {
   portfolioLoading: boolean
   portfolioError: string | null
   portfolioLastUpdated: number | null
+  indicatorStatus: IndicatorEngineStatus | null
+  indicatorResultsBySymbolTimeframe: Record<string, IndicatorResultsResponse>
+  indicatorLoading: boolean
+  indicatorError: string | null
 
   // Live tick
   currentTick: TickPayload | null
@@ -130,6 +139,9 @@ export interface TerminalActions {
   fetchEquityCurve: () => Promise<void>
   fetchReconciliationStatus: () => Promise<void>
   refreshPortfolio: () => Promise<void>
+  fetchIndicatorStatus: () => Promise<void>
+  fetchIndicatorsForSelectedSymbol: (names?: IndicatorName[]) => Promise<void>
+  clearIndicatorResults: () => void
 
   ingestTick: (tick: TickPayload) => void
   ingestSignal: (s: SignalEvent) => void
@@ -178,6 +190,10 @@ const initialState: TerminalState = {
   portfolioLoading: false,
   portfolioError: null,
   portfolioLastUpdated: null,
+  indicatorStatus: null,
+  indicatorResultsBySymbolTimeframe: {},
+  indicatorLoading: false,
+  indicatorError: null,
 
   currentTick: null,
   lastTickAt: null,
@@ -304,6 +320,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       terminalStatus: s,
       brokerStatus: s?.broker ?? state.brokerStatus,
       portfolioSummary: s?.portfolio ?? state.portfolioSummary,
+      indicatorStatus: s?.indicator_engine ?? state.indicatorStatus,
       executionMode: s?.trading_mode ?? state.executionMode,
     })),
   setBrokerStatus: (s) => set({ brokerStatus: s }),
@@ -365,6 +382,36 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       })
     }
   },
+  fetchIndicatorStatus: async () => {
+    const indicatorStatus = await getIndicatorStatus()
+    set({ indicatorStatus })
+  },
+  fetchIndicatorsForSelectedSymbol: async (names = ['ema', 'rsi', 'macd']) => {
+    const { selectedSymbol, chartTimeframe } = get()
+    if (!selectedSymbol) {
+      set({ indicatorError: 'Select a symbol first' })
+      return
+    }
+    set({ indicatorLoading: true, indicatorError: null })
+    const response = await getIndicatorsForSymbol(selectedSymbol, chartTimeframe, names)
+    const key = indicatorKey(selectedSymbol, chartTimeframe)
+    set((state) => ({
+      indicatorLoading: false,
+      indicatorError:
+        response.available || response.reason === 'NO_CANDLES'
+          ? null
+          : response.reason || 'Indicator backend unavailable',
+      indicatorResultsBySymbolTimeframe: {
+        ...state.indicatorResultsBySymbolTimeframe,
+        [key]: response,
+      },
+    }))
+  },
+  clearIndicatorResults: () =>
+    set({
+      indicatorResultsBySymbolTimeframe: {},
+      indicatorError: null,
+    }),
 
   ingestTick: (tick) =>
     set((state) => {
@@ -499,3 +546,7 @@ export function selectActiveWatchlistSymbols(s: TerminalStore): string[] {
 
 // Re-export so consumers don't need to import the helper directly
 export const _internal = { sysEvent, workspaceForPreset }
+
+export function indicatorKey(symbol: string, timeframe: Timeframe): string {
+  return `${symbol}:${timeframe}`
+}

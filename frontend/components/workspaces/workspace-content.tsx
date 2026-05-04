@@ -12,11 +12,11 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useTerminalStore } from '@/store/terminal-store'
+import { useEffect, type ReactNode } from 'react'
+import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
 import { TIMEFRAMES, WORKSPACES } from '@/lib/constants'
 import { cn, fmtPrice, fmtVolume, fmtPct } from '@/lib/utils'
-import type { Timeframe, WorkspaceId } from '@/lib/types'
+import type { IndicatorEngineStatus, IndicatorName, IndicatorResultsResponse, Timeframe, WorkspaceId } from '@/lib/types'
 import { DataQualityBadge } from '@/components/terminal/data-quality-badge'
 import { EmptyState } from '@/components/terminal/empty-state'
 
@@ -398,8 +398,28 @@ function PremiumChartPanel() {
   const setWorkspace = useTerminalStore((s) => s.setWorkspace)
   const setBottomDockTab = useTerminalStore((s) => s.setBottomDockTab)
   const tick = useTerminalStore((s) => s.currentTick)
-  const indicators = ['VWAP', 'EMA', 'RSI', 'MACD', 'BB']
+  const indicatorStatus = useTerminalStore((s) => s.indicatorStatus)
+  const indicatorLoading = useTerminalStore((s) => s.indicatorLoading)
+  const indicatorError = useTerminalStore((s) => s.indicatorError)
+  const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
+  const fetchIndicatorStatus = useTerminalStore((s) => s.fetchIndicatorStatus)
+  const fetchIndicatorsForSelectedSymbol = useTerminalStore((s) => s.fetchIndicatorsForSelectedSymbol)
+  const indicatorResults = selected
+    ? indicatorResultsByKey[indicatorKey(selected, timeframe)]
+    : undefined
+  const indicators: Array<{ label: string; name: IndicatorName }> = [
+    { label: 'VWAP', name: 'vwap' },
+    { label: 'EMA', name: 'ema' },
+    { label: 'RSI', name: 'rsi' },
+    { label: 'MACD', name: 'macd' },
+    { label: 'BB', name: 'bollinger_bands' },
+    { label: 'ATR', name: 'atr' },
+  ]
   const patterns = ['Doji', 'Hammer', 'Engulfing', 'Shooting Star']
+
+  useEffect(() => {
+    void fetchIndicatorStatus()
+  }, [fetchIndicatorStatus])
 
   return (
     <div className="relative flex-1 overflow-hidden bg-[#070b12]">
@@ -433,12 +453,19 @@ function PremiumChartPanel() {
         <div className="flex items-center gap-1.5">
           {indicators.map((indicator) => (
             <button
-              key={indicator}
-              disabled
-              className="h-6 px-2 rounded border border-border bg-panel/70 text-[10px] font-mono text-text-dim"
-              title="Indicator placeholder"
+              key={indicator.name}
+              onClick={() => fetchIndicatorsForSelectedSymbol([indicator.name])}
+              disabled={!selected || indicatorLoading}
+              className={cn(
+                'h-6 px-2 rounded border text-[10px] font-mono',
+                indicatorResults?.results[indicator.name]
+                  ? 'border-info/35 bg-info-dim text-info'
+                  : 'border-border bg-panel/70 text-text-dim hover:text-text',
+                (!selected || indicatorLoading) && 'opacity-55 cursor-not-allowed'
+              )}
+              title={selected ? `Fetch ${indicator.label}` : 'Select a symbol first'}
             >
-              {indicator}
+              {indicator.label}
             </button>
           ))}
         </div>
@@ -455,6 +482,16 @@ function PremiumChartPanel() {
           ))}
         </div>
       </div>
+
+      <IndicatorEnginePanel
+        selected={selected}
+        timeframe={timeframe}
+        status={indicatorStatus}
+        result={indicatorResults}
+        loading={indicatorLoading}
+        error={indicatorError}
+        onFetchDefault={() => fetchIndicatorsForSelectedSymbol(['ema', 'rsi', 'macd', 'vwap'])}
+      />
 
       <div className="absolute inset-0 grid place-items-center pointer-events-none">
         <div className="w-[420px] rounded-lg border border-border-strong bg-bg-2/92 shadow-panel pointer-events-auto">
@@ -497,6 +534,121 @@ function PremiumChartPanel() {
       </div>
     </div>
   )
+}
+
+function IndicatorEnginePanel({
+  selected,
+  timeframe,
+  status,
+  result,
+  loading,
+  error,
+  onFetchDefault,
+}: {
+  selected: string | null
+  timeframe: Timeframe
+  status: IndicatorEngineStatus | null
+  result?: IndicatorResultsResponse
+  loading: boolean
+  error: string | null
+  onFetchDefault: () => void
+}) {
+  const engine = result?.engine ?? status?.selected_engine ?? 'python'
+  const noCandles = result?.available === false && result.reason === 'NO_CANDLES'
+  return (
+    <div className="absolute right-16 top-20 w-[270px] rounded-md border border-border bg-bg-2/90 backdrop-blur-sm shadow-panel">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <div>
+          <div className="text-xs font-semibold text-text">Indicator Engine</div>
+          <div className="text-[9px] font-mono text-text-faint">
+            {selected ?? 'No symbol'} / {timeframe}
+          </div>
+        </div>
+        <span className="rounded border border-info/30 bg-info-dim px-2 py-0.5 text-[10px] font-mono uppercase text-info">
+          {engine}
+        </span>
+      </div>
+      <div className="space-y-2 p-3 text-[10px] font-mono">
+        <div className="grid grid-cols-2 gap-2">
+          <StatusMini label="C++" value={status?.cpp_available ? 'AVAILABLE' : 'FALLBACK'} />
+          <StatusMini label="Supported" value={String(status?.indicators.length ?? 7)} />
+        </div>
+        <button
+          onClick={onFetchDefault}
+          disabled={!selected || loading}
+          className="h-7 w-full rounded-sm border border-border bg-panel text-[10px] text-text-2 hover:border-info/40 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? 'Loading indicators' : 'Load EMA / RSI / MACD / VWAP'}
+        </button>
+        {noCandles ? (
+          <div className="rounded-sm border border-warn/20 bg-warn/5 px-2 py-1.5 text-warn">
+            No candle data available for indicators
+          </div>
+        ) : error ? (
+          <div className="rounded-sm border border-down/20 bg-down/5 px-2 py-1.5 text-down">
+            {error}
+          </div>
+        ) : result?.available ? (
+          <IndicatorSummary result={result} />
+        ) : (
+          <div className="rounded-sm border border-border bg-panel/60 px-2 py-1.5 text-text-faint">
+            Indicator values will appear after candles are available.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function IndicatorSummary({ result }: { result: IndicatorResultsResponse }) {
+  const ema = result.results.ema
+  const rsi = result.results.rsi
+  const macdHistogram = result.results.macd?.histogram
+  const vwap = result.results.vwap
+  return (
+    <div className="space-y-1">
+      <IndicatorRow label="EMA points" value={String(countSeries(ema))} />
+      <IndicatorRow label="RSI latest" value={formatIndicatorValue(latestValue(rsi))} />
+      <IndicatorRow label="MACD hist" value={formatIndicatorValue(latestValue(macdHistogram))} />
+      <IndicatorRow label="VWAP latest" value={formatIndicatorValue(latestValue(vwap))} />
+      <IndicatorRow label="Count" value={String(result.count)} />
+    </div>
+  )
+}
+
+function StatusMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-panel/70 px-2 py-1">
+      <div className="text-[8px] uppercase tracking-wider text-text-faint">{label}</div>
+      <div className="mt-0.5 truncate text-text-2">{value}</div>
+    </div>
+  )
+}
+
+function IndicatorRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-sm border border-border/60 bg-panel/50 px-2 py-1">
+      <span className="text-text-faint">{label}</span>
+      <span className="text-text">{value}</span>
+    </div>
+  )
+}
+
+function latestValue(values?: Array<number | null>): number | null {
+  if (!values) return null
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    const value = values[index]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+
+function countSeries(values?: Array<number | null>): number {
+  return values?.filter((value) => typeof value === 'number' && Number.isFinite(value)).length ?? 0
+}
+
+function formatIndicatorValue(value: number | null): string {
+  return value == null ? '\u2014' : value.toFixed(2)
 }
 
 function StatusPill({
