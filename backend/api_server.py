@@ -20,9 +20,12 @@ from backend.routers import candles as candles_router
 from backend.routers import indicators as indicators_router
 from backend.routers import portfolio as portfolio_router
 from backend.routers import strategies as strategies_router
+from backend.routers import discovery as discovery_router
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.templates import get_strategy_templates
+from backend.discovery.market_board import MarketBoard
+from backend.discovery.screener_engine import ScreenerEngine
 from backend.gateway import instrument_registry
 from backend.gateway.instrument_loader import InstrumentLoader
 from backend.gateway.market_gateway import MarketDataGateway
@@ -76,6 +79,7 @@ app.include_router(candles_router.router)
 app.include_router(indicators_router.router)
 app.include_router(portfolio_router.router)
 app.include_router(strategies_router.router)
+app.include_router(discovery_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
@@ -122,6 +126,9 @@ instrument_master_status = {
     "cache_fresh": False,
     "fallback_active": True,
 }
+instrument_loader = InstrumentLoader(timeout_seconds=8)
+market_board = MarketBoard(market_watch)
+screener_engine = ScreenerEngine(indicator_engine, candle_store, market_watch)
 
 class MarketWatchRequest(BaseModel):
     symbols: list[str]
@@ -134,6 +141,9 @@ app.state.candle_fetcher = candle_fetcher
 app.state.market_watch_state = market_watch
 app.state.session_manager = session_manager
 app.state.portfolio_engine = portfolio_engine
+app.state.instrument_loader = instrument_loader
+app.state.market_board = market_board
+app.state.screener_engine = screener_engine
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -253,38 +263,20 @@ async def start_gateway_background(loop):
 
 async def load_instrument_master_best_effort():
     global instrument_master_status
-    loader = InstrumentLoader(timeout_seconds=8)
     source = "fallback"
     try:
-        cache_fresh = loader.cache_is_fresh()
-        cached = loader.load_from_cache()
-        if cached:
-            filtered = loader.filter_nse_equity(cached)
-            loaded = instrument_registry.load_from_instrument_master(filtered)
+        master_instruments = await asyncio.wait_for(instrument_loader.load(), timeout=12)
+        if master_instruments:
+            loaded = instrument_registry.load_from_master(master_instruments)
             if loaded:
-                source = "cache"
-
-        if source == "fallback" or not cache_fresh:
-            try:
-                await asyncio.wait_for(loader.download_and_cache(), timeout=12)
-                downloaded = loader.load_from_cache()
-                filtered = loader.filter_nse_equity(downloaded)
-                loaded = instrument_registry.load_from_instrument_master(filtered)
-                if loaded:
-                    source = "download"
-            except Exception as e:
-                logger.warning(
-                    "Instrument master download failed: %s; using existing symbols",
-                    e.__class__.__name__,
-                )
-
+                source = getattr(instrument_loader, "_last_source", "cache")
         status = instrument_registry.registry_status()
         instrument_registry.set_master_source(source if status["loaded"] > 0 else "fallback")
         instrument_master_status = {
             "loaded": status["loaded"],
             "source": source if not status["fallback_active"] else "fallback",
-            "cached_at": get_instrument_cache_timestamp(loader),
-            "cache_fresh": loader.cache_is_fresh(),
+            "cached_at": get_instrument_cache_timestamp(instrument_loader),
+            "cache_fresh": instrument_loader.cache_is_fresh(),
             "fallback_active": status["fallback_active"],
         }
         logger.info(
@@ -297,8 +289,8 @@ async def load_instrument_master_best_effort():
         instrument_master_status = {
             "loaded": status["loaded"],
             "source": "fallback",
-            "cached_at": get_instrument_cache_timestamp(loader),
-            "cache_fresh": loader.cache_is_fresh(),
+            "cached_at": get_instrument_cache_timestamp(instrument_loader),
+            "cache_fresh": instrument_loader.cache_is_fresh(),
             "fallback_active": True,
         }
         logger.warning("Instrument master load failed: %s; using fallback symbols", e.__class__.__name__)

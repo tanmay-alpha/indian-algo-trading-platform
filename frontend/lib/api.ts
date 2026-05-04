@@ -20,6 +20,12 @@ import type {
   StrategySignal,
   StrategyStatus,
   StrategyTemplate,
+  DiscoveryBoard,
+  DiscoveryStatus,
+  MarketMover,
+  PaginatedInstruments,
+  ScreenerFilters,
+  ScreenerResult,
 } from './types'
 
 export class APIError extends Error {
@@ -37,7 +43,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}${path}`
   let res: Response
   try {
-    res = await fetch(url, {
+    res = await fetchWithTimeout(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -57,6 +63,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new APIError(`HTTP ${res.status}`, res.status, detail)
   }
   return res.json() as Promise<T>
+}
+
+async function fetchWithTimeout(
+  url: string,
+  options?: RequestInit,
+  timeoutMs = 8000
+): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } finally {
+    clearTimeout(id)
+  }
 }
 
 // ----- Health / Status -----
@@ -242,6 +262,135 @@ export async function getStrategySignalPreview(
       signals: [],
       count: 0,
     }
+  }
+}
+
+// ----- Discovery -----
+const emptyBoard: DiscoveryBoard = {
+  summary: {
+    total_symbols_tracked: 0,
+    symbols_with_data: 0,
+    symbols_stale: 0,
+    last_updated: null,
+    note: 'Discovery backend unavailable',
+  },
+  gainers: [],
+  losers: [],
+  most_active: [],
+  note: 'Discovery backend unavailable',
+}
+
+const emptyScreenerResult: ScreenerResult = {
+  filters_applied: {},
+  timeframe: '1m',
+  symbols_evaluated: 0,
+  symbols_passed: 0,
+  results: [],
+  note: 'Screener unavailable',
+  evaluated_at: '',
+}
+
+export async function getDiscoveryBoard(): Promise<DiscoveryBoard> {
+  try {
+    return await request<DiscoveryBoard>('/discovery/board')
+  } catch {
+    return emptyBoard
+  }
+}
+
+export async function getGainers(limit: number): Promise<MarketMover[]> {
+  try {
+    const data = await request<{ gainers?: MarketMover[] }>(`/discovery/gainers?limit=${limit}`)
+    return data.gainers || []
+  } catch {
+    return []
+  }
+}
+
+export async function getLosers(limit: number): Promise<MarketMover[]> {
+  try {
+    const data = await request<{ losers?: MarketMover[] }>(`/discovery/losers?limit=${limit}`)
+    return data.losers || []
+  } catch {
+    return []
+  }
+}
+
+export async function getMostActive(limit: number): Promise<MarketMover[]> {
+  try {
+    const data = await request<{ most_active?: MarketMover[] }>(`/discovery/most-active?limit=${limit}`)
+    return data.most_active || []
+  } catch {
+    return []
+  }
+}
+
+export async function getSectors(): Promise<string[]> {
+  try {
+    const data = await request<{ sectors?: string[] }>('/discovery/sectors')
+    return data.sectors || []
+  } catch {
+    return []
+  }
+}
+
+export async function getSectorInstruments(sector: string): Promise<Instrument[]> {
+  try {
+    const data = await request<PaginatedInstruments>(
+      `/discovery/sector/${encodeURIComponent(sector)}?page=1&page_size=50`
+    )
+    return data.instruments || []
+  } catch {
+    return []
+  }
+}
+
+export async function runScreener(
+  filters: ScreenerFilters,
+  timeframe: string,
+  limit: number
+): Promise<ScreenerResult> {
+  try {
+    return await request<ScreenerResult>('/discovery/screener', {
+      method: 'POST',
+      body: JSON.stringify({ filters, timeframe, limit }),
+    })
+  } catch {
+    return { ...emptyScreenerResult, filters_applied: filters, timeframe }
+  }
+}
+
+export async function getDiscoveryStatus(): Promise<DiscoveryStatus> {
+  try {
+    return await request<DiscoveryStatus>('/discovery/status')
+  } catch {
+    return {
+      instrument_count: 0,
+      sectors_available: 0,
+      symbols_in_market_watch: 0,
+      symbols_with_candle_data: 0,
+      screener_available: false,
+      board_available: false,
+      instrument_master_source: 'unavailable',
+      note: 'Discovery backend unavailable',
+    }
+  }
+}
+
+export async function getInstrumentsPaginated(
+  page: number,
+  pageSize: number,
+  q?: string
+): Promise<PaginatedInstruments> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  if (q?.trim()) params.set('q', q.trim())
+  try {
+    return await request<PaginatedInstruments>(`/discovery/instruments?${params.toString()}`)
+  } catch {
+    return { instruments: [], page, page_size: pageSize, total: 0, total_pages: 1 }
   }
 }
 

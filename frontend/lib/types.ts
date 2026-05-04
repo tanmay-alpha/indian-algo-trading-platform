@@ -70,9 +70,11 @@ export type StatusSource = 'WS' | 'REST' | 'NONE'
 // ----- Market data -----
 export interface Instrument {
   symbol: string
+  clean_symbol?: string
   name: string
   exchange: string
   token: string
+  sector?: string
   instrument_type?: string
   lot_size?: number
   tick_size?: number
@@ -474,6 +476,85 @@ export interface ChartSignalMarker {
   price: number | null
   strength: number
   reason: string
+}
+
+// ----- Market Discovery -----
+export interface MarketMover {
+  symbol: string
+  ltp: number | null
+  change_pct: number | null
+  volume: number | null
+  is_live: boolean
+}
+
+export interface MarketBoardSummary {
+  total_symbols_tracked: number
+  symbols_with_data: number
+  symbols_stale: number
+  last_updated: string | null
+  note: string
+}
+
+export interface DiscoveryBoard {
+  summary: MarketBoardSummary
+  gainers: MarketMover[]
+  losers: MarketMover[]
+  most_active: MarketMover[]
+  note: string
+}
+
+export interface ScreenerFilters {
+  rsi_below?: number
+  rsi_above?: number
+  price_above_ema?: number
+  price_below_ema?: number
+  price_above_vwap?: boolean
+  price_below_vwap?: boolean
+  volume_above?: number
+  change_pct_above?: number
+  change_pct_below?: number
+}
+
+export interface ScreenerResultRow {
+  symbol: string
+  ltp: number | null
+  change_pct: number | null
+  volume: number | null
+  indicators: {
+    rsi: number | null
+    ema_20: number | null
+    vwap: number | null
+  }
+  is_live: boolean
+}
+
+export interface ScreenerResult {
+  filters_applied: ScreenerFilters
+  timeframe: string
+  symbols_evaluated: number
+  symbols_passed: number
+  results: ScreenerResultRow[]
+  note: string
+  evaluated_at: string
+}
+
+export interface PaginatedInstruments {
+  instruments: Instrument[]
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+}
+
+export interface DiscoveryStatus {
+  instrument_count: number
+  sectors_available: number
+  symbols_in_market_watch: number
+  symbols_with_candle_data: number
+  screener_available: boolean
+  board_available: boolean
+  instrument_master_source: string
+  note: string
 }
 
 // ----- Events / Logs / Signals -----

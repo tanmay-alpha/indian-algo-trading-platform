@@ -28,6 +28,7 @@ import { IndicatorOverlayControls } from '@/components/chart/indicator-overlay-c
 import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
 import { StrategyLab } from '@/components/strategy/strategy-lab'
+import { MarketsWorkspace } from './markets-workspace'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -35,7 +36,11 @@ export function WorkspaceContent() {
   return (
     <section className="flex-1 min-h-0 overflow-hidden">
       {active === 'trade' && <TradeWorkspace />}
-      {active === 'markets' && <MarketsWorkspace />}
+      {active === 'markets' && (
+        <WorkspaceFrame id="markets" icon={<Globe2 className="w-4 h-4" />}>
+          <MarketsWorkspace />
+        </WorkspaceFrame>
+      )}
       {active === 'charts' && <ChartsWorkspace />}
       {active === 'portfolio' && <PortfolioWorkspace />}
       {active === 'strategy' && <StrategyWorkspace />}
@@ -63,36 +68,6 @@ function TradeWorkspace() {
           </div>
         </div>
         <PremiumChartPanel />
-      </div>
-    </WorkspaceFrame>
-  )
-}
-
-function MarketsWorkspace() {
-  const indices = useTerminalStore((s) => s.indices)
-  return (
-    <WorkspaceFrame id="markets" icon={<Globe2 className="w-4 h-4" />}>
-      <div className="p-4 grid grid-cols-3 gap-3">
-        {indices.length === 0 ? (
-          <div className="col-span-3">
-            <EmptyState
-              title="Market feed waiting"
-              hint="Index values will appear when the backend feed is connected."
-              icon={<Globe2 className="w-8 h-8" />}
-            />
-          </div>
-        ) : (
-          indices.map((index) => (
-            <div key={index.symbol} className="border border-border bg-panel/70 rounded-sm p-3">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-text">{index.symbol}</span>
-                <DataQualityBadge quality={index.quality ?? (index.ltp == null ? 'UNAVAILABLE' : 'LIVE')} />
-              </div>
-              <div className="mt-3 font-mono text-xl text-text">{fmtPrice(index.ltp)}</div>
-              <div className="mt-1 font-mono text-xs text-text-dim">{fmtPct(index.change_pct)}</div>
-            </div>
-          ))
-        )}
       </div>
     </WorkspaceFrame>
   )
