@@ -27,6 +27,7 @@ import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
 import { IndicatorOverlayControls } from '@/components/chart/indicator-overlay-controls'
 import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
+import { StrategyLab } from '@/components/strategy/strategy-lab'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -320,30 +321,9 @@ function PortfolioTable({
 }
 
 function StrategyWorkspace() {
-  const signals = useTerminalStore((s) => s.signals)
   return (
     <WorkspaceFrame id="strategy" icon={<Cpu className="w-4 h-4" />}>
-      {signals.length === 0 ? (
-        <EmptyState
-          title="NO STRATEGY SIGNALS"
-          hint="Signals from the event stream will appear here. No synthetic signals are generated."
-          icon={<Cpu className="w-8 h-8" />}
-        />
-      ) : (
-        <div className="p-3 space-y-2">
-          {signals.slice(0, 12).map((signal, index) => (
-            <div key={`${signal.symbol}-${signal.ts ?? index}`} className="border border-border bg-panel/70 p-2 rounded-sm">
-              <div className="flex items-center justify-between font-mono text-xs">
-                <span>{signal.symbol}</span>
-                <span className={signal.action === 'BUY' ? 'text-up' : signal.action === 'SELL' ? 'text-down' : 'text-text-dim'}>
-                  {signal.action}
-                </span>
-              </div>
-              <div className="mt-1 text-2xs text-text-dim">{signal.reason ?? 'No reason provided'}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <StrategyLab />
     </WorkspaceFrame>
   )
 }
@@ -412,6 +392,7 @@ function PremiumChartPanel() {
   const activeIndicatorNames = useTerminalStore((s) => s.activeIndicatorNames)
   const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
   const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
+  const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)
   const fetchIndicatorStatus = useTerminalStore((s) => s.fetchIndicatorStatus)
   const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
   const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
@@ -442,6 +423,7 @@ function PremiumChartPanel() {
           candles={candles}
           result={indicatorResults}
           overlays={chartOverlays}
+          signalMarkers={chartSignalMarkers}
         />
         {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
         {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}

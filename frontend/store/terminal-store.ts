@@ -30,9 +30,16 @@ import type {
   ChartOverlayState,
   IndicatorSubpanelState,
   Candle,
+  StrategyStatus,
+  StrategyTemplate,
+  StrategyConfig,
+  BacktestResult,
+  StrategySignal,
+  ChartSignalMarker,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
+import { mapSignalsToMarkers } from '@/lib/strategy-series'
 import {
   getPortfolioEquityCurve,
   getPortfolioHoldings,
@@ -42,6 +49,10 @@ import {
   getIndicatorStatus,
   getIndicatorsForSymbol,
   fetchCandles,
+  getStrategySignalPreview,
+  getStrategyStatus,
+  getStrategyTemplates,
+  runStrategyBacktest,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -99,6 +110,17 @@ export interface TerminalState {
   indicatorChartError: string | null
   indicatorChartLoading: boolean
   chartCandlesBySymbolTimeframe: Record<string, Candle[]>
+  strategyStatus: StrategyStatus | null
+  strategyTemplates: StrategyTemplate[]
+  selectedStrategyName: string | null
+  selectedStrategyParams: Record<string, number | string | boolean>
+  backtestConfig: StrategyConfig
+  backtestResult: BacktestResult | null
+  strategySignals: StrategySignal[]
+  strategyLoading: boolean
+  strategyError: string | null
+  strategyLastUpdated: number | null
+  chartSignalMarkers: ChartSignalMarker[]
 
   // Live tick
   currentTick: TickPayload | null
@@ -160,6 +182,15 @@ export interface TerminalActions {
   setIndicatorOverlays: (overlays: Partial<ChartOverlayState>, subpanels?: Partial<IndicatorSubpanelState>) => void
   fetchChartIndicators: (symbol: string, timeframe: Timeframe) => Promise<void>
   clearChartIndicators: () => void
+  fetchStrategyStatus: () => Promise<void>
+  fetchStrategyTemplates: () => Promise<void>
+  selectStrategy: (strategyName: string) => void
+  updateStrategyParam: (key: string, value: number | string | boolean) => void
+  updateBacktestConfig: (patch: Partial<StrategyConfig>) => void
+  runSelectedStrategyBacktest: () => Promise<void>
+  fetchSignalPreview: () => Promise<void>
+  clearBacktestResult: () => void
+  clearStrategyError: () => void
 
   ingestTick: (tick: TickPayload) => void
   ingestSignal: (s: SignalEvent) => void
@@ -226,6 +257,26 @@ const initialState: TerminalState = {
   indicatorChartError: null,
   indicatorChartLoading: false,
   chartCandlesBySymbolTimeframe: {},
+  strategyStatus: null,
+  strategyTemplates: [],
+  selectedStrategyName: null,
+  selectedStrategyParams: {},
+  backtestConfig: {
+    strategy_name: '',
+    symbol: '',
+    timeframe: '5m',
+    params: {},
+    initial_capital: 100000,
+    quantity: 1,
+    fee_bps: 3,
+    slippage_bps: 2,
+  },
+  backtestResult: null,
+  strategySignals: [],
+  strategyLoading: false,
+  strategyError: null,
+  strategyLastUpdated: null,
+  chartSignalMarkers: [],
 
   currentTick: null,
   lastTickAt: null,
@@ -258,7 +309,10 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   setRightPanelTab: (t) => set({ rightPanelTab: t }),
   setBottomDockTab: (t) => set({ bottomDockTab: t }),
   setChartTimeframe: (t) => {
-    set({ chartTimeframe: t })
+    set((state) => ({
+      chartTimeframe: t,
+      backtestConfig: { ...state.backtestConfig, timeframe: t },
+    }))
     const { selectedSymbol, activeIndicatorNames } = get()
     if (selectedSymbol && activeIndicatorNames.length > 0) {
       void get().fetchChartIndicators(selectedSymbol, t)
@@ -271,7 +325,10 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     set((s) => ({ shortcutsOpen: open ?? !s.shortcutsOpen })),
 
   setSelectedSymbol: (s) => {
-    set({ selectedSymbol: s })
+    set((state) => ({
+      selectedSymbol: s,
+      backtestConfig: { ...state.backtestConfig, symbol: s || '' },
+    }))
     const { chartTimeframe, activeIndicatorNames } = get()
     if (s && activeIndicatorNames.length > 0) {
       void get().fetchChartIndicators(s, chartTimeframe)
@@ -365,6 +422,17 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       brokerStatus: s?.broker ?? state.brokerStatus,
       portfolioSummary: s?.portfolio ?? state.portfolioSummary,
       indicatorStatus: s?.indicator_engine ?? state.indicatorStatus,
+      strategyStatus: s?.strategy_engine
+        ? {
+            available: true,
+            engine: 'python',
+            live_execution_enabled: false,
+            templates_count: 0,
+            supported_strategies: [],
+            backtesting_enabled: true,
+            ...s.strategy_engine,
+          }
+        : state.strategyStatus,
       executionMode: s?.trading_mode ?? state.executionMode,
     })),
   setBrokerStatus: (s) => set({ brokerStatus: s }),
@@ -545,6 +613,159 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       indicatorChartError: null,
       indicatorChartLoading: false,
     }),
+  fetchStrategyStatus: async () => {
+    const strategyStatus = await getStrategyStatus()
+    set({
+      strategyStatus,
+      strategyError: strategyStatus.available ? null : 'Strategy backend unavailable',
+      strategyLastUpdated: Date.now(),
+    })
+  },
+  fetchStrategyTemplates: async () => {
+    const strategyTemplates = await getStrategyTemplates()
+    set((state) => {
+      const selectedStrategyName =
+        state.selectedStrategyName || strategyTemplates[0]?.strategy_name || null
+      const selectedTemplate = strategyTemplates.find(
+        (template) => template.strategy_name === selectedStrategyName
+      )
+      const selectedStrategyParams =
+        state.selectedStrategyName && state.selectedStrategyName === selectedStrategyName
+          ? state.selectedStrategyParams
+          : defaultParamsFromTemplate(selectedTemplate)
+      return {
+        strategyTemplates,
+        selectedStrategyName,
+        selectedStrategyParams,
+        backtestConfig: {
+          ...state.backtestConfig,
+          strategy_name: selectedStrategyName || '',
+          params: selectedStrategyParams,
+        },
+        strategyLastUpdated: Date.now(),
+      }
+    })
+  },
+  selectStrategy: (strategyName) =>
+    set((state) => {
+      const template = state.strategyTemplates.find((item) => item.strategy_name === strategyName)
+      const selectedStrategyParams = defaultParamsFromTemplate(template)
+      return {
+        selectedStrategyName: strategyName,
+        selectedStrategyParams,
+        backtestResult: null,
+        strategySignals: [],
+        chartSignalMarkers: [],
+        strategyError: null,
+        backtestConfig: {
+          ...state.backtestConfig,
+          strategy_name: strategyName,
+          params: selectedStrategyParams,
+        },
+      }
+    }),
+  updateStrategyParam: (key, value) =>
+    set((state) => ({
+      selectedStrategyParams: {
+        ...state.selectedStrategyParams,
+        [key]: value,
+      },
+      backtestConfig: {
+        ...state.backtestConfig,
+        params: {
+          ...state.selectedStrategyParams,
+          [key]: value,
+        },
+      },
+    })),
+  updateBacktestConfig: (patch) =>
+    set((state) => ({
+      backtestConfig: {
+        ...state.backtestConfig,
+        ...patch,
+      },
+    })),
+  runSelectedStrategyBacktest: async () => {
+    const state = get()
+    const config = buildStrategyConfig(state)
+    if (!config.strategy_name) {
+      set({ strategyError: 'Select a strategy first' })
+      return
+    }
+    if (!config.symbol) {
+      set({ strategyError: 'Select a symbol before running a backtest' })
+      return
+    }
+
+    set({ strategyLoading: true, strategyError: null })
+    let candles = state.chartCandlesBySymbolTimeframe[indicatorKey(config.symbol, config.timeframe as Timeframe)] || []
+    try {
+      const candleResponse = await fetchCandles(config.symbol, config.timeframe)
+      candles = candleResponse.candles || []
+    } catch {
+      candles = []
+    }
+    const result = await runStrategyBacktest(config)
+    const key = indicatorKey(config.symbol, config.timeframe as Timeframe)
+    const chartSignalMarkers = mapSignalsToMarkers(candles, result.signals || [])
+    set((current) => ({
+      backtestConfig: config,
+      backtestResult: result,
+      strategySignals: result.signals || [],
+      chartSignalMarkers,
+      strategyLoading: false,
+      strategyError:
+        result.status === 'ERROR'
+          ? result.reason || 'Strategy backtest failed'
+          : null,
+      strategyLastUpdated: Date.now(),
+      chartCandlesBySymbolTimeframe: {
+        ...current.chartCandlesBySymbolTimeframe,
+        [key]: candles,
+      },
+    }))
+  },
+  fetchSignalPreview: async () => {
+    const state = get()
+    const config = buildStrategyConfig(state)
+    if (!config.strategy_name || !config.symbol) {
+      set({ strategyError: 'Select a strategy and symbol first' })
+      return
+    }
+    set({ strategyLoading: true, strategyError: null })
+    let candles = state.chartCandlesBySymbolTimeframe[indicatorKey(config.symbol, config.timeframe as Timeframe)] || []
+    try {
+      const candleResponse = await fetchCandles(config.symbol, config.timeframe)
+      candles = candleResponse.candles || []
+    } catch {
+      candles = []
+    }
+    const response = await getStrategySignalPreview({
+      strategy_name: config.strategy_name,
+      symbol: config.symbol,
+      timeframe: config.timeframe,
+      params: config.params,
+    })
+    const key = indicatorKey(config.symbol, config.timeframe as Timeframe)
+    set((current) => ({
+      strategySignals: response.signals || [],
+      chartSignalMarkers: mapSignalsToMarkers(candles, response.signals || []),
+      strategyLoading: false,
+      strategyLastUpdated: Date.now(),
+      chartCandlesBySymbolTimeframe: {
+        ...current.chartCandlesBySymbolTimeframe,
+        [key]: candles,
+      },
+    }))
+  },
+  clearBacktestResult: () =>
+    set({
+      backtestResult: null,
+      strategySignals: [],
+      chartSignalMarkers: [],
+      strategyError: null,
+    }),
+  clearStrategyError: () => set({ strategyError: null }),
 
   ingestTick: (tick) =>
     set((state) => {
@@ -704,4 +925,33 @@ function fetchOrClearActiveIndicators(get: () => TerminalStore): void {
     return
   }
   void get().fetchChartIndicators(selectedSymbol, chartTimeframe)
+}
+
+function defaultParamsFromTemplate(
+  template?: StrategyTemplate
+): Record<string, number | string | boolean> {
+  if (!template) return {}
+  const params: Record<string, number | string | boolean> = {}
+  for (const [key, schema] of Object.entries(template.params_schema || {})) {
+    if (!schema || typeof schema !== 'object') continue
+    const maybeDefault = (schema as { default?: unknown }).default
+    if (
+      typeof maybeDefault === 'number' ||
+      typeof maybeDefault === 'string' ||
+      typeof maybeDefault === 'boolean'
+    ) {
+      params[key] = maybeDefault
+    }
+  }
+  return params
+}
+
+function buildStrategyConfig(state: TerminalStore): StrategyConfig {
+  return {
+    ...state.backtestConfig,
+    strategy_name: state.selectedStrategyName || state.backtestConfig.strategy_name,
+    symbol: state.selectedSymbol || state.backtestConfig.symbol || '',
+    timeframe: state.chartTimeframe,
+    params: state.selectedStrategyParams,
+  }
 }

@@ -30,6 +30,10 @@ export const ENDPOINTS = {
   portfolioReconciliation: '/portfolio/reconciliation/status',
   indicators: '/indicators',
   indicatorStatus: '/indicators/status',
+  strategyStatus: '/strategies/status',
+  strategyTemplates: '/strategies/templates',
+  strategyBacktest: '/strategies/backtest',
+  strategySignalPreview: '/strategies/signal-preview',
 } as const
 
 export const STALE_THRESHOLD_MS = 8000

@@ -190,6 +190,7 @@ export interface TerminalStatus {
   tick_bus?: TickBusStats | null
   candles?: CandleStoreStats
   indicator_engine?: IndicatorEngineStatus
+  strategy_engine?: Partial<StrategyStatus>
   portfolio?: PortfolioSummary
   trading_mode?: 'PAPER' | 'LIVE'
   demo_mode?: boolean
@@ -371,6 +372,108 @@ export interface IndicatorCalculatePayload {
   candles?: Array<Pick<Candle, 'open' | 'high' | 'low' | 'close' | 'volume'>>
   indicators: IndicatorName[]
   params?: Record<string, number>
+}
+
+// ----- Strategies / Backtesting -----
+export interface StrategyTemplate {
+  strategy_name: string
+  display_name: string
+  description: string
+  params_schema: Record<string, unknown>
+  required_indicators: string[]
+  supports_backtest: boolean
+  live_execution_enabled: boolean
+}
+
+export interface StrategyConfig {
+  strategy_name: string
+  symbol: string
+  timeframe: string
+  params: Record<string, number | string | boolean>
+  initial_capital: number
+  quantity: number
+  fee_bps: number
+  slippage_bps: number
+}
+
+export interface StrategySignal {
+  timestamp: string
+  symbol: string
+  strategy_name: string
+  action: 'BUY' | 'SELL' | 'HOLD' | 'EXIT' | string
+  price: number | null
+  strength: number
+  reason: string
+  metadata?: Record<string, unknown>
+}
+
+export interface BacktestTrade {
+  entry_time: string
+  exit_time: string | null
+  symbol: string
+  side: string
+  quantity: number
+  entry_price: number
+  exit_price: number | null
+  gross_pnl: number
+  fees: number
+  slippage: number
+  net_pnl: number
+  return_pct: number
+  exit_reason: string | null
+}
+
+export interface BacktestEquityPoint {
+  timestamp: string
+  equity: number
+  drawdown: number
+}
+
+export interface BacktestMetrics {
+  total_trades: number
+  winning_trades: number
+  losing_trades: number
+  win_rate: number
+  gross_pnl: number
+  net_pnl: number
+  total_fees: number
+  total_slippage: number
+  total_return_pct: number
+  max_drawdown: number
+  profit_factor: number | null
+  average_win: number | null
+  average_loss: number | null
+}
+
+export interface BacktestResult {
+  status: string
+  strategy_name: string
+  symbol: string
+  timeframe: string
+  engine: string
+  candles_used: number
+  signals: StrategySignal[]
+  trades: BacktestTrade[]
+  equity_curve: BacktestEquityPoint[]
+  metrics: BacktestMetrics
+  reason: string | null
+}
+
+export interface StrategyStatus {
+  available: boolean
+  engine: string
+  live_execution_enabled: boolean
+  templates_count: number
+  supported_strategies: string[]
+  backtesting_enabled: boolean
+}
+
+export interface ChartSignalMarker {
+  time: string | number
+  action: 'BUY' | 'EXIT' | string
+  price: number | null
+  strength: number
+  reason: string
 }
 
 // ----- Events / Logs / Signals -----

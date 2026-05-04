@@ -15,6 +15,11 @@ import type {
   IndicatorEngineStatus,
   IndicatorName,
   IndicatorResultsResponse,
+  BacktestResult,
+  StrategyConfig,
+  StrategySignal,
+  StrategyStatus,
+  StrategyTemplate,
 } from './types'
 
 export class APIError extends Error {
@@ -159,6 +164,84 @@ export async function calculateIndicators(
     })
   } catch {
     return unavailableIndicators(undefined, undefined, 'BACKEND_UNAVAILABLE')
+  }
+}
+
+// ----- Strategies -----
+const unavailableStrategyStatus: StrategyStatus = {
+  available: false,
+  engine: 'python',
+  live_execution_enabled: false,
+  templates_count: 0,
+  supported_strategies: [],
+  backtesting_enabled: false,
+}
+
+const emptyMetrics = {
+  total_trades: 0,
+  winning_trades: 0,
+  losing_trades: 0,
+  win_rate: 0,
+  gross_pnl: 0,
+  net_pnl: 0,
+  total_fees: 0,
+  total_slippage: 0,
+  total_return_pct: 0,
+  max_drawdown: 0,
+  profit_factor: null,
+  average_win: null,
+  average_loss: null,
+}
+
+export async function getStrategyStatus(): Promise<StrategyStatus> {
+  try {
+    return await request<StrategyStatus>(ENDPOINTS.strategyStatus)
+  } catch {
+    return unavailableStrategyStatus
+  }
+}
+
+export async function getStrategyTemplates(): Promise<StrategyTemplate[]> {
+  try {
+    const data = await request<{ templates?: StrategyTemplate[] }>(ENDPOINTS.strategyTemplates)
+    return data.templates || []
+  } catch {
+    return []
+  }
+}
+
+export async function runStrategyBacktest(
+  payload: StrategyConfig
+): Promise<BacktestResult> {
+  try {
+    return await request<BacktestResult>(ENDPOINTS.strategyBacktest, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    return unavailableBacktestResult(payload, 'BACKEND_UNAVAILABLE')
+  }
+}
+
+export async function getStrategySignalPreview(
+  payload: Pick<StrategyConfig, 'strategy_name' | 'symbol' | 'timeframe' | 'params'>
+): Promise<{ strategy_name: string; symbol: string; timeframe: string; signals: StrategySignal[]; count: number }> {
+  try {
+    return await request<{ strategy_name: string; symbol: string; timeframe: string; signals: StrategySignal[]; count: number }>(
+      ENDPOINTS.strategySignalPreview,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    )
+  } catch {
+    return {
+      strategy_name: payload.strategy_name,
+      symbol: payload.symbol,
+      timeframe: payload.timeframe,
+      signals: [],
+      count: 0,
+    }
   }
 }
 
@@ -325,5 +408,21 @@ function unavailableIndicators(
     reason,
     count: 0,
     results: {},
+  }
+}
+
+function unavailableBacktestResult(payload: StrategyConfig, reason: string): BacktestResult {
+  return {
+    status: 'ERROR',
+    strategy_name: payload.strategy_name,
+    symbol: payload.symbol,
+    timeframe: payload.timeframe,
+    engine: 'python',
+    candles_used: 0,
+    signals: [],
+    trades: [],
+    equity_curve: [],
+    metrics: emptyMetrics,
+    reason,
   }
 }

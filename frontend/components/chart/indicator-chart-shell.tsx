@@ -1,6 +1,7 @@
 import type {
   BollingerPoint,
   Candle,
+  ChartSignalMarker,
   ChartOverlayState,
   IndicatorResultsResponse,
 } from '@/lib/types'
@@ -21,12 +22,14 @@ export function IndicatorChartShell({
   candles,
   result,
   overlays,
+  signalMarkers = [],
 }: {
   symbol: string | null
   timeframe: string
   candles: Candle[]
   result?: IndicatorResultsResponse
   overlays: ChartOverlayState
+  signalMarkers?: ChartSignalMarker[]
 }) {
   if (candles.length === 0) {
     return (
@@ -88,6 +91,7 @@ export function IndicatorChartShell({
         )}
         {overlays.ema && <LineSegments points={ema} range={range} color="#54c1ec" valueOf={(p) => p.value} />}
         {overlays.vwap && <LineSegments points={vwap} range={range} color="#f0a928" valueOf={(p) => p.value} />}
+        <SignalMarkers markers={signalMarkers} candles={candles} range={range} />
       </svg>
     </div>
   )
@@ -190,6 +194,51 @@ function LineSegments<T>({
   )
 }
 
+function SignalMarkers({
+  markers,
+  candles,
+  range,
+}: {
+  markers: ChartSignalMarker[]
+  candles: Candle[]
+  range: PriceRange
+}) {
+  return (
+    <>
+      {markers.map((marker, index) => {
+        const candleIndex = markerIndex(candles, marker.time)
+        if (candleIndex < 0) return null
+        const candle = candles[candleIndex]
+        const isBuy = marker.action === 'BUY'
+        const price = marker.price ?? candle.close
+        const x = xAt(candleIndex, candles.length)
+        const y = yAt(price, range) + (isBuy ? 16 : -16)
+        const color = isBuy ? '#16c784' : '#f0a928'
+        const label = isBuy ? 'BUY' : 'EXIT'
+        const points = isBuy
+          ? `${x},${y - 7} ${x - 6},${y + 5} ${x + 6},${y + 5}`
+          : `${x},${y + 7} ${x - 6},${y - 5} ${x + 6},${y - 5}`
+
+        return (
+          <g key={`${marker.time}-${marker.action}-${index}`} opacity={0.95}>
+            <polygon points={points} fill={color} stroke="rgba(7,11,18,0.9)" strokeWidth={1.5} />
+            <text
+              x={x + 9}
+              y={y + (isBuy ? 4 : -7)}
+              fill={color}
+              fontSize="11"
+              fontFamily="monospace"
+              fontWeight="700"
+            >
+              {label}
+            </text>
+          </g>
+        )
+      })}
+    </>
+  )
+}
+
 interface PriceRange {
   min: number
   max: number
@@ -247,4 +296,34 @@ function yAt(value: number, range: PriceRange): number {
 
 function isFiniteNumber(value: number | null): value is number {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+function markerIndex(candles: Candle[], time: string | number): number {
+  const direct = candles.findIndex((candle) => String(candle.time) === String(time))
+  if (direct >= 0) return direct
+  const target = timeToMillis(time)
+  if (target == null) return -1
+
+  let bestIndex = -1
+  let bestDistance = Number.POSITIVE_INFINITY
+  candles.forEach((candle, index) => {
+    const candleTs = timeToMillis(candle.time)
+    if (candleTs == null) return
+    const distance = Math.abs(candleTs - target)
+    if (distance < bestDistance) {
+      bestIndex = index
+      bestDistance = distance
+    }
+  })
+  return bestIndex
+}
+
+function timeToMillis(value: string | number): number | null {
+  if (typeof value === 'number') return value > 10_000_000_000 ? value : value * 1000
+  const parsedNumber = Number(value)
+  if (Number.isFinite(parsedNumber)) {
+    return parsedNumber > 10_000_000_000 ? parsedNumber : parsedNumber * 1000
+  }
+  const parsedDate = Date.parse(value)
+  return Number.isFinite(parsedDate) ? parsedDate : null
 }
