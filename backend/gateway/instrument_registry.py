@@ -20,44 +20,62 @@ _BY_CLEAN_SYMBOL: dict[str, dict] = {}
 _BY_SECTOR: dict[str, list[dict]] = {}
 
 _FALLBACK_INSTRUMENTS = [
-    {
-        "symbol": "SBIN",
-        "clean_symbol": "SBIN",
-        "name": "State Bank of India",
-        "token": "3045",
-        "exchange": "NSE",
-        "sector": "",
-        "instrument_type": "EQ",
-        "lot_size": None,
-        "tick_size": None,
-    },
-    {
-        "symbol": "RELIANCE",
-        "clean_symbol": "RELIANCE",
-        "name": "Reliance Industries",
-        "token": "2885",
-        "exchange": "NSE",
-        "sector": "",
-        "instrument_type": "EQ",
-        "lot_size": None,
-        "tick_size": None,
-    },
-    {
-        "symbol": "INFY",
-        "clean_symbol": "INFY",
-        "name": "Infosys",
-        "token": "1594",
-        "exchange": "NSE",
-        "sector": "",
-        "instrument_type": "EQ",
-        "lot_size": None,
-        "tick_size": None,
-    },
+    # Large Cap - Banking
+    {"symbol": "SBIN", "clean_symbol": "SBIN", "name": "State Bank of India", "token": "3045", "exchange": "NSE", "sector": "Banking", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "HDFCBANK", "clean_symbol": "HDFCBANK", "name": "HDFC Bank", "token": "1333", "exchange": "NSE", "sector": "Banking", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "ICICIBANK", "clean_symbol": "ICICIBANK", "name": "ICICI Bank", "token": "4963", "exchange": "NSE", "sector": "Banking", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "KOTAKBANK", "clean_symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank", "token": "1922", "exchange": "NSE", "sector": "Banking", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "AXISBANK", "clean_symbol": "AXISBANK", "name": "Axis Bank", "token": "5900", "exchange": "NSE", "sector": "Banking", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - IT
+    {"symbol": "TCS", "clean_symbol": "TCS", "name": "Tata Consultancy Services", "token": "11536", "exchange": "NSE", "sector": "IT", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "INFY", "clean_symbol": "INFY", "name": "Infosys", "token": "1594", "exchange": "NSE", "sector": "IT", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "WIPRO", "clean_symbol": "WIPRO", "name": "Wipro", "token": "3787", "exchange": "NSE", "sector": "IT", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "TECHM", "clean_symbol": "TECHM", "name": "Tech Mahindra", "token": "13538", "exchange": "NSE", "sector": "IT", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "HCLTECH", "clean_symbol": "HCLTECH", "name": "HCL Technologies", "token": "7229", "exchange": "NSE", "sector": "IT", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Energy / Conglomerates
+    {"symbol": "RELIANCE", "clean_symbol": "RELIANCE", "name": "Reliance Industries", "token": "2885", "exchange": "NSE", "sector": "Energy", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "ONGC", "clean_symbol": "ONGC", "name": "Oil and Natural Gas Corp", "token": "2475", "exchange": "NSE", "sector": "Energy", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "NTPC", "clean_symbol": "NTPC", "name": "NTPC", "token": "11630", "exchange": "NSE", "sector": "Power", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "POWERGRID", "clean_symbol": "POWERGRID", "name": "Power Grid Corp", "token": "14977", "exchange": "NSE", "sector": "Power", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "COALINDIA", "clean_symbol": "COALINDIA", "name": "Coal India", "token": "20374", "exchange": "NSE", "sector": "Mining", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - FMCG / Consumer
+    {"symbol": "ITC", "clean_symbol": "ITC", "name": "ITC", "token": "1660", "exchange": "NSE", "sector": "FMCG", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "HINDUNILVR", "clean_symbol": "HINDUNILVR", "name": "Hindustan Unilever", "token": "1394", "exchange": "NSE", "sector": "FMCG", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "NESTLEIND", "clean_symbol": "NESTLEIND", "name": "Nestle India", "token": "17963", "exchange": "NSE", "sector": "FMCG", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Pharma
+    {"symbol": "SUNPHARMA", "clean_symbol": "SUNPHARMA", "name": "Sun Pharmaceutical", "token": "3351", "exchange": "NSE", "sector": "Pharma", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "DRREDDY", "clean_symbol": "DRREDDY", "name": "Dr Reddys Laboratories", "token": "881", "exchange": "NSE", "sector": "Pharma", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "CIPLA", "clean_symbol": "CIPLA", "name": "Cipla", "token": "694", "exchange": "NSE", "sector": "Pharma", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Auto
+    {"symbol": "MARUTI", "clean_symbol": "MARUTI", "name": "Maruti Suzuki", "token": "10999", "exchange": "NSE", "sector": "Auto", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "TATAMOTORS", "clean_symbol": "TATAMOTORS", "name": "Tata Motors", "token": "3456", "exchange": "NSE", "sector": "Auto", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "BAJAJ-AUTO", "clean_symbol": "BAJAJAUTO", "name": "Bajaj Auto", "token": "16669", "exchange": "NSE", "sector": "Auto", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "M&M", "clean_symbol": "MM", "name": "Mahindra and Mahindra", "token": "2031", "exchange": "NSE", "sector": "Auto", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Metals / Infra
+    {"symbol": "TATASTEEL", "clean_symbol": "TATASTEEL", "name": "Tata Steel", "token": "3499", "exchange": "NSE", "sector": "Metals", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "HINDALCO", "clean_symbol": "HINDALCO", "name": "Hindalco Industries", "token": "1363", "exchange": "NSE", "sector": "Metals", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "JSWSTEEL", "clean_symbol": "JSWSTEEL", "name": "JSW Steel", "token": "11723", "exchange": "NSE", "sector": "Metals", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - NBFC / Finance
+    {"symbol": "BAJFINANCE", "clean_symbol": "BAJFINANCE", "name": "Bajaj Finance", "token": "317", "exchange": "NSE", "sector": "Finance", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "BAJAJFINSV", "clean_symbol": "BAJAJFINSV", "name": "Bajaj Finserv", "token": "16675", "exchange": "NSE", "sector": "Finance", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Consumer / Retail
+    {"symbol": "TITAN", "clean_symbol": "TITAN", "name": "Titan Company", "token": "3506", "exchange": "NSE", "sector": "Consumer", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "ASIANPAINT", "clean_symbol": "ASIANPAINT", "name": "Asian Paints", "token": "236", "exchange": "NSE", "sector": "Consumer", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    # Large Cap - Telecom / Diversified
+    {"symbol": "BHARTIARTL", "clean_symbol": "BHARTIARTL", "name": "Bharti Airtel", "token": "10604", "exchange": "NSE", "sector": "Telecom", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "ULTRACEMCO", "clean_symbol": "ULTRACEMCO", "name": "UltraTech Cement", "token": "2952", "exchange": "NSE", "sector": "Cement", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
+    {"symbol": "LT", "clean_symbol": "LT", "name": "Larsen and Toubro", "token": "11483", "exchange": "NSE", "sector": "Infrastructure", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
 ]
 
 
 def normalize_symbol(symbol: str) -> str:
-    return str(symbol or "").strip().upper()
+    s = str(symbol or "").strip().upper()
+    if s.endswith("-EQ"):
+        s = s[:-3]
+    for suffix in ["-BE", "-BL", "-SM", "-N"]:
+        if s.endswith(suffix):
+            s = s[: -len(suffix)]
+    return s
 
 
 def load_instruments(force_reload: bool = False) -> list[dict]:
@@ -288,8 +306,8 @@ def _load_csv(path: Path) -> list[dict]:
 
 def _normalize_instrument(raw: dict) -> dict:
     raw_symbol = raw.get("symbol") or raw.get("tradingsymbol") or raw.get("name")
-    symbol = normalize_symbol(raw_symbol)
-    clean_symbol = normalize_symbol(raw.get("clean_symbol") or (symbol[:-3] if symbol.endswith("-EQ") else symbol))
+    symbol = str(raw_symbol or "").strip().upper()
+    clean_symbol = normalize_symbol(raw.get("clean_symbol") or symbol)
     name = raw.get("name") or raw.get("companyName") or clean_symbol or symbol
     token = raw.get("token") or raw.get("symboltoken") or raw.get("instrument_token")
     exchange = raw.get("exchange") or raw.get("exch_seg") or "NSE"

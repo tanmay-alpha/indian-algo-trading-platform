@@ -137,12 +137,14 @@ export function WatchlistPanel() {
             const ltp = row?.ltp ?? null
             const chgPct = row?.change_pct ?? null
             const volume = row?.volume ?? null
+            const displayLtp = subscribed ? ltp : null
+            const displayChgPct = subscribed ? chgPct : null
+            const displayVolume = subscribed ? volume : null
+            const displayName = row?.name ?? compactSymbolName(symbol)
             const meta = row?.exchange
               ? `${row.exchange} EQ`
               : last
               ? fmtAge(age)
-              : !subscribed
-              ? 'Not subscribed'
               : marketSessionLabel() === 'LIVE'
               ? 'Awaiting tick'
               : 'Market closed'
@@ -160,27 +162,33 @@ export function WatchlistPanel() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-xs font-semibold text-text">{symbol}</span>
-                    <DataQualityBadge quality={quality} showDot={false} />
+                    {subscribed ? (
+                      <DataQualityBadge quality={quality} showDot={false} />
+                    ) : (
+                      <span className="inline-flex items-center rounded-sm border border-border bg-panel px-1.5 py-px text-[9px] font-mono uppercase tracking-wider text-text-faint">
+                        NO FEED
+                      </span>
+                    )}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-faint">
-                    <span className="truncate">{row?.name ?? meta}</span>
-                    {!row?.name && <span className="text-text-dim">{meta}</span>}
+                    <span className="truncate">{displayName}</span>
+                    <span className="text-text-dim">{subscribed ? meta : 'No live feed'}</span>
                   </div>
                 </div>
                 <PriceCell
-                  value={ltp}
-                  className={cn('text-right text-xs', ltp == null && 'text-text-faint')}
+                  value={displayLtp}
+                  className={cn('text-right text-xs', displayLtp == null && 'text-text-faint')}
                 />
                 <span
                   className={cn(
                     'text-right text-2xs font-mono tnum',
-                    chgPct == null ? 'text-text-faint' : priceDirClass(chgPct)
+                    displayChgPct == null ? 'text-text-faint' : priceDirClass(displayChgPct)
                   )}
                 >
-                  {fmtPct(chgPct)}
+                  {fmtPct(displayChgPct)}
                 </span>
                 <span className="text-right text-2xs font-mono tnum text-text-2">
-                  {fmtVolume(volume)}
+                  {fmtVolume(displayVolume)}
                 </span>
                 <button
                   onClick={(event) => {
@@ -219,7 +227,7 @@ function qualityForRow({
 }): DataQuality {
   if (apiStatus === 'OFFLINE') return 'BACKEND OFFLINE'
   if (apiStatus === 'WAKING' || apiStatus === 'UNKNOWN') return 'WARMING'
-  if (!subscribed) return 'NOT SUBSCRIBED'
+  if (!subscribed) return 'UNAVAILABLE'
   if (last == null || age == null) {
     return marketNoDataLabel()
   }
@@ -234,6 +242,10 @@ function normalizeWatchSymbol(symbol: string): string {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return normalized
   return normalized.endsWith('-EQ') ? normalized : `${normalized}-EQ`
+}
+
+function compactSymbolName(symbol: string): string {
+  return normalizeWatchSymbol(symbol).replace(/-EQ$/, '')
 }
 
 function marketSessionMeta(session: NseMarketSession): { label: string; dotClass: string } {

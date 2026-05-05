@@ -10,7 +10,18 @@ class Settings(BaseSettings):
     angel_client_code: str = Field(validation_alias=AliasChoices("ANGEL_CLIENT_CODE", "ANGEL_CLIENT_ID"))
     angel_password: str
     angel_totp_secret: str
-    symbols: list[str] = ["SBIN", "RELIANCE"]
+    symbols: list[str] = [
+        "SBIN",
+        "RELIANCE",
+        "INFY",
+        "TCS",
+        "HDFCBANK",
+        "ICICIBANK",
+        "AXISBANK",
+        "WIPRO",
+        "ITC",
+        "TATASTEEL",
+    ]
     host: str = "0.0.0.0"
     port: int = 8000
     trading_mode: str = "PAPER"

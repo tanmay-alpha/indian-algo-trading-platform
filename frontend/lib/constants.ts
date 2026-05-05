@@ -158,14 +158,54 @@ export const INDEX_TILES = [
 // ----- Watchlist groups (default) -----
 export const DEFAULT_WATCHLIST_GROUPS = [
   {
-    id: 'default',
-    name: 'Default',
-    symbols: ['SBIN-EQ', 'RELIANCE-EQ', 'INFY-EQ', 'TCS-EQ', 'HDFCBANK-EQ'],
+    id: 'nifty50',
+    name: 'Nifty 50',
+    symbols: [
+      'SBIN-EQ', 'RELIANCE-EQ', 'HDFCBANK-EQ', 'INFY-EQ', 'TCS-EQ',
+      'ICICIBANK-EQ', 'AXISBANK-EQ', 'WIPRO-EQ', 'ITC-EQ', 'TATASTEEL-EQ',
+      'KOTAKBANK-EQ', 'BAJFINANCE-EQ', 'MARUTI-EQ', 'SUNPHARMA-EQ', 'BHARTIARTL-EQ',
+    ],
   },
-  { id: 'banking', name: 'Banking', symbols: ['HDFCBANK-EQ', 'ICICIBANK-EQ', 'KOTAKBANK-EQ', 'AXISBANK-EQ', 'SBIN-EQ'] },
-  { id: 'it', name: 'IT', symbols: ['INFY-EQ', 'TCS-EQ', 'WIPRO-EQ', 'HCLTECH-EQ', 'TECHM-EQ'] },
-  { id: 'metals', name: 'Metals', symbols: ['TATASTEEL-EQ', 'JSWSTEEL-EQ', 'HINDALCO-EQ', 'VEDL-EQ'] },
-  { id: 'mine', name: 'My Watchlist', symbols: [] },
+  {
+    id: 'banking',
+    name: 'Banking',
+    symbols: ['HDFCBANK-EQ', 'ICICIBANK-EQ', 'AXISBANK-EQ', 'KOTAKBANK-EQ', 'SBIN-EQ'],
+  },
+  {
+    id: 'it',
+    name: 'IT',
+    symbols: ['TCS-EQ', 'INFY-EQ', 'WIPRO-EQ', 'HCLTECH-EQ', 'TECHM-EQ'],
+  },
+  {
+    id: 'energy',
+    name: 'Energy',
+    symbols: ['RELIANCE-EQ', 'ONGC-EQ', 'NTPC-EQ', 'POWERGRID-EQ', 'COALINDIA-EQ'],
+  },
+  {
+    id: 'auto',
+    name: 'Auto',
+    symbols: ['MARUTI-EQ', 'TATAMOTORS-EQ', 'BAJAJ-AUTO-EQ', 'M&M-EQ'],
+  },
+  {
+    id: 'pharma',
+    name: 'Pharma',
+    symbols: ['SUNPHARMA-EQ', 'DRREDDY-EQ', 'CIPLA-EQ'],
+  },
+  {
+    id: 'fmcg',
+    name: 'FMCG',
+    symbols: ['ITC-EQ', 'HINDUNILVR-EQ', 'NESTLEIND-EQ'],
+  },
+  {
+    id: 'metals',
+    name: 'Metals',
+    symbols: ['TATASTEEL-EQ', 'HINDALCO-EQ', 'JSWSTEEL-EQ'],
+  },
+  {
+    id: 'mine',
+    name: 'My List',
+    symbols: [],
+  },
 ]
 
 // ----- Indicator placeholders -----

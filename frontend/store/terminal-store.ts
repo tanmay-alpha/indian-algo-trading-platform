@@ -228,7 +228,7 @@ const initialState: TerminalState = {
 
   selectedSymbol: null,
 
-  watchlistGroupId: 'default',
+  watchlistGroupId: 'nifty50',
   watchlistGroups: DEFAULT_WATCHLIST_GROUPS.map((g) => ({ ...g, symbols: [...g.symbols] })),
   marketWatch: {},
 
