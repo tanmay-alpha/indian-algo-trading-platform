@@ -40,7 +40,7 @@ export function OperatorStatusStrip() {
     : session
 
   return (
-    <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto" role="status">
+    <div className="flex flex-nowrap items-center gap-1.5" role="status">
       <StatusDot
         label="BRK"
         status={broker?.logged_in ? 'ONLINE' : broker?.last_error ? 'STALE' : apiStatus === 'ONLINE' ? 'WAITING' : apiLabel}
@@ -90,16 +90,16 @@ function StatusDot({
   return (
     <span
       title={detail ? `${label}: ${status} - ${detail}` : `${label}: ${status}`}
-      className="inline-flex h-[22px] min-w-fit items-center gap-1.5 rounded-sm border border-border bg-panel/60 px-1.5 text-[10px] font-mono text-text-2"
+      className="inline-flex h-[22px] min-w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm border border-border bg-panel/60 px-1.5 text-[10px] font-mono text-text-2"
     >
-      <span className="text-text-faint">{label}</span>
+      <span className="whitespace-nowrap text-text-faint">{label}</span>
       <span
         className={cn(
-          'h-1.5 w-1.5 rounded-full',
+          'h-1.5 w-1.5 flex-none rounded-full',
           meta.dotClass
         )}
       />
-      <span className="text-text">{meta.shortLabel}</span>
+      <span className="whitespace-nowrap text-text">{meta.shortLabel}</span>
     </span>
   )
 }

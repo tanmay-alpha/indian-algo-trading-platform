@@ -12,7 +12,7 @@ interface IstClock {
 }
 
 export function useIstClock(): IstClock {
-  const [clock, setClock] = useState<IstClock>(() => currentIstClock())
+  const [clock, setClock] = useState<IstClock>(() => emptyIstClock())
 
   useEffect(() => {
     const tick = () => setClock(currentIstClock())
@@ -24,17 +24,25 @@ export function useIstClock(): IstClock {
   return clock
 }
 
+function emptyIstClock(): IstClock {
+  return {
+    time: '',
+    date: '',
+    session: 'POST_MARKET',
+    sessionLabel: '',
+  }
+}
+
 function currentIstClock(): IstClock {
   const now = new Date()
   const session = getNseMarketSession(now)
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
+  const hh = String(ist.getHours()).padStart(2, '0')
+  const mm = String(ist.getMinutes()).padStart(2, '0')
+  const ss = String(ist.getSeconds()).padStart(2, '0')
+
   return {
-    time: new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).format(now),
+    time: `${hh}:${mm}:${ss}`,
     date: new Intl.DateTimeFormat('en-IN', {
       timeZone: 'Asia/Kolkata',
       day: '2-digit',
@@ -52,4 +60,3 @@ function labelForSession(session: NseMarketSession): string {
   if (session === 'POST_MARKET') return 'POST-MARKET'
   return 'WEEKEND'
 }
-

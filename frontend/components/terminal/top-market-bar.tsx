@@ -67,7 +67,7 @@ export function TopMarketBar() {
         ))}
       </div>
 
-      <div className="min-w-[470px] px-3 flex items-center gap-2 border-l border-border">
+      <div className="min-w-0 max-w-[58vw] shrink-0 px-3 flex items-center gap-2 overflow-x-auto border-l border-border">
         <WorkspacePresetSelector />
         <span
           className={cn(
@@ -80,13 +80,13 @@ export function TopMarketBar() {
           <LockKeyhole className="w-3 h-3" />
           {locked ? 'Paper locked' : 'Live gated'}
         </span>
-        <span className="inline-flex items-center px-2 h-[24px] rounded-sm border border-border bg-panel/70 text-[10px] font-mono text-text-2">
-          {clock.time} <span className="ml-1 text-text-faint">IST</span>
+        <span className="inline-flex h-[24px] shrink-0 items-center rounded-sm border border-border bg-panel/70 px-2 text-[10px] font-mono text-text-2">
+          {clock.time || '--:--:--'} <span className="ml-1 text-text-faint">IST</span>
         </span>
-        <span className="hidden 2xl:inline-flex items-center px-2 h-[24px] rounded-sm border border-border bg-panel/70 text-[10px] font-mono text-text-dim">
+        <span className="hidden h-[24px] shrink-0 items-center rounded-sm border border-border bg-panel/70 px-2 text-[10px] font-mono text-text-dim 2xl:inline-flex">
           {clock.sessionLabel}
         </span>
-        <div className="h-6 w-px bg-border mx-1" />
+        <div className="mx-1 h-6 w-px shrink-0 bg-border" />
         <OperatorStatusStrip />
       </div>
     </header>
