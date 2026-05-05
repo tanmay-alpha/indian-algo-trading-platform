@@ -236,10 +236,27 @@ Render is currently a staging target. Production should move to a persistent VPS
 - Live order execution remains disabled by default.
 - Strategy routes are offline/research-only and are not connected to live execution.
 
-## Roadmap
+## Remaining Architecture Roadmap
 
-- Strategy Lab frontend
 - Persistent database
-- Authentication
-- Observability
+- Stronger authentication/user management
+- Durable observability stack
 - VPS production deployment
+
+## v2.0 Showcase Summary
+
+MAET Terminal v2.0 is a demo-ready full-stack trading research workstation: Next.js frontend on Vercel, FastAPI backend on Render, Angel One SmartAPI market-data integration, WebSocket streaming, event-driven TickBus/EventBus internals, CandleStore, C++/Python indicator engine, offline strategy research, and safety-first PAPER mode.
+
+Production-like parts include the separated frontend/backend architecture, sanitized health/status responses, REST plus WebSocket communication, event-driven backend structure, optional C++ analytics bridge, Python fallback behavior, admin-token protection for sensitive demo routes, and deployment-aware unavailable states.
+
+Demo-only boundaries remain clear: live trading is locked, strategy routes are research-only, Render Free can cold start, persistence is not production-grade, observability is session-scoped, and the project is not financial advice or production trading software.
+
+Optional future work after the v2.0 showcase:
+
+- C++ backtest engine
+- C++ screener engine
+- PostgreSQL or another durable database
+- VPS deployment with process supervision
+- Better chart engine
+- Auth UI and stronger user management
+- Real observability stack
