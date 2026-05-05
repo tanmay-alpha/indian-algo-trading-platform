@@ -11,45 +11,53 @@ export function OrderTicket() {
   const symbol = useTerminalStore((s) => s.selectedSymbol) ?? tick?.symbol
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full flex-col">
       <PanelHeader
-        icon={<ShoppingCart className="w-4 h-4" />}
+        icon={<ShoppingCart className="h-4 w-4" />}
         title="Order Ticket"
         subtitle="Execution locked"
       />
 
-      <div className="p-3 space-y-3">
-        <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-bg p-1">
-          <button disabled className="h-8 rounded-md bg-up/15 text-up font-semibold text-xs">
+      <div className="space-y-3 p-3">
+        <div className="border border-warn/25 bg-warn-dim p-3">
+          <div className="flex items-center gap-2 text-warn">
+            <LockKeyhole className="h-4 w-4" />
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">EXECUTION LOCKED</span>
+          </div>
+          <p className="mt-1 font-mono text-[10px] leading-relaxed text-warn/90">
+            Paper mode only. No real orders.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1 border border-border bg-bg p-1">
+          <button
+            disabled
+            title="Execution disabled in this build"
+            className="h-8 cursor-not-allowed border border-up/20 bg-up/10 font-mono text-[11px] font-semibold text-up/50"
+          >
             Buy
           </button>
-          <button disabled className="h-8 rounded-md bg-down/15 text-down font-semibold text-xs">
+          <button
+            disabled
+            title="Execution disabled in this build"
+            className="h-8 cursor-not-allowed border border-down/20 bg-down/10 font-mono text-[11px] font-semibold text-down/50"
+          >
             Sell
           </button>
         </div>
 
-        <Field label="Symbol" value={symbol ?? '\u2014'} />
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Quantity" value={'\u2014'} disabled />
-          <Field label="Order Type" value="Market" disabled />
-          <Field label="Price" value={fmtPrice(tick?.ltp ?? tick?.price)} disabled />
-          <Field label="Est. Notional" value={'\u2014'} disabled />
+        <Field label="Symbol" value={symbol ?? '—'} />
+        <div className="grid grid-cols-2 border border-border">
+          <Field label="Quantity" value="—" disabled flush />
+          <Field label="Order Type" value="Market" disabled flush />
+          <Field label="Price" value={fmtPrice(tick?.ltp ?? tick?.price)} disabled flush />
+          <Field label="Est. Notional" value="—" disabled flush />
         </div>
 
-        <div className="rounded-lg border border-warn/25 bg-warn-dim p-3">
-          <div className="flex items-center gap-2 text-warn">
-            <LockKeyhole className="w-4 h-4" />
-            <span className="text-xs font-semibold">Execution locked</span>
-          </div>
-          <p className="mt-1 text-2xs font-mono leading-relaxed text-warn/90">
-            Paper mode only. Live trading and broker order placement are disabled in this build.
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-border bg-panel/70 p-3">
+        <div className="border border-border bg-panel/50 p-3">
           <div className="flex items-center gap-2 text-text">
-            <ShieldCheck className="w-4 h-4 text-info" />
-            <span className="text-xs font-semibold">Risk preview</span>
+            <ShieldCheck className="h-4 w-4 text-info" />
+            <span className="text-[11px] font-semibold">Risk preview</span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <MiniMetric label="Mode" value={mode} />
@@ -59,7 +67,11 @@ export function OrderTicket() {
           </div>
         </div>
 
-        <button disabled className="w-full h-9 rounded-md border border-border bg-panel text-xs font-semibold text-text-dim">
+        <button
+          disabled
+          title="Execution disabled in this build"
+          className="h-9 w-full cursor-not-allowed border border-border bg-panel font-mono text-[11px] font-semibold text-text-dim"
+        >
           Order disabled by safety lock
         </button>
       </div>
@@ -77,11 +89,11 @@ function PanelHeader({
   subtitle: string
 }) {
   return (
-    <div className="h-12 px-3 flex items-center gap-2 border-b border-border bg-panel/40">
+    <div className="flex h-10 items-center gap-2 border-b border-border bg-panel/40 px-3">
       <span className="text-info">{icon}</span>
       <div>
-        <div className="text-xs font-semibold text-text">{title}</div>
-        <div className="text-[10px] text-text-faint">{subtitle}</div>
+        <div className="text-[11px] font-semibold text-text">{title}</div>
+        <div className="text-[9px] text-text-faint">{subtitle}</div>
       </div>
     </div>
   )
@@ -91,15 +103,17 @@ function Field({
   label,
   value,
   disabled,
+  flush,
 }: {
   label: string
   value: string
   disabled?: boolean
+  flush?: boolean
 }) {
   return (
-    <div className="rounded-md border border-border bg-bg p-2">
-      <div className="text-[9px] font-mono uppercase tracking-wider text-text-faint">{label}</div>
-      <div className={disabled ? 'mt-1 font-mono text-xs text-text-dim' : 'mt-1 font-mono text-xs text-text'}>
+    <div className={flush ? 'border-b border-r border-border bg-bg p-2' : 'border border-border bg-bg p-2'}>
+      <div className="font-mono text-[9px] uppercase tracking-wider text-text-faint">{label}</div>
+      <div className={disabled ? 'mt-1 font-mono text-[11px] text-text-dim' : 'mt-1 font-mono text-[11px] text-text'}>
         {value}
       </div>
     </div>
@@ -109,8 +123,8 @@ function Field({
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] font-mono uppercase tracking-wider text-text-faint">{label}</div>
-      <div className="mt-0.5 font-mono text-xs text-text-2">{value}</div>
+      <div className="font-mono text-[9px] uppercase tracking-wider text-text-faint">{label}</div>
+      <div className="mt-0.5 font-mono text-[11px] text-text-2">{value}</div>
     </div>
   )
 }

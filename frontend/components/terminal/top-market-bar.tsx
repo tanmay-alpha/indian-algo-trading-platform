@@ -1,94 +1,131 @@
 'use client'
 
-import { Activity, LockKeyhole } from 'lucide-react'
+import { LockKeyhole } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { BUILD_ENV, INDEX_TILES, WORKSPACES } from '@/lib/constants'
-import { cn } from '@/lib/utils'
+import { BUILD_ENV, INDEX_TILES } from '@/lib/constants'
+import { cn, getNseMarketSession } from '@/lib/utils'
 import { useIstClock } from '@/lib/use-ist-clock'
-import { IndexTicker } from './index-ticker'
-import { OperatorStatusStrip } from './operator-status-strip'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
-import type { IndexSnapshot } from '@/lib/types'
+import { OperatorStatusStrip } from './operator-status-strip'
+import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 
 export function TopMarketBar() {
   const indices = useTerminalStore((s) => s.indices)
   const mode = useTerminalStore((s) => s.executionMode)
-  const activeWorkspace = useTerminalStore((s) => s.activeWorkspace)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
-  const clock = useIstClock()
+  const istTime = useIstClock()
+  const session = getNseMarketSession()
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
   for (const index of indices) indexBySymbol[index.symbol] = index
 
-  const workspace = WORKSPACES.find((item) => item.id === activeWorkspace)
-  const locked = mode === 'PAPER'
-
   return (
-    <header className="relative h-topbar shrink-0 border-b border-border bg-bg-2 flex items-stretch shadow-panel">
+    <header className="flex h-topbar shrink-0 items-center border-b border-border bg-bg">
       {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
-        <div className="absolute right-4 top-full z-40 mt-2 rounded-sm border border-info/25 bg-bg-2/95 px-3 py-2 text-[10px] font-mono text-info shadow-panel">
-          <span className="inline-block mr-2 h-1.5 w-1.5 rounded-full bg-info animate-pulse-soft" />
+        <div className="absolute right-4 top-[42px] z-40 rounded-sm border border-info/25 bg-bg-2/95 px-3 py-2 text-[10px] font-mono text-info shadow-panel">
+          <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-info animate-pulse-soft" />
           {backendWakeState === 'WAKING'
             ? 'Backend waking up on free tier... this can take about 30 seconds.'
             : 'Backend unavailable - retrying.'}
         </div>
       )}
-      <div className="w-[330px] px-3 flex items-center gap-3 border-r border-border">
-        <div className="h-8 w-8 grid place-items-center rounded-md border border-info/25 bg-info-dim text-info">
-          <Activity className="w-4 h-4" />
+
+      <div className="flex h-full w-rail shrink-0 items-center justify-center border-r border-border bg-panel/50">
+        <span className="font-mono text-[11px] font-black tracking-wider text-info">MAET</span>
+      </div>
+
+      <div className="flex h-full shrink-0 items-center gap-2 border-r border-border px-3">
+        <div>
+          <div className="text-[11px] font-semibold leading-tight text-text">MAET Terminal</div>
+          <div className="text-[9px] font-mono text-text-faint">Market Analytics · Paper Demo</div>
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tracking-tight text-text">MAET Terminal</span>
-            <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[9px] font-mono text-text-dim">
-              {BUILD_ENV} PREVIEW
-            </span>
-          </div>
-          <div className="text-[10px] text-text-faint">
-            Market Analytics & Execution Terminal
-          </div>
+        <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[9px] font-mono text-text-faint">
+          {BUILD_ENV}
+        </span>
+      </div>
+
+      <div className="flex h-full min-w-0 flex-1 items-center overflow-x-auto border-r border-border">
+        <div className="flex h-full items-stretch">
+          {INDEX_TILES.map((tile) => (
+            <IndexTile
+              key={tile.symbol}
+              label={tile.label}
+              snapshot={indexBySymbol[tile.symbol]}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 flex items-center gap-2 px-3 overflow-x-auto">
-        <div className="mr-1 hidden xl:flex flex-col leading-none">
-          <span className="text-[9px] font-mono uppercase tracking-wider text-text-faint">
-            {workspace?.label ?? 'Workspace'}
-          </span>
-          <span className="text-[10px] text-text-dim">market strip</span>
-        </div>
-        {INDEX_TILES.map((tile) => (
-          <IndexTicker
-            key={tile.symbol}
-            label={tile.label}
-            snapshot={indexBySymbol[tile.symbol]}
-          />
-        ))}
-      </div>
-
-      <div className="min-w-0 max-w-[58vw] shrink-0 px-3 flex items-center gap-2 overflow-x-auto border-l border-border">
-        <WorkspacePresetSelector />
-        <span
-          className={cn(
-            'inline-flex items-center gap-1.5 px-2 h-[24px] rounded-sm border text-[10px] font-mono uppercase tracking-wider',
-            locked
-              ? 'text-paper border-paper/30 bg-info-dim'
-              : 'text-live border-live/30 bg-down-dim'
-          )}
-        >
-          <LockKeyhole className="w-3 h-3" />
-          {locked ? 'Paper locked' : 'Live gated'}
-        </span>
-        <span className="inline-flex h-[24px] shrink-0 items-center rounded-sm border border-border bg-panel/70 px-2 text-[10px] font-mono text-text-2">
-          {clock.time || '--:--:--'} <span className="ml-1 text-text-faint">IST</span>
-        </span>
-        <span className="hidden h-[24px] shrink-0 items-center rounded-sm border border-border bg-panel/70 px-2 text-[10px] font-mono text-text-dim 2xl:inline-flex">
-          {clock.sessionLabel}
-        </span>
-        <div className="mx-1 h-6 w-px shrink-0 bg-border" />
+      <div className="flex h-full min-w-[300px] max-w-[34vw] shrink-0 items-stretch border-r border-border">
         <OperatorStatusStrip />
       </div>
+
+      <div className="flex h-full shrink-0 items-center gap-2 px-3">
+        <WorkspacePresetSelector />
+        <div className="font-mono text-[11px] tabular-nums text-text">
+          {istTime || '--:--:--'} IST
+        </div>
+        <SessionBadge session={session} />
+        <div className="inline-flex items-center gap-1.5 rounded border border-border bg-panel px-2 py-0.5 text-[9px] font-mono text-paper">
+          <LockKeyhole className="h-3 w-3" />
+          {mode === 'PAPER' ? 'PAPER LOCKED' : 'LIVE GATED'}
+        </div>
+      </div>
     </header>
+  )
+}
+
+function IndexTile({
+  label,
+  snapshot,
+}: {
+  label: string
+  snapshot?: IndexSnapshot
+}) {
+  const value = snapshot?.ltp ?? null
+  const change = snapshot?.change_pct ?? null
+  return (
+    <div className="flex h-full min-w-[120px] flex-col items-start justify-center border-r border-border px-4">
+      <div className="font-mono text-[9px] text-text-faint">{label}</div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-[12px] font-semibold tabular-nums text-text">
+          {value != null ? value.toLocaleString('en-IN') : '—'}
+        </span>
+        <span
+          className={cn(
+            'font-mono text-[10px] tabular-nums',
+            change != null && change > 0
+              ? 'text-up'
+              : change != null && change < 0
+              ? 'text-down'
+              : 'text-text-faint'
+          )}
+        >
+          {change != null ? `${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%` : 'WAITING'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function SessionBadge({ session }: { session: NseMarketSession }) {
+  const label =
+    session === 'OPEN'
+      ? 'MARKET OPEN'
+      : session === 'PRE_MARKET'
+      ? 'PRE-MARKET'
+      : 'CLOSED'
+  return (
+    <div
+      className={cn(
+        'rounded border px-2 py-0.5 text-[9px] font-mono font-semibold tracking-widest',
+        session === 'OPEN'
+          ? 'border-up/20 bg-up/15 text-up'
+          : 'border-border bg-panel-3 text-text-faint'
+      )}
+    >
+      {label}
+    </div>
   )
 }

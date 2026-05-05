@@ -1,56 +1,85 @@
 'use client'
 
-import { BarChart3, Info } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { fmtPrice, fmtVolume } from '@/lib/utils'
+import { fmtAge, fmtPct, fmtPrice, fmtVolume, priceDirClass } from '@/lib/utils'
+import { formatIndicatorValue, latestNonNull } from '@/lib/indicator-series'
 import { EmptyState } from './empty-state'
 
 export function SymbolDetails() {
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const market = useTerminalStore((s) => s.marketWatch)
+  const lastBySymbol = useTerminalStore((s) => s.lastTickBySymbol)
+  const indicatorResults = useTerminalStore((s) => s.latestIndicatorResults)
   const row = selected ? market[selected] : null
+  const extended = row as (typeof row & { high?: number | null; low?: number | null }) | null
 
   if (!selected) {
     return <EmptyState title="NO SYMBOL SELECTED" hint="Select a watchlist row or use command palette search." compact />
   }
 
+  const ltp = row?.ltp ?? null
+  const change = row?.change ?? null
+  const changePct = row?.change_pct ?? null
+  const tickAge = lastBySymbol[selected] ? fmtAge(Date.now() - lastBySymbol[selected]) : '—'
+  const indicatorAvailable = Boolean(indicatorResults?.available)
+
   return (
-    <div className="p-3 space-y-3">
-      <div className="flex items-center gap-2 text-info">
-        <Info className="w-4 h-4" />
-        <span className="font-mono text-xs uppercase tracking-wider">Symbol Details</span>
-      </div>
-      <div className="border border-border bg-panel/70 rounded-lg p-3">
-        <div className="font-mono text-sm text-text">{selected}</div>
-        <div className="mt-1 text-2xs font-mono text-text-dim">{row?.name ?? 'Instrument metadata unavailable'}</div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <InfoRow label="Exchange" value={row?.exchange ?? '\u2014'} />
-        <InfoRow label="Metadata" value={row ? 'Loaded' : '\u2014'} />
-      </div>
-      <InfoRow label="LTP" value={fmtPrice(row?.ltp)} />
-      <InfoRow label="Best Bid" value={fmtPrice(row?.best_bid)} />
-      <InfoRow label="Best Ask" value={fmtPrice(row?.best_ask)} />
-      <InfoRow label="VWAP" value={fmtPrice(row?.vwap)} />
-      <InfoRow label="Volume" value={fmtVolume(row?.volume)} />
-      <div className="rounded-lg border border-border bg-bg p-3">
-        <div className="flex items-center gap-2 text-info">
-          <BarChart3 className="w-4 h-4" />
-          <span className="text-xs font-semibold">Candle status</span>
+    <div className="space-y-3 p-3">
+      <div className="border-b border-border pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-mono text-[13px] font-semibold text-text">{selected}</div>
+            <div className="mt-0.5 truncate text-[10px] text-text-faint">
+              {row?.name ?? 'Instrument metadata unavailable'}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-[20px] font-semibold tabular-nums text-text">
+              {fmtPrice(ltp)}
+            </div>
+            <div className="flex items-center justify-end gap-2 font-mono text-[10px]">
+              <span className={priceDirClass(change)}>{fmtPrice(change)}</span>
+              <span className={priceDirClass(changePct)}>{fmtPct(changePct)}</span>
+            </div>
+          </div>
         </div>
-        <p className="mt-1 text-2xs font-mono leading-relaxed text-text-dim">
-          Candle history is required for symbol analytics. No synthetic chart data is shown.
-        </p>
+      </div>
+
+      <div className="grid grid-cols-2 border border-border">
+        <Metric label="VWAP" value={fmtPrice(row?.vwap)} />
+        <Metric label="Volume" value={fmtVolume(row?.volume)} />
+        <Metric label="High" value={fmtPrice(extended?.high)} />
+        <Metric label="Low" value={fmtPrice(extended?.low)} />
+        <Metric label="Spread" value={fmtPrice(row?.spread)} />
+        <Metric label="Tick Age" value={tickAge} />
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <div className="mb-2 flex items-center gap-2 text-info">
+          <BarChart3 className="h-3.5 w-3.5" />
+          <span className="font-mono text-[10px] uppercase tracking-wider">Indicator Snapshot</span>
+        </div>
+        {indicatorAvailable ? (
+          <div className="grid grid-cols-2 border border-border">
+            <Metric label="RSI" value={formatIndicatorValue(latestNonNull(indicatorResults?.results.rsi))} />
+            <Metric label="EMA" value={formatIndicatorValue(latestNonNull(indicatorResults?.results.ema))} />
+          </div>
+        ) : (
+          <div className="border border-border bg-panel/40 px-2 py-2 text-[10px] text-text-faint">
+            Candle history is required for symbol analytics. No synthetic chart data is shown.
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-md font-mono text-xs">
-      <span className="text-text-dim">{label}</span>
-      <span className="text-text">{value}</span>
+    <div className="flex h-8 items-center justify-between border-b border-r border-border bg-panel/40 px-2 font-mono text-[10px]">
+      <span className="text-text-faint">{label}</span>
+      <span className="text-text-2">{value}</span>
     </div>
   )
 }

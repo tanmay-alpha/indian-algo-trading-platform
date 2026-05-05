@@ -3,12 +3,10 @@
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ApiStatus, DataQuality, NseMarketSession } from '@/lib/types'
-import { cn, fmtAge, fmtPct, fmtVolume, getNseMarketSession, marketNoDataLabel, marketSessionLabel, priceDirClass } from '@/lib/utils'
+import { cn, fmtAge, fmtVolume, getNseMarketSession, marketNoDataLabel, marketSessionLabel } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
-import { DataQualityBadge } from './data-quality-badge'
 import { EmptyState } from './empty-state'
 import { InstrumentSearch } from './instrument-search'
-import { PriceCell } from './price-cell'
 
 export function WatchlistPanel() {
   const groups = useTerminalStore((s) => s.watchlistGroups)
@@ -110,11 +108,11 @@ export function WatchlistPanel() {
         </div>
       </div>
 
-      <div className="h-7 px-3 grid grid-cols-[1fr_72px_54px_44px] items-center gap-2 border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint">
-        <span>Instrument</span>
-        <span className="text-right">LTP</span>
-        <span className="text-right">Chg%</span>
-        <span className="text-right">Vol</span>
+      <div className="flex h-6 items-center border-b border-border bg-panel/50 px-2">
+        <div className="flex-1 font-mono text-[9px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
+        <div className="w-[68px] text-right font-mono text-[9px] tracking-wide text-text-faint">LTP</div>
+        <div className="w-[48px] text-right font-mono text-[9px] tracking-wide text-text-faint">CHG%</div>
+        <div className="w-[36px] text-right font-mono text-[9px] tracking-wide text-text-faint">VOL</div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -141,6 +139,18 @@ export function WatchlistPanel() {
             const displayChgPct = subscribed ? chgPct : null
             const displayVolume = subscribed ? volume : null
             const displayName = row?.name ?? compactSymbolName(symbol)
+            const cleanSymbol = compactSymbolName(symbol)
+            const isLive = quality === 'LIVE'
+            const isWaiting = subscribed && (quality === 'WAITING' || quality === 'WARMING')
+            const statusLabel = !subscribed
+              ? 'NO FEED'
+              : isWaiting
+              ? 'WAIT'
+              : quality === 'STALE' || quality === 'DELAYED'
+              ? quality
+              : quality === 'PRE-MARKET' || quality === 'POST-MARKET' || quality === 'MARKET CLOSED'
+              ? '—'
+              : '—'
             const meta = row?.exchange
               ? `${row.exchange} EQ`
               : last
@@ -154,42 +164,69 @@ export function WatchlistPanel() {
                 key={symbol}
                 onClick={() => setSelected(symbol)}
                 className={cn(
-                  'group relative min-h-[48px] px-3 py-2 grid grid-cols-[1fr_72px_54px_44px] items-center gap-2 border-b border-border/60 cursor-pointer',
-                  'hover:bg-white/[0.035] transition-colors',
-                  isSelected && 'bg-info/[0.08] shadow-[inset_2px_0_0_var(--info)]'
+                  'wl-row group relative flex h-[30px] cursor-pointer select-none items-center border-b border-border/50 px-2',
+                  isSelected && 'selected'
                 )}
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-semibold text-text">{symbol}</span>
-                    {subscribed ? (
-                      <DataQualityBadge quality={quality} showDot={false} />
-                    ) : (
-                      <span className="inline-flex items-center rounded-sm border border-border bg-panel px-1.5 py-px text-[9px] font-mono uppercase tracking-wider text-text-faint">
-                        NO FEED
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-text-faint">
-                    <span className="truncate">{displayName}</span>
-                    <span className="text-text-dim">{subscribed ? meta : 'No live feed'}</span>
-                  </div>
-                </div>
-                <PriceCell
-                  value={displayLtp}
-                  className={cn('text-right text-xs', displayLtp == null && 'text-text-faint')}
-                />
-                <span
+                <div
                   className={cn(
-                    'text-right text-2xs font-mono tnum',
-                    displayChgPct == null ? 'text-text-faint' : priceDirClass(displayChgPct)
+                    'mr-2 h-1.5 w-1.5 shrink-0 rounded-full',
+                    isLive
+                      ? 'bg-up animate-pulse-soft'
+                      : isWaiting
+                      ? 'bg-warn/60'
+                      : 'bg-text-faint/40'
                   )}
-                >
-                  {fmtPct(displayChgPct)}
-                </span>
-                <span className="text-right text-2xs font-mono tnum text-text-2">
-                  {fmtVolume(displayVolume)}
-                </span>
+                />
+
+                <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                  <span className="shrink-0 font-mono text-[11px] font-semibold tracking-wide text-text">
+                    {cleanSymbol}
+                  </span>
+                  <span className="min-w-0 truncate text-[10px] text-text-faint">
+                    {displayName || meta}
+                  </span>
+                </div>
+
+                <div className="ml-1 flex shrink-0 items-baseline gap-2">
+                  <span className={cn(
+                    'w-[68px] text-right font-mono text-[12px] font-medium tabular-nums',
+                    displayChgPct != null && displayChgPct > 0
+                      ? 'text-up'
+                      : displayChgPct != null && displayChgPct < 0
+                      ? 'text-down'
+                      : 'text-text-2'
+                  )}>
+                    {formatLtp(displayLtp)}
+                  </span>
+                  <span className={cn(
+                    'w-[48px] text-right font-mono text-[10px] tabular-nums',
+                    displayChgPct != null && displayChgPct > 0
+                      ? 'text-up'
+                      : displayChgPct != null && displayChgPct < 0
+                      ? 'text-down'
+                      : 'text-text-faint'
+                  )}>
+                    {formatChange(displayChgPct)}
+                  </span>
+                  <span className="w-[36px] text-right font-mono text-[10px] text-text-faint">
+                    {displayVolume != null ? fmtVolume(displayVolume) : '—'}
+                  </span>
+                </div>
+
+                {!isLive && (
+                  <div className={cn(
+                    'ml-1.5 shrink-0 rounded px-1 py-0.5 font-mono text-[9px] tracking-wide',
+                    isWaiting
+                      ? 'bg-warn/10 text-warn/70'
+                      : !subscribed
+                      ? 'bg-panel-3 text-text-faint'
+                      : 'bg-panel-3 text-text-faint'
+                  )}>
+                    {statusLabel}
+                  </div>
+                )}
+
                 <button
                   onClick={(event) => {
                     event.stopPropagation()
@@ -246,6 +283,17 @@ function normalizeWatchSymbol(symbol: string): string {
 
 function compactSymbolName(symbol: string): string {
   return normalizeWatchSymbol(symbol).replace(/-EQ$/, '')
+}
+
+function formatLtp(value: number | null): string {
+  return value != null
+    ? value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '—'
+}
+
+function formatChange(value: number | null): string {
+  if (value == null) return '—'
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
 
 function marketSessionMeta(session: NseMarketSession): { label: string; dotClass: string } {

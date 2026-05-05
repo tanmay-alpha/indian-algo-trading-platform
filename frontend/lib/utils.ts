@@ -204,17 +204,51 @@ export interface UiStatusMeta {
   severity: UiSeverity
   dotClass: string
   badgeClass: string
+  textClass: string
 }
 
 export function uiStatusMeta(status: string | null | undefined): UiStatusMeta {
   const normalized = String(status || 'UNAVAILABLE').replace(/_/g, ' ').toUpperCase()
   const compact = normalized.replace(/\s+/g, ' ')
+  if (compact === 'ONLINE') {
+    return statusMeta(compact, 'ONLINE', 'ok', 'bg-up', 'text-up')
+  }
+  if (compact === 'LIVE') {
+    return statusMeta(compact, 'LIVE', 'ok', 'bg-up animate-pulse-soft', 'text-up')
+  }
+  if (compact === 'ERROR') {
+    return statusMeta(compact, 'ERR', 'bad', 'bg-down', 'text-down')
+  }
+  if (compact === 'STALE') {
+    return statusMeta(compact, 'STALE', 'warn', 'bg-warn', 'text-warn')
+  }
+  if (compact === 'LOCKED') {
+    return statusMeta(compact, 'LOCKED', 'locked', 'bg-info/60', 'text-paper')
+  }
   const severity = severityForStatus(compact)
   return {
     label: compact,
-    shortLabel: compact,
+    shortLabel: compact.slice(0, 6),
     severity,
     dotClass: dotClassForSeverity(severity),
+    badgeClass: badgeClassForSeverity(severity),
+    textClass: textClassForSeverity(severity),
+  }
+}
+
+function statusMeta(
+  label: string,
+  shortLabel: string,
+  severity: UiSeverity,
+  dotClass: string,
+  textClass: string
+): UiStatusMeta {
+  return {
+    label,
+    shortLabel,
+    severity,
+    dotClass,
+    textClass,
     badgeClass: badgeClassForSeverity(severity),
   }
 }
@@ -244,4 +278,13 @@ function badgeClassForSeverity(severity: UiSeverity): string {
   if (severity === 'info') return 'text-info border-info/20 bg-info-dim'
   if (severity === 'locked') return 'text-text-2 border-border-strong bg-white/[0.04]'
   return 'text-text-dim border-border bg-white/[0.03]'
+}
+
+function textClassForSeverity(severity: UiSeverity): string {
+  if (severity === 'ok') return 'text-up'
+  if (severity === 'warn') return 'text-warn'
+  if (severity === 'bad') return 'text-down'
+  if (severity === 'info') return 'text-info'
+  if (severity === 'locked') return 'text-paper'
+  return 'text-text-faint'
 }

@@ -400,6 +400,14 @@ function PremiumChartPanel() {
           signalMarkers={chartSignalMarkers}
           apiStatus={apiStatus}
           backendWakeState={backendWakeState}
+          isFetching={indicatorLoading}
+          onFetchCandles={
+            selected
+              ? () => {
+                  void fetchChartIndicators(selected, timeframe)
+                }
+              : undefined
+          }
         />
         {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
         {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}

@@ -1,9 +1,30 @@
 'use client'
 
-import { useTerminalStore } from '@/store/terminal-store'
 import { cn, marketSessionLabel, uiStatusMeta } from '@/lib/utils'
+import { useTerminalStore } from '@/store/terminal-store'
 
-type DotStatus = string
+interface PillProps {
+  label: string
+  status: string
+  detail?: string
+  value?: string
+}
+
+function StatusPill({ label, status, detail, value }: PillProps) {
+  const meta = uiStatusMeta(status)
+  return (
+    <div
+      title={detail ? `${label}: ${status} — ${detail}` : `${label}: ${status}`}
+      className="flex h-full shrink-0 items-center gap-1 border-r border-border/60 px-2"
+    >
+      <span className="font-mono text-[9px] text-text-faint">{label}</span>
+      <span className={cn('h-[5px] w-[5px] shrink-0 rounded-full', meta.dotClass)} />
+      <span className={cn('shrink-0 font-mono text-[9px] font-medium', meta.textClass)}>
+        {value ?? meta.shortLabel}
+      </span>
+    </div>
+  )
+}
 
 export function OperatorStatusStrip() {
   const broker = useTerminalStore((s) => s.brokerStatus)
@@ -14,92 +35,31 @@ export function OperatorStatusStrip() {
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const mode = useTerminalStore((s) => s.executionMode)
 
-  const tickBus = status?.tick_bus
-  const stale = lastTickAt != null && Date.now() - lastTickAt > 12_000
   const session = marketSessionLabel()
+  const stale = lastTickAt != null && Date.now() - lastTickAt > 12_000
+
   const apiLabel = apiStatus === 'UNKNOWN'
-    ? backendWakeState === 'WAKING'
-      ? 'WAKING'
-      : 'CONNECTING'
+    ? backendWakeState === 'WAKING' ? 'WAKING' : 'CONNECTING'
     : apiStatus
-  const feedLabel = session !== 'LIVE'
-    ? session
-    : broker?.feed_token_available
-    ? 'LIVE'
-    : broker
-    ? 'WAITING'
-    : apiLabel
-  const tickLabel = lastTickAt
-    ? stale
-      ? 'STALE'
-      : 'LIVE'
-    : session === 'LIVE'
-    ? apiStatus === 'ONLINE'
-      ? 'WAITING'
-      : apiLabel
-    : session
+
+  const brkStatus = broker?.logged_in ? 'ONLINE' : broker?.last_error ? 'ERROR' : apiLabel
+  const feedStatus = session !== 'LIVE' ? session : broker?.feed_token_available ? 'LIVE' : 'WAITING'
+  const wsLabel = wsStatus === 'CONNECTED' ? 'ONLINE' : wsStatus === 'RECONNECTING' ? 'RECONN' : wsStatus
+  const tickStatus = lastTickAt ? (stale ? 'STALE' : 'LIVE') : session === 'LIVE' ? 'WAITING' : 'CLOSED'
 
   return (
-    <div className="flex flex-nowrap items-center gap-1.5" role="status">
-      <StatusDot
-        label="BRK"
-        status={broker?.logged_in ? 'ONLINE' : broker?.last_error ? 'STALE' : apiStatus === 'ONLINE' ? 'WAITING' : apiLabel}
-        detail={broker?.last_error ?? undefined}
-      />
-      <StatusDot
-        label="FEED"
-        status={feedLabel}
-        detail={broker?.feed_token_available ? 'feed token present' : 'no feed token'}
-      />
-      <StatusDot
-        label="WS"
-        status={wsStatus === 'CONNECTED' ? 'ONLINE' : wsStatus}
-        detail={wsStatus}
-      />
-      <StatusDot label="EVT" status={status?.event_bus ? 'ONLINE' : apiStatus === 'ONLINE' ? 'WAITING' : apiLabel} />
-      <StatusDot
-        label="TICK"
-        status={(tickBus?.drop_rate_pct ?? 0) > 5 ? 'STALE' : tickLabel}
-        detail={tickBus?.drop_rate_pct != null ? `drop ${tickBus.drop_rate_pct.toFixed(2)}%` : undefined}
-      />
-      <StatusDot
+    <div className="flex h-full items-stretch overflow-x-auto" role="status" aria-label="System status">
+      <StatusPill label="BRK" status={brkStatus} detail={broker?.last_error ?? undefined} />
+      <StatusPill label="FEED" status={feedStatus} detail={broker?.feed_token_available ? 'feed token ok' : 'no token'} />
+      <StatusPill label="WS" status={wsLabel} />
+      <StatusPill label="TICK" status={tickStatus} value={lastTickAt ? (stale ? 'STALE' : 'LIVE') : '—'} />
+      <StatusPill
         label="CDL"
-        status={status?.candles ? 'READY' : apiStatus === 'ONLINE' ? 'WAITING' : apiLabel}
-        detail={status?.candles?.symbols ? `${status.candles.symbols.length} symbol(s)` : undefined}
+        status={status?.candles ? 'READY' : apiLabel}
+        detail={status?.candles?.symbols ? `${status.candles.symbols.length} sym` : undefined}
       />
-      <StatusDot
-        label="LOCK"
-        status={mode === 'PAPER' ? 'LOCKED' : 'STALE'}
-        detail={mode === 'PAPER' ? 'Live execution disabled' : 'Live mode (execution gated)'}
-      />
-      <StatusDot label="API" status={apiLabel} />
+      <StatusPill label="LOCK" status={mode === 'PAPER' ? 'LOCKED' : 'LIVE'} detail="Live execution disabled" />
+      <StatusPill label="API" status={apiLabel} />
     </div>
-  )
-}
-
-function StatusDot({
-  label,
-  status,
-  detail,
-}: {
-  label: string
-  status: DotStatus
-  detail?: string
-}) {
-  const meta = uiStatusMeta(status)
-  return (
-    <span
-      title={detail ? `${label}: ${status} - ${detail}` : `${label}: ${status}`}
-      className="inline-flex h-[22px] min-w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm border border-border bg-panel/60 px-1.5 text-[10px] font-mono text-text-2"
-    >
-      <span className="whitespace-nowrap text-text-faint">{label}</span>
-      <span
-        className={cn(
-          'h-1.5 w-1.5 flex-none rounded-full',
-          meta.dotClass
-        )}
-      />
-      <span className="whitespace-nowrap text-text">{meta.shortLabel}</span>
-    </span>
   )
 }

@@ -9,8 +9,7 @@ import {
   mapBollingerSeries,
   mapLineSeries,
 } from '@/lib/indicator-series'
-import { marketSessionLabel } from '@/lib/utils'
-import { IndicatorEmptyState } from './indicator-empty-state'
+import { cn, marketSessionLabel } from '@/lib/utils'
 
 const WIDTH = 1000
 const HEIGHT = 360
@@ -26,6 +25,8 @@ export function IndicatorChartShell({
   signalMarkers = [],
   apiStatus = 'ONLINE',
   backendWakeState = 'ONLINE',
+  isFetching = false,
+  onFetchCandles,
 }: {
   symbol: string | null
   timeframe: string
@@ -35,16 +36,55 @@ export function IndicatorChartShell({
   signalMarkers?: ChartSignalMarker[]
   apiStatus?: string
   backendWakeState?: string
+  isFetching?: boolean
+  onFetchCandles?: () => void
 }) {
   if (candles.length === 0) {
     const empty = chartEmptyCopy(apiStatus, backendWakeState)
     return (
       <div className="relative flex-1 min-h-[360px] overflow-hidden bg-[#070b12]">
         <div className="absolute inset-0 opacity-70 chart-grid" />
-        <IndicatorEmptyState
-          title={empty.title}
-          hint={empty.hint}
-        />
+        <div className="relative z-10 flex h-full min-h-[360px] flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-panel-2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-text-faint"
+            >
+              <path d="M3 3v18h18M9 9l3 3 3-3 3 3" />
+            </svg>
+          </div>
+          <div>
+            <div className="mb-1 text-sm font-semibold text-text-2">{empty.title}</div>
+            <div className="max-w-[280px] text-[11px] leading-relaxed text-text-faint">
+              {symbol
+                ? `Select a timeframe and load candles for ${symbol} to enable chart and indicators.`
+                : 'Select a symbol from the watchlist to begin.'}
+            </div>
+          </div>
+          {symbol && (
+            <button
+              type="button"
+              onClick={onFetchCandles}
+              disabled={isFetching || !onFetchCandles}
+              className={cn(
+                'flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px]',
+                'border-info/25 bg-info/5 text-info hover:bg-info/10',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                'transition-colors'
+              )}
+            >
+              {isFetching ? 'Loading...' : "Load Today's Candles"}
+            </button>
+          )}
+          <div className="max-w-[300px] rounded border border-border/50 px-3 py-2 text-[10px] text-text-faint">
+            Candles are fetched from Angel One API and cached in memory. No synthetic data is generated.
+          </div>
+        </div>
       </div>
     )
   }
