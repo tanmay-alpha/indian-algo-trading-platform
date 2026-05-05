@@ -35,6 +35,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const setBackendWakeState = useTerminalStore((s) => s.setBackendWakeState)
   const setApiReachability = useTerminalStore((s) => s.setApiReachability)
   const setBrokerStatus = useTerminalStore((s) => s.setBrokerStatus)
+  const ingestGatewayStatus = useTerminalStore((s) => s.ingestGatewayStatus)
   const ingestTick = useTerminalStore((s) => s.ingestTick)
   const ingestSignal = useTerminalStore((s) => s.ingestSignal)
   const ingestEvent = useTerminalStore((s) => s.ingestEvent)
@@ -55,6 +56,28 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       }
     }, CLIENT_PING_INTERVAL_MS)
   }, [clearPingInterval])
+
+  const markWsHealthy = useCallback(() => {
+    const state = useTerminalStore.getState()
+    setWsConnected(true)
+    setWsStatus('CONNECTED')
+    setReconnectAttempt(0)
+    setStatusSource('WS')
+    setConnectionError(null)
+
+    if (!state.lastStatusError || state.backendReachable || state.apiStatus !== 'OFFLINE') {
+      setApiReachability(true)
+      setBackendWakeState('ONLINE')
+    }
+  }, [
+    setApiReachability,
+    setBackendWakeState,
+    setConnectionError,
+    setReconnectAttempt,
+    setStatusSource,
+    setWsConnected,
+    setWsStatus,
+  ])
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return
@@ -91,13 +114,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       ws.onopen = () => {
         if (!mountedRef.current) return
         clearPingInterval()
-        setWsConnected(true)
-        setWsStatus('CONNECTED')
-        setReconnectAttempt(0)
-        setStatusSource('WS')
-        setApiReachability(true)
-        setBackendWakeState('ONLINE')
-        setConnectionError(null)
+        markWsHealthy()
         startPingInterval()
       }
 
@@ -110,7 +127,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
           event_type: 'log',
           component: 'WS',
           severity: 'warning',
-          message: `WebSocket closed; reconnecting attempt ${attempt + 1} (${event.code || 'no-code'})`,
+          message: `WebSocket closed: ${event.code || 'no-code'}`,
         })
         scheduleReconnect(attempt)
       }
@@ -150,6 +167,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   }, [
     clearPingInterval,
     ingestEvent,
+    markWsHealthy,
     setApiReachability,
     setBackendWakeState,
     setConnectionError,
@@ -177,8 +195,12 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
       const type = normalizeType(message.type)
       const payload = message.payload ?? message
+      markWsHealthy()
 
-      if (type === 'ping') return
+      if (type === 'ping') {
+        sendPong(wsRef.current)
+        return
+      }
       if (type === 'pong') {
         setStatusSource('WS')
         return
@@ -200,14 +222,19 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       }
 
       if (type === 'gateway_status') {
-        const gateway = payload as GatewayStatus
+        const gateway = normalizeGatewayStatus(payload)
         setStatusSource('WS')
+        ingestGatewayStatus(gateway)
+        const broker = brokerStatusFromGatewayPayload(payload, gateway)
+        if (broker) {
+          setBrokerStatus(broker)
+        }
         ingestEvent({
           event_type: 'gateway_status',
           component: 'GATEWAY',
           severity: gateway.last_error ? 'warning' : 'info',
-          message: gateway.connection_state ?? 'Gateway status update',
-          payload: gateway,
+          message: 'Gateway status received',
+          payload: gatewayEventPreview(gateway),
         })
         return
       }
@@ -244,7 +271,15 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         payload: message,
       })
     },
-    [ingestEvent, ingestSignal, ingestTick, setBrokerStatus, setStatusSource]
+    [
+      ingestEvent,
+      ingestGatewayStatus,
+      ingestSignal,
+      ingestTick,
+      markWsHealthy,
+      setBrokerStatus,
+      setStatusSource,
+    ]
   )
 
   useEffect(() => {
@@ -276,7 +311,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         if (wakeTimer) window.clearTimeout(wakeTimer)
         wakeTimer = window.setTimeout(() => {
           if (!firstSuccess && mountedRef.current) {
-            setBackendWakeState('WAKING')
+            const state = useTerminalStore.getState()
+            if (!state.backendReachable && state.wsStatus !== 'CONNECTED') {
+              setBackendWakeState('WAKING')
+            }
           }
         }, BACKEND_WAKE_NOTICE_MS)
       }
@@ -294,9 +332,15 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (!mountedRef.current) return
         if (wakeTimer) window.clearTimeout(wakeTimer)
-        setApiReachability(false, error instanceof Error ? error.message : 'status fetch failed')
-        setBackendWakeState(firstSuccess ? 'UNAVAILABLE' : 'WAKING')
-        setStatusSource('NONE')
+        const state = useTerminalStore.getState()
+        if (state.wsStatus === 'CONNECTED') {
+          setStatusSource('WS')
+          setBackendWakeState('ONLINE')
+        } else {
+          setApiReachability(false, error instanceof Error ? error.message : 'status fetch failed')
+          setBackendWakeState(firstSuccess ? 'UNAVAILABLE' : 'WAKING')
+          setStatusSource('NONE')
+        }
       } finally {
         if (mountedRef.current) {
           const state = useTerminalStore.getState()
@@ -379,6 +423,75 @@ function normalizeSignalPayload(payload: unknown): SignalEvent | null {
   }
 }
 
+function normalizeGatewayStatus(payload: unknown): GatewayStatus {
+  if (!payload || typeof payload !== 'object') return {}
+  const data = payload as Record<string, unknown>
+  const state = asString(data.connection_state ?? data.status)
+  const subscribed = data.subscribed_symbols
+  return {
+    connection_state: isGatewayConnectionState(state) ? state : undefined,
+    tick_count: asNumber(data.tick_count),
+    dropped_tick_count: asNumber(data.dropped_tick_count),
+    drop_rate_pct: asNumber(data.drop_rate_pct),
+    subscribed_symbols:
+      Array.isArray(subscribed) || typeof subscribed === 'number'
+        ? (subscribed as GatewayStatus['subscribed_symbols'])
+        : undefined,
+    last_tick_age_seconds: asNumber(data.last_tick_age_seconds),
+    last_error: asNullableString(data.last_error),
+  }
+}
+
+function brokerStatusFromGatewayPayload(
+  payload: unknown,
+  gateway: GatewayStatus
+): BrokerStatus | null {
+  if (!payload || typeof payload !== 'object') return null
+  const data = payload as Record<string, unknown>
+  const hasBrokerFields = [
+    'configured',
+    'logged_in',
+    'feed_token_available',
+    'websocket_started',
+    'last_error',
+  ].some((key) => key in data)
+  if (!hasBrokerFields) return null
+
+  const existing = useTerminalStore.getState().brokerStatus
+  return {
+    configured: asBool(data.configured, existing?.configured ?? false),
+    logged_in: asBool(data.logged_in, existing?.logged_in ?? false),
+    feed_token_available: asBool(
+      data.feed_token_available,
+      existing?.feed_token_available ?? false
+    ),
+    websocket_started: asBool(
+      data.websocket_started,
+      existing?.websocket_started ?? gateway.connection_state === 'CONNECTED'
+    ),
+    last_error: asNullableString(data.last_error) ?? existing?.last_error ?? null,
+    gateway,
+  }
+}
+
+function gatewayEventPreview(gateway: GatewayStatus): GatewayStatus {
+  return {
+    connection_state: gateway.connection_state,
+    tick_count: gateway.tick_count,
+    dropped_tick_count: gateway.dropped_tick_count,
+    drop_rate_pct: gateway.drop_rate_pct,
+    subscribed_symbols: gateway.subscribed_symbols,
+    last_tick_age_seconds: gateway.last_tick_age_seconds,
+    last_error: gateway.last_error,
+  }
+}
+
+function sendPong(ws: WebSocket | null): void {
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'pong', ts: new Date().toISOString() }))
+  }
+}
+
 function asString(value: unknown): string | undefined {
   if (value == null) return undefined
   return String(value)
@@ -390,9 +503,36 @@ function asNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
+function asBool(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value
+  if (value == null) return fallback
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['true', '1', 'yes', 'online', 'connected'].includes(normalized)) return true
+    if (['false', '0', 'no', 'offline', 'disconnected'].includes(normalized)) return false
+  }
+  return fallback
+}
+
+function asNullableString(value: unknown): string | null {
+  if (value == null || value === '') return null
+  return String(value)
+}
+
 function asSignal(value: unknown): 'BUY' | 'SELL' | 'NEUTRAL' | undefined {
   if (value === 'BUY' || value === 'SELL' || value === 'NEUTRAL') return value
   return undefined
+}
+
+function isGatewayConnectionState(value: string | undefined): value is NonNullable<GatewayStatus['connection_state']> {
+  return (
+    value === 'IDLE' ||
+    value === 'CONNECTING' ||
+    value === 'CONNECTED' ||
+    value === 'RECONNECTING' ||
+    value === 'DISCONNECTED'
+  )
 }
 
 function extractMessage(payload: unknown): string {

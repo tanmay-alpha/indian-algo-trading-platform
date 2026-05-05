@@ -12,6 +12,7 @@ import type {
   EquityCurvePoint,
   ReconciliationStatus,
   BrokerStatus,
+  GatewayStatus,
   TerminalStatus,
   IndexSnapshot,
   SystemEvent,
@@ -175,6 +176,7 @@ export interface TerminalActions {
   setConnectionError: (e: string | null) => void
 
   setTerminalStatus: (s: TerminalStatus | null) => void
+  ingestGatewayStatus: (s: GatewayStatus) => void
   setBrokerStatus: (s: BrokerStatus | null) => void
   setPortfolio: (p: PortfolioPerformance | null) => void
   fetchPortfolioSummary: () => Promise<void>
@@ -475,6 +477,28 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         : state.strategyStatus,
       executionMode: s?.trading_mode ?? state.executionMode,
     })),
+  ingestGatewayStatus: (gateway) =>
+    set((state) => {
+      const connectionState = gateway.connection_state
+      const websocketStarted =
+        connectionState === 'CONNECTED' ||
+        connectionState === 'CONNECTING' ||
+        connectionState === 'RECONNECTING'
+      return {
+        terminalStatus: {
+          ...(state.terminalStatus ?? { app: { status: 'online' } }),
+          gateway,
+        },
+        brokerStatus: state.brokerStatus
+          ? {
+              ...state.brokerStatus,
+              gateway,
+              websocket_started: state.brokerStatus.websocket_started || websocketStarted,
+              last_error: gateway.last_error ?? state.brokerStatus.last_error,
+            }
+          : state.brokerStatus,
+      }
+    }),
   setBrokerStatus: (s) => set({ brokerStatus: s }),
   setPortfolio: (p) => set({ portfolio: p }),
   fetchPortfolioSummary: async () => {
