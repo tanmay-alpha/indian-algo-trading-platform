@@ -44,6 +44,11 @@ export function WatchlistPanel() {
 
   const activeGroup = groups.find((group) => group.id === groupId) ?? groups[0]
   const symbols = activeGroup ? activeGroup.symbols : []
+  const subscribedSymbols = new Set(
+    Array.isArray(terminalStatus?.gateway?.subscribed_symbols)
+      ? terminalStatus.gateway.subscribed_symbols.map((item) => normalizeWatchSymbol(String(item)))
+      : []
+  )
 
   return (
     <aside
@@ -119,7 +124,9 @@ export function WatchlistPanel() {
             const row = market[symbol]
             const last = lastBy[symbol] ?? null
             const age = last ? Date.now() - last : null
-            const quality = qualityForRow({ apiStatus, last, age })
+            const subscribed =
+              subscribedSymbols.size === 0 || subscribedSymbols.has(normalizeWatchSymbol(symbol))
+            const quality = qualityForRow({ apiStatus, last, age, subscribed })
             const isSelected = selected === symbol
             const ltp = row?.ltp ?? null
             const chgPct = row?.change_pct ?? null
@@ -128,6 +135,8 @@ export function WatchlistPanel() {
               ? `${row.exchange} EQ`
               : last
               ? fmtAge(age)
+              : !subscribed
+              ? 'Not subscribed'
               : marketSessionLabel() === 'LIVE'
               ? 'Awaiting tick'
               : 'Market closed'
@@ -195,13 +204,16 @@ function qualityForRow({
   apiStatus,
   last,
   age,
+  subscribed,
 }: {
   apiStatus: ApiStatus
   last: number | null
   age: number | null
+  subscribed: boolean
 }): DataQuality {
   if (apiStatus === 'OFFLINE') return 'BACKEND OFFLINE'
   if (apiStatus === 'WAKING' || apiStatus === 'UNKNOWN') return 'WARMING'
+  if (!subscribed) return 'NOT SUBSCRIBED'
   if (last == null || age == null) {
     return marketNoDataLabel()
   }
@@ -210,4 +222,10 @@ function qualityForRow({
   if (age < 3000) return 'LIVE'
   if (age < 8000) return 'DELAYED'
   return 'STALE'
+}
+
+function normalizeWatchSymbol(symbol: string): string {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) return normalized
+  return normalized.endsWith('-EQ') ? normalized : `${normalized}-EQ`
 }

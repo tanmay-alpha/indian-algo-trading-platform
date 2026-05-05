@@ -7,11 +7,19 @@ import type {
 } from './types'
 
 // ----- API / WS -----
-export const API_URL =
-  normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL, 'http://localhost:8000')
+const LOCAL_API_FALLBACK = 'http://localhost:8000'
+const CLOUD_API_FALLBACK = 'https://maet-backend.onrender.com'
+const WS_MARKET_STREAM_PATH = '/ws/market_stream'
+
+export const API_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL)
 
 export const WS_URL =
   normalizeWsUrl(process.env.NEXT_PUBLIC_WS_URL, API_URL)
+
+export const CONNECTIVITY_TARGETS = {
+  api: safeApiTarget(API_URL),
+  ws: safeWsTarget(WS_URL),
+} as const
 
 export const ENDPOINTS = {
   health: '/health',
@@ -198,18 +206,90 @@ export const BUILD_ENV =
     ? 'LOCAL'
     : 'CLOUD')
 
-function normalizeBaseUrl(value: string | undefined, fallback: string): string {
-  return (value || fallback).replace(/\/+$/, '')
+function normalizeBaseUrl(value: string | undefined): string {
+  const candidate = (value || runtimeDefaultApiUrl()).trim()
+  try {
+    const parsed = new URL(candidate)
+    if (isProductionBrowser() && isLocalHost(parsed.hostname)) {
+      return CLOUD_API_FALLBACK
+    }
+    if (isHttpsBrowser() && parsed.protocol === 'http:' && !isLocalHost(parsed.hostname)) {
+      parsed.protocol = 'https:'
+    }
+    return parsed.toString().replace(/\/+$/, '')
+  } catch {
+    return runtimeDefaultApiUrl()
+  }
 }
 
 function normalizeWsUrl(value: string | undefined, apiUrl: string): string {
-  if (value) return value.replace(/\/+$/, '')
+  try {
+    if (value?.trim()) {
+      const explicit = new URL(value.trim())
+      if (isProductionBrowser() && isLocalHost(explicit.hostname)) {
+        return deriveWsUrl(apiUrl)
+      }
+      if (isHttpsBrowser() && explicit.protocol === 'ws:' && !isLocalHost(explicit.hostname)) {
+        explicit.protocol = 'wss:'
+      }
+      if (!explicit.pathname || explicit.pathname === '/' || explicit.pathname === '/ws/terminal') {
+        explicit.pathname = WS_MARKET_STREAM_PATH
+      }
+      explicit.search = ''
+      return explicit.toString().replace(/\/+$/, '')
+    }
+    return deriveWsUrl(apiUrl)
+  } catch {
+    return deriveWsUrl(runtimeDefaultApiUrl())
+  }
+}
 
+function deriveWsUrl(apiUrl: string): string {
   try {
     const parsed = new URL(apiUrl)
-    const protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${parsed.host}/ws/market_stream`
+    if (isProductionBrowser() && isLocalHost(parsed.hostname)) {
+      return `${CLOUD_API_FALLBACK.replace(/^https:/, 'wss:')}${WS_MARKET_STREAM_PATH}`
+    }
+    const protocol = parsed.protocol === 'https:' || isHttpsBrowser() ? 'wss:' : 'ws:'
+    return `${protocol}//${parsed.host}${WS_MARKET_STREAM_PATH}`
   } catch {
-    return 'ws://localhost:8000/ws/market_stream'
+    const fallback = runtimeDefaultApiUrl()
+    return fallback.startsWith('https:')
+      ? `${fallback.replace(/^https:/, 'wss:')}${WS_MARKET_STREAM_PATH}`
+      : `${fallback.replace(/^http:/, 'ws:')}${WS_MARKET_STREAM_PATH}`
+  }
+}
+
+function runtimeDefaultApiUrl(): string {
+  return isProductionBrowser() ? CLOUD_API_FALLBACK : LOCAL_API_FALLBACK
+}
+
+function isProductionBrowser(): boolean {
+  return typeof window !== 'undefined' && !isLocalHost(window.location.hostname)
+}
+
+function isHttpsBrowser(): boolean {
+  return typeof window !== 'undefined' && window.location.protocol === 'https:'
+}
+
+function isLocalHost(hostname: string): boolean {
+  return ['localhost', '127.0.0.1', '::1'].includes(hostname)
+}
+
+function safeApiTarget(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.protocol}//${parsed.host}`
+  } catch {
+    return 'configured API endpoint'
+  }
+}
+
+function safeWsTarget(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`
+  } catch {
+    return 'configured WebSocket endpoint'
   }
 }

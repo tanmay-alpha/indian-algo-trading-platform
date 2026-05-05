@@ -83,6 +83,7 @@ export function qualityClass(q: DataQuality | undefined): string {
     case 'DELAYED':
       return 'text-warn bg-warn-dim border-warn/20'
     case 'WAITING':
+    case 'NOT SUBSCRIBED':
       return 'text-text-2 bg-white/[0.03] border-border'
     case 'READY':
       return 'text-up bg-up-dim border-up/20'

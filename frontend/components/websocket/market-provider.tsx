@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { WS_URL } from '@/lib/constants'
-import { fetchTerminalStatus } from '@/lib/api'
+import { CONNECTIVITY_TARGETS, WS_URL } from '@/lib/constants'
+import { fetchHealth, fetchTerminalStatus } from '@/lib/api'
 import type {
   BrokerStatus,
   GatewayStatus,
@@ -35,6 +35,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const setBackendWakeState = useTerminalStore((s) => s.setBackendWakeState)
   const setApiReachability = useTerminalStore((s) => s.setApiReachability)
   const setBrokerStatus = useTerminalStore((s) => s.setBrokerStatus)
+  const updateConnectivityDiagnostics = useTerminalStore((s) => s.updateConnectivityDiagnostics)
   const ingestGatewayStatus = useTerminalStore((s) => s.ingestGatewayStatus)
   const ingestTick = useTerminalStore((s) => s.ingestTick)
   const ingestSignal = useTerminalStore((s) => s.ingestSignal)
@@ -64,6 +65,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setReconnectAttempt(0)
     setStatusSource('WS')
     setConnectionError(null)
+    updateConnectivityDiagnostics({ wsOpen: true, wsLastError: null })
 
     if (!state.lastStatusError || state.backendReachable || state.apiStatus !== 'OFFLINE') {
       setApiReachability(true)
@@ -77,6 +79,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setStatusSource,
     setWsConnected,
     setWsStatus,
+    updateConnectivityDiagnostics,
   ])
 
   const connect = useCallback(() => {
@@ -107,6 +110,17 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       setWsStatus(
         useTerminalStore.getState().reconnectAttempt > 0 ? 'RECONNECTING' : 'CONNECTING'
       )
+      updateConnectivityDiagnostics({
+        apiTarget: CONNECTIVITY_TARGETS.api,
+        wsTarget: CONNECTIVITY_TARGETS.ws,
+        wsConstructorCalled: true,
+      })
+      ingestEvent({
+        event_type: 'log',
+        component: 'WS',
+        severity: 'info',
+        message: `WebSocket constructor called: ${safeWsTarget(WS_URL)}`,
+      })
       console.info(`[WS] connecting to ${safeWsTarget(WS_URL)}`)
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
@@ -123,6 +137,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         clearPingInterval()
         setWsConnected(false)
         const attempt = useTerminalStore.getState().reconnectAttempt
+        updateConnectivityDiagnostics({
+          wsOpen: false,
+          wsLastCloseCode: event.code || 'no-code',
+        })
         ingestEvent({
           event_type: 'log',
           component: 'WS',
@@ -135,6 +153,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       ws.onerror = () => {
         if (!mountedRef.current) return
         setWsStatus('RECONNECTING')
+        updateConnectivityDiagnostics({
+          wsOpen: false,
+          wsLastError: 'WebSocket transport error',
+        })
         setConnectionError(
           `WebSocket transport error; reconnecting (attempt ${useTerminalStore.getState().reconnectAttempt + 1})`
         )
@@ -155,6 +177,11 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       clearPingInterval()
       setWsConnected(false)
       const attempt = useTerminalStore.getState().reconnectAttempt
+      updateConnectivityDiagnostics({
+        wsConstructorCalled: false,
+        wsOpen: false,
+        wsLastError: 'WebSocket constructor failed',
+      })
       setConnectionError(`Failed to create WebSocket connection; reconnecting (attempt ${attempt + 1})`)
       ingestEvent({
         event_type: 'error',
@@ -176,6 +203,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setWsStatus,
     setWsConnected,
     startPingInterval,
+    updateConnectivityDiagnostics,
   ])
 
   const handleEnvelope = useCallback(
@@ -195,6 +223,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
       const type = normalizeType(message.type)
       const payload = message.payload ?? message
+      updateConnectivityDiagnostics({ lastWsMessageType: type || 'unknown' })
       markWsHealthy()
 
       if (type === 'ping') {
@@ -279,11 +308,22 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       markWsHealthy,
       setBrokerStatus,
       setStatusSource,
+      updateConnectivityDiagnostics,
     ]
   )
 
   useEffect(() => {
     mountedRef.current = true
+    updateConnectivityDiagnostics({
+      apiTarget: CONNECTIVITY_TARGETS.api,
+      wsTarget: CONNECTIVITY_TARGETS.ws,
+    })
+    ingestEvent({
+      event_type: 'log',
+      component: 'NET',
+      severity: 'info',
+      message: `Connectivity targets API ${CONNECTIVITY_TARGETS.api} WS ${CONNECTIVITY_TARGETS.ws}`,
+    })
     connect()
 
     return () => {
@@ -293,12 +333,15 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       wsRef.current?.close()
       wsRef.current = null
     }
-  }, [clearPingInterval, connect])
+  }, [clearPingInterval, connect, ingestEvent, updateConnectivityDiagnostics])
 
   useEffect(() => {
     let timer: number | null = null
     let wakeTimer: number | null = null
     let firstSuccess = false
+    let healthSuccess = false
+    let healthLogged = false
+    let statusLogged = false
 
     const schedule = (delay: number) => {
       if (timer) window.clearTimeout(timer)
@@ -319,23 +362,60 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         }, BACKEND_WAKE_NOTICE_MS)
       }
 
+      let healthOkThisPoll = false
+      try {
+        await fetchHealth()
+        if (!mountedRef.current) return
+        healthOkThisPoll = true
+        healthSuccess = true
+        updateConnectivityDiagnostics({ restHealthOk: true })
+        setApiReachability(true)
+        setBackendWakeState('ONLINE')
+        if (!healthLogged) {
+          healthLogged = true
+          ingestEvent({
+            event_type: 'log',
+            component: 'REST',
+            severity: 'success',
+            message: 'REST /health succeeded',
+          })
+        }
+      } catch {
+        updateConnectivityDiagnostics({ restHealthOk: false })
+      }
+
       try {
         const status = await fetchTerminalStatus()
         if (!mountedRef.current) return
         firstSuccess = true
         if (wakeTimer) window.clearTimeout(wakeTimer)
+        updateConnectivityDiagnostics({ restTerminalStatusOk: true })
         setTerminalStatus(status)
         setBrokerStatus(status.broker ?? null)
         setApiReachability(true)
         setBackendWakeState('ONLINE')
         setStatusSource(useTerminalStore.getState().wsStatus === 'CONNECTED' ? 'WS' : 'REST_FALLBACK')
+        if (!statusLogged) {
+          statusLogged = true
+          ingestEvent({
+            event_type: 'log',
+            component: 'REST',
+            severity: 'success',
+            message: 'REST /terminal/status succeeded',
+          })
+        }
       } catch (error) {
         if (!mountedRef.current) return
         if (wakeTimer) window.clearTimeout(wakeTimer)
+        updateConnectivityDiagnostics({ restTerminalStatusOk: false })
         const state = useTerminalStore.getState()
         if (state.wsStatus === 'CONNECTED') {
           setStatusSource('WS')
           setBackendWakeState('ONLINE')
+        } else if (healthOkThisPoll || healthSuccess) {
+          setApiReachability(true)
+          setBackendWakeState('ONLINE')
+          setStatusSource('REST')
         } else {
           setApiReachability(false, error instanceof Error ? error.message : 'status fetch failed')
           setBackendWakeState(firstSuccess ? 'UNAVAILABLE' : 'WAKING')
@@ -363,8 +443,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setApiReachability,
     setBackendWakeState,
     setBrokerStatus,
+    ingestEvent,
     setStatusSource,
     setTerminalStatus,
+    updateConnectivityDiagnostics,
   ])
 
   return <>{children}</>

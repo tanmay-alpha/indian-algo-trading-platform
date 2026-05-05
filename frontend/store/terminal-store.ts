@@ -25,6 +25,7 @@ import type {
   WsConnectionStatus,
   ApiStatus,
   BackendWakeState,
+  ConnectivityDiagnostics,
   IndicatorEngineStatus,
   IndicatorName,
   IndicatorOverlayName,
@@ -94,6 +95,7 @@ export interface TerminalState {
   lastStatusFetchAt: number | null
   lastStatusError: string | null
   connectionError: string | null
+  connectivityDiagnostics: ConnectivityDiagnostics
 
   // Backend status
   terminalStatus: TerminalStatus | null
@@ -174,6 +176,7 @@ export interface TerminalActions {
   setBackendWakeState: (state: BackendWakeState) => void
   setApiReachability: (reachable: boolean, error?: string | null) => void
   setConnectionError: (e: string | null) => void
+  updateConnectivityDiagnostics: (patch: Partial<ConnectivityDiagnostics>) => void
 
   setTerminalStatus: (s: TerminalStatus | null) => void
   ingestGatewayStatus: (s: GatewayStatus) => void
@@ -243,6 +246,18 @@ const initialState: TerminalState = {
   lastStatusFetchAt: null,
   lastStatusError: null,
   connectionError: null,
+  connectivityDiagnostics: {
+    apiTarget: '',
+    wsTarget: '',
+    restHealthOk: null,
+    restTerminalStatusOk: null,
+    wsConstructorCalled: false,
+    wsOpen: false,
+    wsLastCloseCode: null,
+    wsLastError: null,
+    lastWsMessageType: null,
+    updatedAt: null,
+  },
 
   terminalStatus: null,
   brokerStatus: null,
@@ -457,6 +472,14 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     })),
 
   setConnectionError: (e) => set({ connectionError: e }),
+  updateConnectivityDiagnostics: (patch) =>
+    set((state) => ({
+      connectivityDiagnostics: {
+        ...state.connectivityDiagnostics,
+        ...patch,
+        updatedAt: Date.now(),
+      },
+    })),
 
   setTerminalStatus: (s) =>
     set((state) => ({
@@ -833,10 +856,15 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   ingestTick: (tick) =>
     set((state) => {
-      const symbol = tick.symbol
+      const rawSymbol = tick.symbol
+      const symbol = normalizeEquitySymbol(rawSymbol)
       const ts = Date.now()
-      const lastBySym = { ...state.lastTickBySymbol, [symbol]: ts }
-      const qBySym = { ...state.dataQualityBySymbol, [symbol]: 'LIVE' as DataQuality }
+      const lastBySym = { ...state.lastTickBySymbol, [rawSymbol]: ts, [symbol]: ts }
+      const qBySym = {
+        ...state.dataQualityBySymbol,
+        [rawSymbol]: 'LIVE' as DataQuality,
+        [symbol]: 'LIVE' as DataQuality,
+      }
 
       // Update market-watch row
       const ltp = tick.ltp ?? tick.price ?? null
@@ -871,7 +899,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       }
 
       return {
-        currentTick: tick,
+        currentTick: { ...tick, symbol },
         lastTickAt: ts,
         lastTickBySymbol: lastBySym,
         dataQualityBySymbol: qBySym,
@@ -1018,4 +1046,11 @@ function buildStrategyConfig(state: TerminalStore): StrategyConfig {
     timeframe: state.chartTimeframe,
     params: state.selectedStrategyParams,
   }
+}
+
+function normalizeEquitySymbol(symbol: string): string {
+  const normalized = String(symbol || '').trim().toUpperCase()
+  if (!normalized) return normalized
+  if (normalized.includes('-')) return normalized
+  return `${normalized}-EQ`
 }

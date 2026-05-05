@@ -38,6 +38,7 @@ export type DataQuality =
   | 'STALE'
   | 'DELAYED'
   | 'WAITING'
+  | 'NOT SUBSCRIBED'
   | 'READY'
   | 'WARMING'
   | 'UNAVAILABLE'
@@ -72,6 +73,19 @@ export type StatusSource = 'WS' | 'REST' | 'REST_FALLBACK' | 'NONE'
 export type ApiStatus = 'UNKNOWN' | 'WAKING' | 'ONLINE' | 'OFFLINE'
 export type BackendWakeState = 'IDLE' | 'WAKING' | 'ONLINE' | 'UNAVAILABLE'
 export type NseMarketSession = 'PRE_MARKET' | 'OPEN' | 'POST_MARKET' | 'WEEKEND'
+
+export interface ConnectivityDiagnostics {
+  apiTarget: string
+  wsTarget: string
+  restHealthOk: boolean | null
+  restTerminalStatusOk: boolean | null
+  wsConstructorCalled: boolean
+  wsOpen: boolean
+  wsLastCloseCode: number | string | null
+  wsLastError: string | null
+  lastWsMessageType: string | null
+  updatedAt: number | null
+}
 
 // ----- Market data -----
 export interface Instrument {
