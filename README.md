@@ -247,4 +247,4 @@ Strategy routes do not place real orders, do not connect signals to live executi
 This project was built with heavy AI assistance as a learning project. I used AI for planning, implementation help, debugging, and documentation. I personally guided the architecture, tested deployments, reviewed outputs, and learned the system through iterative phases.
 
 ## License
-License file can be added later.
+MIT License — see [LICENSE](LICENSE)

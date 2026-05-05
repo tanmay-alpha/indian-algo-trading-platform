@@ -2,8 +2,8 @@
 
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { ApiStatus, DataQuality } from '@/lib/types'
-import { cn, fmtAge, fmtPct, fmtVolume, marketNoDataLabel, marketSessionLabel, priceDirClass } from '@/lib/utils'
+import type { ApiStatus, DataQuality, NseMarketSession } from '@/lib/types'
+import { cn, fmtAge, fmtPct, fmtVolume, getNseMarketSession, marketNoDataLabel, marketSessionLabel, priceDirClass } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 import { DataQualityBadge } from './data-quality-badge'
 import { EmptyState } from './empty-state'
@@ -49,6 +49,8 @@ export function WatchlistPanel() {
       ? terminalStatus.gateway.subscribed_symbols.map((item) => normalizeWatchSymbol(String(item)))
       : []
   )
+  const session = getNseMarketSession()
+  const sessionMeta = marketSessionMeta(session)
 
   return (
     <aside
@@ -60,6 +62,10 @@ export function WatchlistPanel() {
           <div>
             <div className="text-xs font-semibold text-text">Market Watch</div>
             <div className="text-[10px] text-text-faint">NSE watchlists and live tick quality</div>
+            <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono text-text-faint">
+              <span className={cn('h-1.5 w-1.5 rounded-full', sessionMeta.dotClass)} />
+              <span>{sessionMeta.label}</span>
+            </div>
           </div>
           <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-dim">
             {symbols.length}
@@ -228,4 +234,17 @@ function normalizeWatchSymbol(symbol: string): string {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return normalized
   return normalized.endsWith('-EQ') ? normalized : `${normalized}-EQ`
+}
+
+function marketSessionMeta(session: NseMarketSession): { label: string; dotClass: string } {
+  if (session === 'OPEN') {
+    return { label: 'NSE LIVE · 9:15–15:30 IST', dotClass: 'bg-up' }
+  }
+  if (session === 'PRE_MARKET') {
+    return { label: 'NSE PRE-MARKET · Opens 9:15 IST', dotClass: 'bg-warn' }
+  }
+  if (session === 'WEEKEND') {
+    return { label: 'NSE CLOSED · Weekend', dotClass: 'bg-text-faint' }
+  }
+  return { label: 'NSE CLOSED · Opens Mon 9:15 IST', dotClass: 'bg-text-faint' }
 }

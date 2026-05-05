@@ -2,27 +2,32 @@
 
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useTerminalStore } from '@/store/terminal-store'
 
-const STORAGE_KEY = 'maet-demo-banner-dismissed'
+const STORAGE_KEY = 'maet_disclaimer_dismissed'
 
 export function DemoBanner() {
-  const status = useTerminalStore((s) => s.terminalStatus)
   const [dismissed, setDismissed] = useState(true)
 
   useEffect(() => {
     setDismissed(sessionStorage.getItem(STORAGE_KEY) === '1')
   }, [])
 
-  if (!status?.demo_mode || dismissed) return null
+  if (dismissed) return null
 
   return (
-    <div className="h-8 shrink-0 border-b border-warn/30 bg-warn-dim px-3 flex items-center gap-3 text-[11px] font-mono text-warn">
-      <span className="font-semibold">DEMO PREVIEW</span>
+    <div className="flex h-8 shrink-0 items-center gap-3 border-b border-warn/30 bg-warn-dim px-3 text-[11px] font-mono text-warn">
+      <span className="font-semibold">MAET Terminal — Research & Paper Demo.</span>
       <span className="text-text-2">
-        {status.demo_banner || 'No live orders, no real capital'}
+        PAPER mode only. No real orders.
       </span>
-      <span className="text-text-faint">No live orders, no real capital</span>
+      <a
+        href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
+        target="_blank"
+        rel="noreferrer"
+        className="text-info hover:text-text"
+      >
+        View on GitHub →
+      </a>
       <button
         type="button"
         onClick={() => {

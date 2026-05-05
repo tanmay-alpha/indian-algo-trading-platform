@@ -1,35 +1,34 @@
-# Screenshot Capture Checklist
+# Screenshots
 
-Use this folder for safe demo screenshots.
+Add screenshots here for the README.
 
-## Capture Checklist
+## When to Take Screenshots
 
-- [ ] Use the live demo or local development environment.
-- [ ] Confirm PAPER mode is visible.
-- [ ] Confirm no credentials, tokens, admin token, private account data, or broker session details are visible.
-- [ ] Confirm no real account PnL or private holdings are visible.
-- [ ] Do not fake prices, ticks, candles, PnL, screenshots, or backtest results.
+Take screenshots during NSE market hours: 9:15 AM to 3:30 PM IST, Monday to Friday. Live tick data will only be visible during this window.
 
-## Screenshots To Take
+## What to Capture
 
-1. Main terminal
-2. Market watch
-3. Chart indicators
-4. Strategy Lab
-5. Portfolio
-6. System Health
-7. Backend health JSON
+1. `terminal-overview.png`
+   Full-screen view of the terminal with live prices visible in watchlist.
 
-## Naming Convention
+2. `strategy-lab.png`
+   Strategy Lab workspace with a completed backtest result showing metrics.
 
-```text
-01-terminal-main.png
-02-watchlist.png
-03-chart-indicators.png
-04-strategy-lab.png
-05-portfolio.png
-06-system-health.png
-07-backend-health.png
+3. `system-health.png`
+   System Health tab showing event log and observability data.
+
+## How to Add to README
+
+After capturing screenshots, place PNG files in this folder, then update the Screenshots section in the root `README.md`:
+
+```markdown
+![Terminal Overview](docs/screenshots/terminal-overview.png)
+![Strategy Lab](docs/screenshots/strategy-lab.png)
+![System Health](docs/screenshots/system-health.png)
 ```
 
-Do not include credentials, tokens, private account details, or real PnL/account information.
+## Important
+
+- Do not capture screenshots containing credentials, API keys, real account numbers, or private data.
+- Do not capture fake or injected prices.
+- Do not capture PnL values from real trading activity.
