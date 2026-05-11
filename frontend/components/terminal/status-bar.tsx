@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import { WORKSPACES } from '@/lib/constants'
+import { useNow } from '@/lib/use-now'
 
 export function StatusBar() {
   const wsConnected = useTerminalStore((s) => s.wsConnected)
@@ -15,17 +15,12 @@ export function StatusBar() {
   const activeWorkspace = useTerminalStore((s) => s.activeWorkspace)
   const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
-
-  const [, force] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => force((n) => n + 1), 1000)
-    return () => clearInterval(id)
-  }, [])
+  const now = useNow()
 
   const tickCount = status?.tick_bus?.total ?? status?.gateway?.tick_count ?? null
   const dropRate = status?.tick_bus?.drop_rate_pct ?? status?.gateway?.drop_rate_pct ?? null
   const tickAge = lastTickAt
-    ? (Date.now() - lastTickAt) / 1000
+    ? (now - lastTickAt) / 1000
     : status?.gateway?.last_tick_age_seconds ?? null
   const candleStatus = status?.candles ? 'READY' : '—'
   const brokerOnline = Boolean(broker?.logged_in)

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from backend.core.events import EventType, LogEvent, SystemHealthEvent
+from backend.core.events import LogEvent, SystemHealthEvent
 
 
 def _utc_ts() -> str:

@@ -2,7 +2,7 @@ import json
 from dataclasses import fields, is_dataclass, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, ClassVar, Optional, Union
+from typing import ClassVar, Optional, Union
 from uuid import uuid4
 
 from backend.core.types import OrderSide, OrderType

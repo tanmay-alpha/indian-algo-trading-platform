@@ -1,16 +1,31 @@
 'use client'
 
 import { X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'maet_disclaimer_dismissed'
+const listeners = new Set<() => void>()
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+function getDismissedSnapshot() {
+  if (typeof window === 'undefined') return true
+  return sessionStorage.getItem(STORAGE_KEY) === '1'
+}
+
+function notifyDismissedChanged() {
+  listeners.forEach((listener) => listener())
+}
 
 export function DemoBanner() {
-  const [dismissed, setDismissed] = useState(true)
-
-  useEffect(() => {
-    setDismissed(sessionStorage.getItem(STORAGE_KEY) === '1')
-  }, [])
+  const dismissed = useSyncExternalStore(
+    subscribe,
+    getDismissedSnapshot,
+    () => true
+  )
 
   if (dismissed) return null
 
@@ -32,7 +47,7 @@ export function DemoBanner() {
         type="button"
         onClick={() => {
           sessionStorage.setItem(STORAGE_KEY, '1')
-          setDismissed(true)
+          notifyDismissedChanged()
         }}
         className="ml-auto rounded-sm p-1 text-text-dim hover:text-text hover:bg-white/[0.06]"
         aria-label="Dismiss demo banner"

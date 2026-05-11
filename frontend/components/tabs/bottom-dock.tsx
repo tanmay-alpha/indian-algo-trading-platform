@@ -243,24 +243,6 @@ function EventsContent() {
   )
 }
 
-function HealthContent() {
-  const status = useTerminalStore((s) => s.terminalStatus)
-  const broker = useTerminalStore((s) => s.brokerStatus)
-  const wsStatus = useTerminalStore((s) => s.wsStatus)
-  const rows = [
-    ['API', status ? 'ONLINE' : '\u2014'],
-    ['WebSocket', wsStatus],
-    ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '\u2014'],
-    ['Feed', broker?.feed_token_available ? 'AVAILABLE' : broker ? 'WAITING' : '\u2014'],
-    ['EventBus', String(status?.event_bus?.total ?? '\u2014')],
-    ['TickBus Drop', status?.tick_bus?.drop_rate_pct == null ? '\u2014' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
-    ['Candle Engine', status?.candles ? 'READY' : '\u2014'],
-    ['Portfolio', status?.portfolio ? 'READY' : '\u2014'],
-    ['Frontend', 'READY'],
-  ]
-  return <KeyValueGrid rows={rows} />
-}
-
 function KeyValueGrid({ rows }: { rows: string[][] }) {
   return (
     <div className="p-3 grid grid-cols-4 gap-2">

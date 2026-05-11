@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ApiStatus, DataQuality, NseMarketSession } from '@/lib/types'
 import { cn, fmtAge, fmtVolume, getNseMarketSession, marketNoDataLabel, marketSessionLabel } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
+import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
 import { InstrumentSearch } from './instrument-search'
 
@@ -20,6 +21,7 @@ export function WatchlistPanel() {
   const removeFromWatchlist = useTerminalStore((s) => s.removeFromWatchlist)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const terminalStatus = useTerminalStore((s) => s.terminalStatus)
+  const now = useNow()
 
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
@@ -32,12 +34,6 @@ export function WatchlistPanel() {
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [])
-
-  const [, force] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => force((count) => count + 1), 1000)
-    return () => clearInterval(id)
   }, [])
 
   const activeGroup = groups.find((group) => group.id === groupId) ?? groups[0]
@@ -127,7 +123,7 @@ export function WatchlistPanel() {
           symbols.map((symbol) => {
             const row = market[symbol]
             const last = lastBy[symbol] ?? null
-            const age = last ? Date.now() - last : null
+            const age = last ? now - last : null
             const subscribed =
               subscribedSymbols.size === 0 || subscribedSymbols.has(normalizeWatchSymbol(symbol))
             const quality = qualityForRow({ apiStatus, last, age, subscribed })

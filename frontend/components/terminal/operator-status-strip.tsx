@@ -2,6 +2,7 @@
 
 import { cn, marketSessionLabel, uiStatusMeta } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
+import { useNow } from '@/lib/use-now'
 
 interface PillProps {
   label: string
@@ -34,9 +35,10 @@ export function OperatorStatusStrip() {
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const mode = useTerminalStore((s) => s.executionMode)
+  const now = useNow()
 
   const session = marketSessionLabel()
-  const stale = lastTickAt != null && Date.now() - lastTickAt > 12_000
+  const stale = lastTickAt != null && now - lastTickAt > 12_000
 
   const apiLabel = apiStatus === 'UNKNOWN'
     ? backendWakeState === 'WAKING' ? 'WAKING' : 'CONNECTING'

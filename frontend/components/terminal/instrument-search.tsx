@@ -31,15 +31,11 @@ export function InstrumentSearch({
 
   useEffect(() => {
     const trimmed = q.trim()
-    if (trimmed.length < 2) {
-      setResults([])
-      setError(null)
-      return
-    }
+    if (trimmed.length < 2) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
     const t = setTimeout(async () => {
+      setLoading(true)
+      setError(null)
       try {
         const r = await searchInstruments(trimmed)
         if (!cancelled) setResults(r.slice(0, 12))
@@ -65,7 +61,13 @@ export function InstrumentSearch({
         <input
           ref={inputRef}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            const nextQuery = e.target.value
+            setQ(nextQuery)
+            setResults([])
+            setError(null)
+            setLoading(nextQuery.trim().length >= 2)
+          }}
           placeholder={placeholder}
           className="w-full h-7 pl-7 pr-7 bg-panel border border-border rounded-sm text-xs font-mono placeholder:text-text-dim focus:border-info/40 focus:outline-none"
         />

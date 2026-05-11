@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,7 +33,7 @@ from backend.gateway.instrument_loader import InstrumentLoader
 from backend.gateway.market_gateway import MarketDataGateway
 from backend.gateway.tick_bus import TickBus
 from backend.gateway.market_watch import MarketWatch
-from backend.gateway.instrument_registry import search_symbols, get_instrument, validate_symbols
+from backend.gateway.instrument_registry import search_symbols, get_instrument
 from backend.execution.execution_router import ExecutionRouter
 from backend.portfolio.portfolio_manager import PortfolioManager
 from backend.portfolio.portfolio_engine import PortfolioEngine
@@ -55,7 +56,16 @@ def safe_error_message(error):
         return error.__class__.__name__
     return message
 
-app = FastAPI(title="High-Frequency Trading Terminal")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await startup_event()
+    try:
+        yield
+    finally:
+        await shutdown_event()
+
+
+app = FastAPI(title="High-Frequency Trading Terminal", lifespan=lifespan)
 register_rate_limiter(app)
 
 def get_cors_origins() -> list[str]:
@@ -420,7 +430,6 @@ def toggle_auto_pilot():
     logger.info(f"TERMINAL: Auto-Pilot switched {'ON' if auto_pilot else 'OFF'}")
     return {"status": "success", "auto_pilot": auto_pilot}
 
-@app.on_event("startup")
 async def startup_event():
     """Initializes the backend services on startup."""
     global sampler_task
@@ -444,7 +453,6 @@ async def startup_event():
 
     logger.info(f"TERMINAL: Backend operational in {execution_mode} mode")
 
-@app.on_event("shutdown")
 async def shutdown_event():
     if sampler_task and not sampler_task.done():
         sampler_task.cancel()

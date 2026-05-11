@@ -13,7 +13,7 @@ import {
 import { useEffect, type ReactNode } from 'react'
 import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
 import { TIMEFRAMES, WORKSPACES } from '@/lib/constants'
-import { cn, fmtPrice, fmtVolume, fmtPct, marketSessionLabel } from '@/lib/utils'
+import { cn, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
 import {
   formatIndicatorValue,
   latestNonNull,

@@ -2,7 +2,7 @@ from dataclasses import replace
 from typing import Optional
 from uuid import uuid4
 
-from backend.core.events import EventType, OrderRequestEvent, OrderStateEvent
+from backend.core.events import OrderRequestEvent, OrderStateEvent
 from backend.core.types import OrderStatus
 from backend.execution.models import InternalOrderState, OrderIntent, utc_now
 

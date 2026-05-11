@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, RefreshCw } from 'lucide-react'
+import { Search } from 'lucide-react'
 import {
   getDiscoveryBoard,
   getDiscoveryStatus,

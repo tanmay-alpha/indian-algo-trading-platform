@@ -1,7 +1,6 @@
 # backend/engine/strategy_engine.py
 
 from collections import deque
-import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)

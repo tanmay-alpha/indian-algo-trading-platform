@@ -1,6 +1,6 @@
 from typing import Optional
 
-from backend.core.events import EventType, OrderStateEvent
+from backend.core.events import OrderStateEvent
 from backend.core.types import OrderStatus, TradingMode
 from backend.execution.fee_model import NSEFeeModel
 from backend.portfolio.broker_reconciliation import BrokerReconciliation

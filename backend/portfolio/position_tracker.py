@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Optional
 
 from backend.core.events import OrderStateEvent, PortfolioEvent
 from backend.core.types import OrderSide, OrderStatus

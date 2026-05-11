@@ -25,6 +25,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mountedRef = useRef(false)
+  const connectRef = useRef<() => void>(() => undefined)
 
   const setWsConnected = useTerminalStore((s) => s.setWsConnected)
   const setWsStatus = useTerminalStore((s) => s.setWsStatus)
@@ -79,130 +80,6 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     setStatusSource,
     setWsConnected,
     setWsStatus,
-    updateConnectivityDiagnostics,
-  ])
-
-  const connect = useCallback(() => {
-    if (!mountedRef.current) return
-    if (
-      wsRef.current?.readyState === WebSocket.OPEN ||
-      wsRef.current?.readyState === WebSocket.CONNECTING
-    ) {
-      return
-    }
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
-
-    const scheduleReconnect = (attempt: number) => {
-      if (!mountedRef.current) return
-      const delay = RECONNECT_DELAYS[Math.min(attempt, RECONNECT_DELAYS.length - 1)]
-      setWsStatus('RECONNECTING')
-      setWsConnected(false)
-      setReconnectAttempt(attempt + 1)
-      setConnectionError(`WebSocket reconnecting (attempt ${attempt + 1})`)
-      reconnectTimeoutRef.current = setTimeout(connect, delay)
-    }
-
-    try {
-      setWsStatus(
-        useTerminalStore.getState().reconnectAttempt > 0 ? 'RECONNECTING' : 'CONNECTING'
-      )
-      updateConnectivityDiagnostics({
-        apiTarget: CONNECTIVITY_TARGETS.api,
-        wsTarget: CONNECTIVITY_TARGETS.ws,
-        wsConstructorCalled: true,
-      })
-      ingestEvent({
-        event_type: 'log',
-        component: 'WS',
-        severity: 'info',
-        message: `WebSocket constructor called: ${safeWsTarget(WS_URL)}`,
-      })
-      console.info(`[WS] connecting to ${safeWsTarget(WS_URL)}`)
-      const ws = new WebSocket(WS_URL)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        if (!mountedRef.current) return
-        clearPingInterval()
-        markWsHealthy()
-        startPingInterval()
-      }
-
-      ws.onclose = (event) => {
-        if (!mountedRef.current) return
-        clearPingInterval()
-        setWsConnected(false)
-        const attempt = useTerminalStore.getState().reconnectAttempt
-        updateConnectivityDiagnostics({
-          wsOpen: false,
-          wsLastCloseCode: event.code || 'no-code',
-        })
-        ingestEvent({
-          event_type: 'log',
-          component: 'WS',
-          severity: 'warning',
-          message: `WebSocket closed: ${event.code || 'no-code'}`,
-        })
-        scheduleReconnect(attempt)
-      }
-
-      ws.onerror = () => {
-        if (!mountedRef.current) return
-        setWsStatus('RECONNECTING')
-        updateConnectivityDiagnostics({
-          wsOpen: false,
-          wsLastError: 'WebSocket transport error',
-        })
-        setConnectionError(
-          `WebSocket transport error; reconnecting (attempt ${useTerminalStore.getState().reconnectAttempt + 1})`
-        )
-        ingestEvent({
-          event_type: 'error',
-          component: 'WS',
-          severity: 'warning',
-          message: 'WebSocket transport error; reconnecting',
-        })
-      }
-
-      ws.onmessage = (event) => {
-        if (!mountedRef.current) return
-        handleEnvelope(event.data)
-      }
-    } catch {
-      if (!mountedRef.current) return
-      clearPingInterval()
-      setWsConnected(false)
-      const attempt = useTerminalStore.getState().reconnectAttempt
-      updateConnectivityDiagnostics({
-        wsConstructorCalled: false,
-        wsOpen: false,
-        wsLastError: 'WebSocket constructor failed',
-      })
-      setConnectionError(`Failed to create WebSocket connection; reconnecting (attempt ${attempt + 1})`)
-      ingestEvent({
-        event_type: 'error',
-        component: 'WS',
-        severity: 'warning',
-        message: 'Failed to create WebSocket connection; reconnecting',
-      })
-      scheduleReconnect(attempt)
-    }
-  }, [
-    clearPingInterval,
-    ingestEvent,
-    markWsHealthy,
-    setApiReachability,
-    setBackendWakeState,
-    setConnectionError,
-    setReconnectAttempt,
-    setStatusSource,
-    setWsStatus,
-    setWsConnected,
-    startPingInterval,
     updateConnectivityDiagnostics,
   ])
 
@@ -311,6 +188,131 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       updateConnectivityDiagnostics,
     ]
   )
+
+  const connect = useCallback(() => {
+    if (!mountedRef.current) return
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    ) {
+      return
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+
+    const scheduleReconnect = (attempt: number) => {
+      if (!mountedRef.current) return
+      const delay = RECONNECT_DELAYS[Math.min(attempt, RECONNECT_DELAYS.length - 1)]
+      setWsStatus('RECONNECTING')
+      setWsConnected(false)
+      setReconnectAttempt(attempt + 1)
+      setConnectionError(`WebSocket reconnecting (attempt ${attempt + 1})`)
+      reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), delay)
+    }
+
+    try {
+      setWsStatus(
+        useTerminalStore.getState().reconnectAttempt > 0 ? 'RECONNECTING' : 'CONNECTING'
+      )
+      updateConnectivityDiagnostics({
+        apiTarget: CONNECTIVITY_TARGETS.api,
+        wsTarget: CONNECTIVITY_TARGETS.ws,
+        wsConstructorCalled: true,
+      })
+      ingestEvent({
+        event_type: 'log',
+        component: 'WS',
+        severity: 'info',
+        message: `WebSocket constructor called: ${safeWsTarget(WS_URL)}`,
+      })
+      const ws = new WebSocket(WS_URL)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        if (!mountedRef.current) return
+        clearPingInterval()
+        markWsHealthy()
+        startPingInterval()
+      }
+
+      ws.onclose = (event) => {
+        if (!mountedRef.current) return
+        clearPingInterval()
+        setWsConnected(false)
+        const attempt = useTerminalStore.getState().reconnectAttempt
+        updateConnectivityDiagnostics({
+          wsOpen: false,
+          wsLastCloseCode: event.code || 'no-code',
+        })
+        ingestEvent({
+          event_type: 'log',
+          component: 'WS',
+          severity: 'warning',
+          message: `WebSocket closed: ${event.code || 'no-code'}`,
+        })
+        scheduleReconnect(attempt)
+      }
+
+      ws.onerror = () => {
+        if (!mountedRef.current) return
+        setWsStatus('RECONNECTING')
+        updateConnectivityDiagnostics({
+          wsOpen: false,
+          wsLastError: 'WebSocket transport error',
+        })
+        setConnectionError(
+          `WebSocket transport error; reconnecting (attempt ${useTerminalStore.getState().reconnectAttempt + 1})`
+        )
+        ingestEvent({
+          event_type: 'error',
+          component: 'WS',
+          severity: 'warning',
+          message: 'WebSocket transport error; reconnecting',
+        })
+      }
+
+      ws.onmessage = (event) => {
+        if (!mountedRef.current) return
+        handleEnvelope(event.data)
+      }
+    } catch {
+      if (!mountedRef.current) return
+      clearPingInterval()
+      setWsConnected(false)
+      const attempt = useTerminalStore.getState().reconnectAttempt
+      updateConnectivityDiagnostics({
+        wsConstructorCalled: false,
+        wsOpen: false,
+        wsLastError: 'WebSocket constructor failed',
+      })
+      setConnectionError(`Failed to create WebSocket connection; reconnecting (attempt ${attempt + 1})`)
+      ingestEvent({
+        event_type: 'error',
+        component: 'WS',
+        severity: 'warning',
+        message: 'Failed to create WebSocket connection; reconnecting',
+      })
+      scheduleReconnect(attempt)
+    }
+  }, [
+    clearPingInterval,
+    handleEnvelope,
+    ingestEvent,
+    markWsHealthy,
+    setConnectionError,
+    setReconnectAttempt,
+    setWsStatus,
+    setWsConnected,
+    startPingInterval,
+    updateConnectivityDiagnostics,
+  ])
+
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   useEffect(() => {
     mountedRef.current = true

@@ -4,6 +4,7 @@ import { BarChart3 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { fmtAge, fmtPct, fmtPrice, fmtVolume, priceDirClass } from '@/lib/utils'
 import { formatIndicatorValue, latestNonNull } from '@/lib/indicator-series'
+import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
 
 export function SymbolDetails() {
@@ -11,6 +12,7 @@ export function SymbolDetails() {
   const market = useTerminalStore((s) => s.marketWatch)
   const lastBySymbol = useTerminalStore((s) => s.lastTickBySymbol)
   const indicatorResults = useTerminalStore((s) => s.latestIndicatorResults)
+  const now = useNow()
   const row = selected ? market[selected] : null
   const extended = row as (typeof row & { high?: number | null; low?: number | null }) | null
 
@@ -21,7 +23,7 @@ export function SymbolDetails() {
   const ltp = row?.ltp ?? null
   const change = row?.change ?? null
   const changePct = row?.change_pct ?? null
-  const tickAge = lastBySymbol[selected] ? fmtAge(Date.now() - lastBySymbol[selected]) : '—'
+  const tickAge = lastBySymbol[selected] ? fmtAge(now - lastBySymbol[selected]) : '—'
   const indicatorAvailable = Boolean(indicatorResults?.available)
 
   return (

@@ -27,6 +27,13 @@ interface PaletteCommand {
 
 export function CommandPalette() {
   const open = useTerminalStore((s) => s.commandPaletteOpen)
+
+  if (!open) return null
+
+  return <CommandPaletteDialog />
+}
+
+function CommandPaletteDialog() {
   const close = () => useTerminalStore.getState().toggleCommandPalette(false)
   const setWorkspace = useTerminalStore((s) => s.setWorkspace)
   const setPreset = useTerminalStore((s) => s.setPreset)
@@ -42,27 +49,15 @@ export function CommandPalette() {
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Reset on open
   useEffect(() => {
-    if (open) {
-      setQuery('')
-      setSymbols([])
-      setActiveIndex(0)
-      requestAnimationFrame(() => inputRef.current?.focus())
-    }
-  }, [open])
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
 
-  // Debounced symbol search
   useEffect(() => {
-    if (!open) return
     const q = query.trim()
-    if (q.length < 2) {
-      setSymbols([])
-      setSearching(false)
-      return
-    }
-    setSearching(true)
+    if (q.length < 2) return
     const t = setTimeout(async () => {
+      setSearching(true)
       try {
         const r = await searchInstruments(q)
         setSymbols(r.slice(0, 8))
@@ -73,7 +68,7 @@ export function CommandPalette() {
       }
     }, 220)
     return () => clearTimeout(t)
-  }, [query, open])
+  }, [query])
 
   const baseCommands: PaletteCommand[] = useMemo(
     () => [
@@ -163,14 +158,11 @@ export function CommandPalette() {
     [filtered, symbolCommands]
   )
 
-  // Keep activeIndex in range
-  useEffect(() => {
-    setActiveIndex(0)
-  }, [query])
+  const safeActiveIndex = commands.length > 0
+    ? Math.min(activeIndex, commands.length - 1)
+    : 0
 
-  // Keyboard navigation
   useEffect(() => {
-    if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -189,14 +181,14 @@ export function CommandPalette() {
       }
       if (e.key === 'Enter') {
         e.preventDefault()
-        const c = commands[activeIndex]
+        const c = commands[safeActiveIndex]
         if (c) execute(c)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, commands, activeIndex])
+  }, [commands, safeActiveIndex])
 
   function execute(c: PaletteCommand) {
     if (c.disabled) {
@@ -236,8 +228,6 @@ export function CommandPalette() {
     close()
   }
 
-  if (!open) return null
-
   return (
     <div
       className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px] flex items-start justify-center pt-[12vh]"
@@ -256,7 +246,15 @@ export function CommandPalette() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const nextQuery = e.target.value
+              setQuery(nextQuery)
+              setActiveIndex(0)
+              if (nextQuery.trim().length < 2) {
+                setSymbols([])
+                setSearching(false)
+              }
+            }}
             placeholder="Search symbols, workspaces, presets, commands..."
             className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-text-dim"
           />
@@ -276,7 +274,7 @@ export function CommandPalette() {
             </div>
           ) : (
             commands.map((c, idx) => {
-              const active = idx === activeIndex
+              const active = idx === safeActiveIndex
               return (
                 <button
                   key={c.id}

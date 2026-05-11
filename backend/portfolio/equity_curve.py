@@ -2,9 +2,6 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Optional
 
-from backend.core.config import settings
-
-
 class EquityCurve:
     def __init__(self, initial_capital: Optional[float] = None, max_points: int = 5000):
         self.initial_capital = float(initial_capital if initial_capital is not None else 50000.0)
