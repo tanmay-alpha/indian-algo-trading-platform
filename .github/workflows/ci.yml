@@ -1,0 +1,134 @@
+name: Fullstack CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  backend-checks:
+    name: Backend checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ -f "backend/requirements.txt" ]; then
+            pip install -r backend/requirements.txt
+          elif [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "No Python requirements file found. Installing pytest only."
+            pip install pytest
+          fi
+
+      - name: Python syntax check
+        shell: bash
+        run: |
+          if [ -d "backend" ]; then
+            python -m compileall backend
+          else
+            python -m compileall .
+          fi
+
+      - name: Run backend tests if present
+        shell: bash
+        run: |
+          if [ -d "backend/tests" ]; then
+            pytest backend/tests -q
+          elif [ -d "tests" ]; then
+            pytest tests -q
+          else
+            echo "No backend tests found. Skipping pytest."
+          fi
+
+  frontend-checks:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Detect frontend directory
+        id: detect
+        shell: bash
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            echo "dir=frontend" >> "$GITHUB_OUTPUT"
+          elif [ -f "client/package.json" ]; then
+            echo "dir=client" >> "$GITHUB_OUTPUT"
+          elif [ -f "package.json" ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if no frontend package.json exists
+        if: steps.detect.outputs.dir == ''
+        shell: bash
+        run: |
+          echo "No frontend package.json found. Skipping frontend checks."
+          exit 0
+
+      - name: Install frontend dependencies
+        working-directory: ${{ steps.detect.outputs.dir }}
+        shell: bash
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run frontend lint if available
+        working-directory: ${{ steps.detect.outputs.dir }}
+        shell: bash
+        run: |
+          if npm run | grep -q " lint"; then
+            npm run lint
+          else
+            echo "No lint script found. Skipping lint."
+          fi
+
+      - name: Run frontend tests if available
+        working-directory: ${{ steps.detect.outputs.dir }}
+        shell: bash
+        run: |
+          if npm run | grep -q " test"; then
+            npm test -- --watch=false
+          else
+            echo "No test script found. Skipping tests."
+          fi
+
+      - name: Build frontend if available
+        working-directory: ${{ steps.detect.outputs.dir }}
+        shell: bash
+        run: |
+          if npm run | grep -q " build"; then
+            npm run build
+          else
+            echo "No build script found. Skipping build."
+          fi
