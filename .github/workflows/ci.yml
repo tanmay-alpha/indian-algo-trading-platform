@@ -1,20 +1,25 @@
-name: Fullstack CI
+﻿name: Fullstack CI
 
 on:
   push:
     branches:
       - main
       - dev
-
   pull_request:
     branches:
       - main
       - dev
+  workflow_dispatch:
 
 jobs:
   backend-checks:
     name: Backend checks
     runs-on: ubuntu-latest
+
+    env:
+      TRADING_MODE: PAPER
+      APP_ENV: test
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout repository
@@ -25,43 +30,34 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install backend dependencies
+      - name: Install Python dependencies
         shell: bash
         run: |
           python -m pip install --upgrade pip
 
-          if [ -f "backend/requirements.txt" ]; then
-            pip install -r backend/requirements.txt
-          elif [ -f "requirements.txt" ]; then
+          if [ -f requirements.txt ]; then
             pip install -r requirements.txt
-          else
-            echo "No Python requirements file found. Installing pytest only."
-            pip install pytest
           fi
 
-      - name: Python syntax check
-        shell: bash
-        run: |
-          if [ -d "backend" ]; then
-            python -m compileall backend
-          else
-            python -m compileall .
+          if [ -f backend/requirements.txt ]; then
+            pip install -r backend/requirements.txt
           fi
 
-      - name: Run backend tests if present
-        shell: bash
-        run: |
-          if [ -d "backend/tests" ]; then
-            pytest backend/tests -q
-          elif [ -d "tests" ]; then
-            pytest tests -q
-          else
-            echo "No backend tests found. Skipping pytest."
-          fi
+          pip install pytest pytest-asyncio
+
+      - name: Compile backend
+        run: python -m compileall backend
+
+      - name: Run backend tests
+        run: pytest -q
 
   frontend-checks:
-    name: Frontend checks
+    name: Frontend build
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - name: Checkout repository
@@ -72,63 +68,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Detect frontend directory
-        id: detect
-        shell: bash
-        run: |
-          if [ -f "frontend/package.json" ]; then
-            echo "dir=frontend" >> "$GITHUB_OUTPUT"
-          elif [ -f "client/package.json" ]; then
-            echo "dir=client" >> "$GITHUB_OUTPUT"
-          elif [ -f "package.json" ]; then
-            echo "dir=." >> "$GITHUB_OUTPUT"
-          else
-            echo "dir=" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Stop if no frontend package.json exists
-        if: steps.detect.outputs.dir == ''
-        shell: bash
-        run: |
-          echo "No frontend package.json found. Skipping frontend checks."
-          exit 0
-
       - name: Install frontend dependencies
-        working-directory: ${{ steps.detect.outputs.dir }}
-        shell: bash
-        run: |
-          if [ -f "package-lock.json" ]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm install
 
-      - name: Run frontend lint if available
-        working-directory: ${{ steps.detect.outputs.dir }}
-        shell: bash
-        run: |
-          if npm run | grep -q " lint"; then
-            npm run lint
-          else
-            echo "No lint script found. Skipping lint."
-          fi
-
-      - name: Run frontend tests if available
-        working-directory: ${{ steps.detect.outputs.dir }}
-        shell: bash
-        run: |
-          if npm run | grep -q " test"; then
-            npm test -- --watch=false
-          else
-            echo "No test script found. Skipping tests."
-          fi
-
-      - name: Build frontend if available
-        working-directory: ${{ steps.detect.outputs.dir }}
-        shell: bash
-        run: |
-          if npm run | grep -q " build"; then
-            npm run build
-          else
-            echo "No build script found. Skipping build."
-          fi
+      - name: Build frontend
+        run: npm run build
