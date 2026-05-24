@@ -22,3 +22,6 @@ coverage/
 *.so
 *.pyd
 cpp/build/
+
+# AI workspace local backups
+.ai-workspace-backup/
