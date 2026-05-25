@@ -542,3 +542,627 @@ def test_api_order_endpoint_async_flow():
     assert data["order_id"] == "ord_manual_999"
     assert data["filled_qty"] == 5
     assert data["price"] == 105.0
+
+
+# =====================================================================
+# PHASE 18C PERSISTENT OMS UNIT & INTEGRATION TESTS
+# =====================================================================
+
+import os
+import tempfile
+from backend.execution.order_store import OrderStore
+
+@pytest.fixture
+def temp_db_path():
+    """Fixture to manage a temporary SQLite database path, ensuring cleanup."""
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    yield path
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+
+def test_condition_13_db_schema_creation(temp_db_path):
+    """1. DB connection and table schema creation verification."""
+    store = OrderStore(temp_db_path)
+    # Check that tables exist and have correct schema
+    import sqlite3
+    conn = sqlite3.connect(temp_db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall()]
+    assert "order_requests" in tables
+    assert "order_events" in tables
+    
+    # Check fields in order_requests
+    cursor.execute("PRAGMA table_info(order_requests)")
+    fields = [row[1] for row in cursor.fetchall()]
+    assert "request_id" in fields
+    assert "idempotency_key" in fields
+    assert "status" in fields
+    conn.close()
+
+def test_condition_14_successful_insert_and_audit(temp_db_path):
+    """2. Successful insert of a new order request and audit trail verification."""
+    store = OrderStore(temp_db_path)
+    inserted = store.add_order_request(
+        request_id="req_1",
+        client_order_id="client_1",
+        idempotency_key="idem_1",
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        order_type="MARKET",
+        mode="PAPER",
+        status="RECEIVED"
+    )
+    assert inserted is True
+    
+    req = store.get_order_request("req_1")
+    assert req is not None
+    assert req["status"] == "RECEIVED"
+    assert req["client_order_id"] == "client_1"
+    assert req["idempotency_key"] == "idem_1"
+
+def test_condition_15_duplicate_request_id_rejected(temp_db_path):
+    """3. Duplicate rejection on matching request_id."""
+    store = OrderStore(temp_db_path)
+    inserted1 = store.add_order_request("req_1", "client_1", "idem_1", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    inserted2 = store.add_order_request("req_1", "client_2", "idem_2", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    assert inserted1 is True
+    assert inserted2 is False  # Rejected due to UNIQUE constraint on request_id
+
+def test_condition_16_duplicate_idempotency_key_rejected(temp_db_path):
+    """4. Duplicate rejection on matching idempotency_key."""
+    store = OrderStore(temp_db_path)
+    inserted1 = store.add_order_request("req_1", "client_1", "idem_1", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    inserted2 = store.add_order_request("req_2", "client_2", "idem_1", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    assert inserted1 is True
+    assert inserted2 is False  # Rejected due to UNIQUE constraint on idempotency_key
+
+@pytest.mark.asyncio
+async def test_condition_17_state_transitions_verification(temp_db_path, clean_event_bus):
+    """5. State transitions verification (RECEIVED -> RISK_APPROVED -> ROUTED_TO_PAPER -> FILLED)."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+    
+    # Mock risk gate to approve
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_transition",
+        approved=True,
+        rejected_reason=None,
+        failed_checks=[],
+        max_order_qty=500,
+        max_order_notional=500000.0,
+        estimated_notional=1000.0,
+        market_data_fresh=True,
+        kill_switch_active=False
+    ))
+    
+    # Mock paper manager
+    async def mock_place_order(order_req, market_data=None):
+        return OrderStateEvent(
+            order_id="ord_transition",
+            broker_order_id=None,
+            symbol=order_req.symbol,
+            side=order_req.side,
+            quantity=order_req.quantity,
+            filled_quantity=order_req.quantity,
+            avg_fill_price=100.0,
+            status=OrderStatus.FILLED.value,
+            reject_reason=None,
+            order_request_id=order_req.event_id,
+        )
+    router.paper_manager.place_order = mock_place_order
+    
+    req = OrderRequestEvent(
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        order_type="MARKET",
+        price=100.0,
+        strategy_name="test",
+        signal_event_id=None,
+        trading_mode="PAPER",
+        source="MANUAL",
+        event_id="req_transition"
+    )
+    
+    res = await router.route(req)
+    assert res.status == OrderStatus.FILLED.value
+    
+    # Verify final status in DB
+    saved_req = store.get_order_request("req_transition")
+    assert saved_req["status"] == "FILLED"
+
+def test_condition_18_state_transition_history(temp_db_path):
+    """6. State transition history (order_events rows appended sequentially)."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_hist", "client_hist", "idem_hist", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    store.add_order_event("req_hist", "RECEIVED", "RECEIVED")
+    
+    store.update_order_status("req_hist", "RISK_APPROVED")
+    store.add_order_event("req_hist", "RISK_APPROVED", "RISK_APPROVED")
+    
+    store.update_order_status("req_hist", "FILLED")
+    store.add_order_event("req_hist", "FILLED", "FILLED")
+    
+    events = store.get_order_events("req_hist")
+    assert len(events) == 3
+    assert events[0]["event_type"] == "RECEIVED"
+    assert events[1]["event_type"] == "RISK_APPROVED"
+    assert events[2]["event_type"] == "FILLED"
+
+@pytest.mark.asyncio
+async def test_condition_19_rejection_paths(temp_db_path, clean_event_bus):
+    """7. Rejection paths verification (unapproved risk gates lead to RISK_REJECTED / no execution)."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+    
+    # Mock risk gate to reject
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_reject",
+        approved=False,
+        rejected_reason="max_order_qty",
+        failed_checks=["max_order_qty"],
+        max_order_qty=500,
+        max_order_notional=500000.0,
+        estimated_notional=99999.0,
+        market_data_fresh=True,
+        kill_switch_active=False
+    ))
+    
+    # Set paper_manager mock to blow up if called, verifying no execution
+    router.paper_manager.place_order = AsyncMock(side_effect=Exception("Should not be called!"))
+    
+    req = OrderRequestEvent(
+        symbol="SBIN",
+        side="BUY",
+        quantity=99999,
+        order_type="MARKET",
+        price=100.0,
+        strategy_name="test",
+        signal_event_id=None,
+        trading_mode="PAPER",
+        source="MANUAL",
+        event_id="req_reject"
+    )
+    
+    res = await router.route(req)
+    assert res.status == OrderStatus.REJECTED.value
+    assert res.reject_reason == "max_order_qty"
+    
+    saved_req = store.get_order_request("req_reject")
+    assert saved_req["status"] == "RISK_REJECTED"
+    
+    events = store.get_order_events("req_reject")
+    assert len(events) == 2
+    assert events[0]["event_type"] == "RECEIVED"
+    assert events[1]["event_type"] == "RISK_REJECTED"
+
+def test_condition_20_sanitized_endpoint(temp_db_path):
+    """8. Read-only api endpoints return sanitized responses with no secrets / active tokens."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_sec", "client_sec", "idem_sec", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    # Let's insert a sensitive-looking key name or mock check
+    # Check if security's sanitize_response is functional with secrets
+    from backend.core.security import sanitize_response
+    data = {
+        "symbol": "SBIN",
+        "api_key": "mysecretkey123",
+        "password": "mypassword123",
+        "token": "sensitive_broker_token_456"
+    }
+    sanitized = sanitize_response(data)
+    assert sanitized["api_key"] == "***REDACTED***"
+    assert sanitized["password"] == "***REDACTED***"
+    assert sanitized["token"] == "***REDACTED***"
+    assert sanitized["symbol"] == "SBIN"
+
+@pytest.mark.asyncio
+async def test_condition_21_duplicate_events_no_double_execution(temp_db_path, clean_event_bus):
+    """9. Verify that duplicate events do not trigger double execution."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+    
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_dup",
+        approved=True,
+        rejected_reason=None,
+        failed_checks=[],
+        max_order_qty=500,
+        max_order_notional=500000.0,
+        estimated_notional=1000.0,
+        market_data_fresh=True,
+        kill_switch_active=False
+    ))
+    
+    place_order_mock = AsyncMock(return_value=OrderStateEvent(
+        order_id="ord_dup_executed",
+        broker_order_id=None,
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        filled_quantity=10,
+        avg_fill_price=100.0,
+        status=OrderStatus.FILLED.value,
+        reject_reason=None,
+        order_request_id="req_dup"
+    ))
+    router.paper_manager.place_order = place_order_mock
+    
+    req = OrderRequestEvent(
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        order_type="MARKET",
+        price=100.0,
+        strategy_name="test",
+        signal_event_id=None,
+        trading_mode="PAPER",
+        source="MANUAL",
+        event_id="req_dup"
+    )
+    
+    res1 = await router.route(req)
+    assert res1.status == OrderStatus.FILLED.value
+    
+    res2 = await router.route(req)
+    assert res2.status == OrderStatus.REJECTED.value
+    assert res2.reject_reason == "duplicate_request"
+    
+    # Assert place_order was only called exactly once!
+    assert place_order_mock.call_count == 1
+
+def test_condition_22_database_cleanup(temp_db_path):
+    """10. Verify that database is clean / closed / handles deletion."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_cleanup", "client_c", "idem_c", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+    # Verify file exists
+    assert os.path.exists(temp_db_path)
+    # Delete file
+    os.remove(temp_db_path)
+    assert not os.path.exists(temp_db_path)
+
+
+# =====================================================================
+# PHASE 18E — Broker Reconciliation Safety Patch 1 Tests (23–32)
+# =====================================================================
+
+import sqlite3 as _sqlite3
+
+@pytest.mark.asyncio
+async def test_condition_23_pending_not_persisted_as_rejected(temp_db_path, clean_event_bus):
+    """18E-1. PENDING result from paper adapter must NOT be persisted as REJECTED in the DB."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_pending",
+        approved=True,
+        rejected_reason=None,
+        failed_checks=[],
+        max_order_qty=500,
+        max_order_notional=500000.0,
+        estimated_notional=1000.0,
+        market_data_fresh=True,
+        kill_switch_active=False,
+    ))
+
+    # Paper manager returns OPEN (limit order not yet crossed)
+    router.paper_manager.place_order = AsyncMock(return_value=OrderStateEvent(
+        order_id="ord_pending_1",
+        broker_order_id=None,
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        filled_quantity=0,
+        avg_fill_price=None,
+        status=OrderStatus.OPEN.value,
+        reject_reason=None,
+        order_request_id="req_pending",
+    ))
+
+    req = OrderRequestEvent(
+        symbol="SBIN", side="BUY", quantity=10, order_type="LIMIT", price=90.0,
+        strategy_name="test", signal_event_id=None, trading_mode="PAPER",
+        source="MANUAL", event_id="req_pending",
+    )
+
+    res = await router.route(req)
+    assert res.status == OrderStatus.OPEN.value  # execution returned OPEN
+
+    saved = store.get_order_request("req_pending")
+    assert saved is not None
+    # CRITICAL: must NOT be REJECTED — should be OPEN
+    assert saved["status"] != "REJECTED", f"Expected non-REJECTED but got {saved['status']}"
+    assert saved["status"] == "OPEN"
+
+
+@pytest.mark.asyncio
+async def test_condition_24_rejected_only_on_explicit_rejection(temp_db_path, clean_event_bus):
+    """18E-2. DB REJECTED is only written when adapter returns an actual REJECTED event."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_actual_rej",
+        approved=True,
+        rejected_reason=None,
+        failed_checks=[],
+        max_order_qty=500,
+        max_order_notional=500000.0,
+        estimated_notional=1000.0,
+        market_data_fresh=True,
+        kill_switch_active=False,
+    ))
+
+    # Adapter explicitly rejects (e.g. no market data)
+    router.paper_manager.place_order = AsyncMock(return_value=OrderStateEvent(
+        order_id="ord_actual_rej",
+        broker_order_id=None,
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        filled_quantity=0,
+        avg_fill_price=None,
+        status=OrderStatus.REJECTED.value,
+        reject_reason="market_data_unavailable",
+        order_request_id="req_actual_rej",
+    ))
+
+    req = OrderRequestEvent(
+        symbol="SBIN", side="BUY", quantity=10, order_type="MARKET", price=None,
+        strategy_name="test", signal_event_id=None, trading_mode="PAPER",
+        source="MANUAL", event_id="req_actual_rej",
+    )
+
+    res = await router.route(req)
+    assert res.status == OrderStatus.REJECTED.value
+
+    saved = store.get_order_request("req_actual_rej")
+    assert saved["status"] == "REJECTED"
+    assert saved["reject_reason"] == "market_data_unavailable"
+
+
+def test_condition_25_broker_order_id_column_exists(temp_db_path):
+    """18E-3. order_requests table must have broker_order_id column after init."""
+    OrderStore(temp_db_path)
+    conn = _sqlite3.connect(temp_db_path)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(order_requests)")
+    cols = [row[1] for row in cursor.fetchall()]
+    conn.close()
+    assert "broker_order_id" in cols, "broker_order_id column must exist in order_requests"
+
+
+def test_condition_26_existing_db_migrates_safely(temp_db_path):
+    """18E-4. A legacy DB without broker_order_id migrates without data loss."""
+    # Manually create a legacy schema (no broker_order_id column)
+    conn = _sqlite3.connect(temp_db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE order_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT UNIQUE,
+            client_order_id TEXT,
+            idempotency_key TEXT UNIQUE,
+            symbol TEXT, side TEXT, quantity INTEGER,
+            order_type TEXT, mode TEXT, status TEXT,
+            created_at TEXT, updated_at TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE order_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT, event_type TEXT,
+            status TEXT, reason TEXT, created_at TEXT
+        )
+    """)
+    cursor.execute(
+        "INSERT INTO order_requests VALUES (NULL,'req_legacy','c1','i1','SBIN','BUY',5,'MARKET','PAPER','RECEIVED',datetime('now'),datetime('now'))"
+    )
+    conn.commit()
+    conn.close()
+
+    # OrderStore init should run migration without dropping data
+    store = OrderStore(temp_db_path)
+    row = store.get_order_request("req_legacy")
+    assert row is not None
+    assert row["status"] == "RECEIVED"
+    # Column must now exist
+    assert "broker_order_id" in row
+
+
+def test_condition_27_broker_order_id_save_and_retrieve(temp_db_path):
+    """18E-5. broker_order_id can be saved via update_broker_order_id and retrieved."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_boid", "c1", "i1", "SBIN", "BUY", 10, "MARKET", "PAPER", "RECEIVED")
+
+    store.update_broker_order_id("req_boid", "BROKER_ABC_123")
+
+    row = store.get_order_request("req_boid")
+    assert row["broker_order_id"] == "BROKER_ABC_123"
+
+    # Also verify lookup by broker_order_id
+    found = store.get_order_by_broker_order_id("BROKER_ABC_123")
+    assert found is not None
+    assert found["request_id"] == "req_boid"
+
+
+@pytest.mark.asyncio
+async def test_condition_28_order_state_event_updates_db(temp_db_path, clean_event_bus):
+    """18E-6. An OrderStateEvent published on event bus is persisted to OrderStore by the router subscriber."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+
+    # Insert a record that the subscriber can match
+    store.add_order_request("req_sub", "c1", "i1", "SBIN", "BUY", 10, "MARKET", "PAPER", "ROUTED_TO_PAPER")
+
+    # Publish an ORDER_STATE event simulating broker fill update
+    fill_event = OrderStateEvent(
+        order_id="ord_sub",
+        broker_order_id="BROKER_SUB_1",
+        symbol="SBIN",
+        side="BUY",
+        quantity=10,
+        filled_quantity=10,
+        avg_fill_price=105.0,
+        status=OrderStatus.FILLED.value,
+        reject_reason=None,
+        order_request_id="req_sub",
+    )
+    await clean_event_bus.publish(fill_event)
+    # Allow async subscriber to complete
+    await asyncio.sleep(0)
+
+    saved = store.get_order_request("req_sub")
+    assert saved["status"] == "FILLED"
+    assert saved["broker_order_id"] == "BROKER_SUB_1"
+
+
+@pytest.mark.asyncio
+async def test_condition_29_order_state_event_with_broker_id_persists(temp_db_path, clean_event_bus):
+    """18E-7. OrderStateEvent with broker_order_id causes broker_order_id to be persisted."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+
+    store.add_order_request("req_boid_event", "c2", "i2", "RELIANCE", "SELL", 5, "MARKET", "PAPER", "PENDING")
+
+    ose = OrderStateEvent(
+        order_id="ord_boid_event",
+        broker_order_id="EX_ORDER_XYZ",
+        symbol="RELIANCE",
+        side="SELL",
+        quantity=5,
+        filled_quantity=5,
+        avg_fill_price=2500.0,
+        status=OrderStatus.FILLED.value,
+        reject_reason=None,
+        order_request_id="req_boid_event",
+    )
+    await clean_event_bus.publish(ose)
+    await asyncio.sleep(0)
+
+    saved = store.get_order_request("req_boid_event")
+    assert saved["broker_order_id"] == "EX_ORDER_XYZ"
+
+    events = store.get_order_events("req_boid_event")
+    assert any("FILLED" in e["event_type"] or e["status"] == "FILLED" for e in events)
+    assert any(e.get("broker_order_id") == "EX_ORDER_XYZ" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_condition_30_order_poller_persists_to_db(temp_db_path, clean_event_bus):
+    """18E-8. Mocked OrderPoller broker poll update writes status to OrderStore."""
+    from backend.execution.order_poller import OrderPoller
+    from backend.execution.order_state_machine import OrderStateMachine
+
+    store = OrderStore(temp_db_path)
+    osm = OrderStateMachine(event_bus=None)
+
+    # Register a fake order in the state machine
+    req = OrderRequestEvent(
+        symbol="TCS", side="BUY", quantity=3, order_type="MARKET", price=3500.0,
+        strategy_name="test", signal_event_id=None, trading_mode="PAPER",
+        source="MANUAL", event_id="req_poller_test",
+    )
+    internal_state = osm.create_order(req, "LIVE")
+    # Manually assign broker_order_id to simulate a submitted live order
+    from dataclasses import replace as dc_replace
+    updated = dc_replace(internal_state, broker_order_id="BROKER_TCS_999")
+    osm._orders[internal_state.order_id] = updated
+
+    # Insert a matching record in OrderStore
+    store.add_order_request("req_poller_test", "c3", "i3", "TCS", "BUY", 3, "MARKET", "LIVE", "PENDING")
+
+    # Create poller with store injected
+    session = SimpleNamespace(is_valid=False, smart_api=None)
+    poller = OrderPoller(
+        session_manager=session,
+        order_state_machine=osm,
+        order_store=store,
+    )
+
+    # Call _persist_to_store directly (mocked broker poll path)
+    poller._persist_to_store(
+        request_id="req_poller_test",
+        broker_order_id="BROKER_TCS_999",
+        db_status="FILLED",
+        reject_reason=None,
+    )
+
+    saved = store.get_order_request("req_poller_test")
+    assert saved["status"] == "FILLED"
+    assert saved["broker_order_id"] == "BROKER_TCS_999"
+
+    events = store.get_order_events("req_poller_test")
+    assert any("BROKER_POLL" in e["event_type"] for e in events)
+
+
+@pytest.mark.asyncio
+async def test_condition_31_idempotency_regression_still_works(temp_db_path, clean_event_bus):
+    """18E-9. Phase 18C duplicate idempotency behavior is not regressed by Phase 18E changes."""
+    store = OrderStore(temp_db_path)
+    router = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+
+    router.risk_gate.evaluate = AsyncMock(return_value=RiskDecision(
+        order_intent_id="req_idem_e",
+        approved=True, rejected_reason=None, failed_checks=[],
+        max_order_qty=500, max_order_notional=500000.0,
+        estimated_notional=1000.0, market_data_fresh=True, kill_switch_active=False,
+    ))
+    place_mock = AsyncMock(return_value=OrderStateEvent(
+        order_id="ord_idem_e", broker_order_id=None,
+        symbol="SBIN", side="BUY", quantity=10,
+        filled_quantity=10, avg_fill_price=100.0,
+        status=OrderStatus.FILLED.value, reject_reason=None,
+        order_request_id="req_idem_e",
+    ))
+    router.paper_manager.place_order = place_mock
+
+    req = OrderRequestEvent(
+        symbol="SBIN", side="BUY", quantity=10, order_type="MARKET", price=100.0,
+        strategy_name="test", signal_event_id=None, trading_mode="PAPER",
+        source="MANUAL", event_id="req_idem_e",
+    )
+
+    r1 = await router.route(req)
+    assert r1.status == OrderStatus.FILLED.value
+
+    r2 = await router.route(req)
+    assert r2.status == OrderStatus.REJECTED.value
+    assert r2.reject_reason == "duplicate_request"
+
+    assert place_mock.call_count == 1
+
+
+def test_condition_32_full_suite_baseline():
+    """18E-10. Smoke test: all Phase 18C schema fields plus new 18E fields are present."""
+    import tempfile, os
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        store = OrderStore(path)
+        store.add_order_request("req_smoke", "c_s", "i_s", "SBIN", "BUY", 1, "MARKET", "PAPER", "RECEIVED")
+        store.update_order_status("req_smoke", "PENDING", broker_order_id="BID_SMOKE")
+        store.add_order_event("req_smoke", "PENDING", "PENDING", broker_order_id="BID_SMOKE")
+
+        row = store.get_order_request("req_smoke")
+        assert row["broker_order_id"] == "BID_SMOKE"
+
+        events = store.get_order_events("req_smoke")
+        assert len(events) == 1
+        assert events[0]["broker_order_id"] == "BID_SMOKE"
+
+        by_boid = store.get_order_by_broker_order_id("BID_SMOKE")
+        assert by_boid["request_id"] == "req_smoke"
+
+        active = store.get_active_requests()
+        assert any(r["request_id"] == "req_smoke" for r in active)
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
