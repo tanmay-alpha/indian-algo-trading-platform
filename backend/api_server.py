@@ -163,7 +163,9 @@ app.state.screener_engine = screener_engine
 app.state.obs_metrics = obs_metrics
 app.state.obs_event_log = obs_event_log
 app.state.obs_timeline = obs_timeline
+app.state.execution_router = router
 app.state.backtest_history = []
+
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

@@ -136,17 +136,12 @@ class OrderPoller:
             logger.warning(f"OrderPoller: failed to persist update for {request_id}: {exc.__class__.__name__}")
 
     def _map_status(self, status: str) -> Optional[str]:
-        if status == "COMPLETE":
-            return OrderStatus.FILLED.value
-        if status == "REJECTED":
-            return OrderStatus.REJECTED.value
-        if status == "CANCELLED":
-            return OrderStatus.CANCELLED.value
-        if status in {"OPEN", "TRIGGER PENDING"}:
-            return OrderStatus.OPEN.value
-        if status == "PENDING":
-            return OrderStatus.PENDING.value
-        return None
+        from backend.execution.reconciliation import normalize_broker_order_status
+        norm = normalize_broker_order_status(status)
+        if norm == "UNKNOWN":
+            return None
+        return norm
+
 
     def _float_or_none(self, value) -> Optional[float]:
         if value in (None, ""):
