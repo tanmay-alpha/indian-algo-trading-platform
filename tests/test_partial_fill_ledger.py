@@ -32,6 +32,7 @@ import pytest
 
 from backend.execution.order_store import OrderStore
 from backend.execution.fee_model import NSEFeeModel
+from backend.execution.paper_execution_config import PaperExecutionConfig
 from backend.portfolio.portfolio_engine import PortfolioEngine
 from backend.portfolio.rebuild import (
     PortfolioRebuildSummary,
@@ -460,7 +461,9 @@ def test_paper_order_manager_records_fill():
         from backend.core.types import OrderType, OrderSide, TradingMode
         from backend.execution.paper_order_manager import PaperOrderManager
 
-        manager = PaperOrderManager(order_store=store)
+        # Phase 18K: use allow_after_hours so test passes outside market session.
+        cfg = PaperExecutionConfig(allow_after_hours=True)
+        manager = PaperOrderManager(order_store=store, config=cfg)
         req = OrderRequestEvent(
             symbol="SBIN",
             side=OrderSide.BUY.value,
@@ -477,12 +480,11 @@ def test_paper_order_manager_records_fill():
             manager.place_order(req, market_data)
         )
         assert event.status == "FILLED"
-        # The fill ledger should have a row keyed on event_id (used as request_id)
-        all_fills = store.get_all_fills_chronological()
-        assert len(all_fills) == 1
-        assert all_fills[0]["filled_quantity"] == 10
-        assert all_fills[0]["source"] == "paper"
-        assert all_fills[0]["symbol"] == "SBIN"
+        # Fill ledger uses event_id as request_id (Phase 18K canonical mapping)
+        fills = store.get_fills_for_request(req.event_id)
+        assert len(fills) == 1
+        assert fills[0]["filled_quantity"] == 10
+        assert fills[0]["source"] == "paper"
+        assert fills[0]["symbol"] == "SBIN"
     finally:
         cleanup(path)
-
