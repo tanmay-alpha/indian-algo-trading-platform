@@ -67,6 +67,7 @@ class OrderStore:
                     status TEXT,
                     broker_order_id TEXT,
                     reject_reason TEXT,
+                    avg_fill_price REAL,
                     created_at TEXT,
                     updated_at TEXT
                 )
@@ -82,43 +83,94 @@ class OrderStore:
                     created_at TEXT
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS order_fills (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    fill_id TEXT UNIQUE NOT NULL,
+                    request_id TEXT NOT NULL,
+                    broker_order_id TEXT,
+                    symbol TEXT NOT NULL,
+                    side TEXT NOT NULL,
+                    filled_quantity INTEGER NOT NULL,
+                    fill_price REAL NOT NULL,
+                    fees REAL DEFAULT 0,
+                    source TEXT DEFAULT 'paper',
+                    created_at TEXT NOT NULL
+                )
+            """)
             conn.commit()
         finally:
             conn.close()
 
     def _migrate_schema(self) -> None:
         """
-        Safe schema migration for existing databases that lack the new columns.
-        Uses PRAGMA table_info to check columns and ALTER TABLE ADD COLUMN if missing.
+        Safe schema migration for existing databases that lack the new columns/tables.
+        Uses PRAGMA table_info and sqlite_master to check before adding.
         Never drops existing data.
+
+        Note: for :memory: databases, each _get_conn() call returns a fresh empty
+        connection, so _init_db already creates the full schema.  We guard every
+        ALTER TABLE with an existence check so this method is a no-op on fresh DBs.
         """
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
 
-            # Migrate order_requests table
-            cursor.execute("PRAGMA table_info(order_requests)")
-            existing_cols = {row[1] for row in cursor.fetchall()}
+            # Check whether order_requests exists before trying to migrate it
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='order_requests'"
+            )
+            if cursor.fetchone() is not None:
+                # Migrate order_requests table — add columns introduced after initial schema
+                cursor.execute("PRAGMA table_info(order_requests)")
+                existing_cols = {row[1] for row in cursor.fetchall()}
 
-            for col, col_def in [
-                ("broker_order_id", "TEXT"),
-                ("reject_reason", "TEXT"),
-                ("avg_fill_price", "REAL"),
-            ]:
-                if col not in existing_cols:
-                    cursor.execute(f"ALTER TABLE order_requests ADD COLUMN {col} {col_def}")
-                    logger.info(f"OrderStore migration: added column '{col}' to order_requests")
+                for col, col_def in [
+                    ("broker_order_id", "TEXT"),
+                    ("reject_reason", "TEXT"),
+                    ("avg_fill_price", "REAL"),
+                ]:
+                    if col not in existing_cols:
+                        cursor.execute(f"ALTER TABLE order_requests ADD COLUMN {col} {col_def}")
+                        logger.info(f"OrderStore migration: added column '{col}' to order_requests")
 
-            # Migrate order_events table
-            cursor.execute("PRAGMA table_info(order_events)")
-            existing_event_cols = {row[1] for row in cursor.fetchall()}
-            if "broker_order_id" not in existing_event_cols:
-                cursor.execute("ALTER TABLE order_events ADD COLUMN broker_order_id TEXT")
-                logger.info("OrderStore migration: added column 'broker_order_id' to order_events")
+            # Check whether order_events exists before trying to migrate it
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='order_events'"
+            )
+            if cursor.fetchone() is not None:
+                cursor.execute("PRAGMA table_info(order_events)")
+                existing_event_cols = {row[1] for row in cursor.fetchall()}
+                if "broker_order_id" not in existing_event_cols:
+                    cursor.execute("ALTER TABLE order_events ADD COLUMN broker_order_id TEXT")
+                    logger.info("OrderStore migration: added column 'broker_order_id' to order_events")
+
+            # Create order_fills table if missing (legacy DBs that predate Phase 18I)
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='order_fills'"
+            )
+            if cursor.fetchone() is None:
+                cursor.execute("""
+                    CREATE TABLE order_fills (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        fill_id TEXT UNIQUE NOT NULL,
+                        request_id TEXT NOT NULL,
+                        broker_order_id TEXT,
+                        symbol TEXT NOT NULL,
+                        side TEXT NOT NULL,
+                        filled_quantity INTEGER NOT NULL,
+                        fill_price REAL NOT NULL,
+                        fees REAL DEFAULT 0,
+                        source TEXT DEFAULT 'paper',
+                        created_at TEXT NOT NULL
+                    )
+                """)
+                logger.info("OrderStore migration: created order_fills table")
 
             conn.commit()
         finally:
             conn.close()
+
 
     # ------------------------------------------------------------------
     # Write / Insert
@@ -400,4 +452,139 @@ class OrderStore:
             return [dict(row) for row in cursor.fetchall()]
         finally:
             conn.close()
+    # ------------------------------------------------------------------
+    # Fill Ledger -- order_fills table
+    # ------------------------------------------------------------------
 
+    def record_fill(
+        self,
+        fill_id: str,
+        request_id: str,
+        symbol: str,
+        side: str,
+        filled_quantity: int,
+        fill_price: float,
+        broker_order_id=None,
+        fees: float = 0.0,
+        source: str = "paper",
+    ) -> bool:
+        """Insert a fill row into order_fills.
+
+        Returns True if inserted, False if duplicate fill_id (idempotent).
+        Validation: fill_id, request_id non-empty; filled_quantity > 0; fill_price > 0.
+        Does NOT store credentials, tokens, or broker API secrets.
+        """
+        if not fill_id or not isinstance(fill_id, str):
+            logger.warning("record_fill: fill_id missing or invalid -- rejected.")
+            return False
+        if not request_id or not isinstance(request_id, str):
+            logger.warning("record_fill: request_id missing or invalid -- rejected.")
+            return False
+        try:
+            filled_quantity = int(filled_quantity)
+        except (TypeError, ValueError):
+            logger.warning(f"record_fill: invalid filled_quantity for {fill_id} -- rejected.")
+            return False
+        if filled_quantity <= 0:
+            logger.warning(f"record_fill: filled_quantity <= 0 for {fill_id} -- rejected.")
+            return False
+        try:
+            fill_price = float(fill_price)
+        except (TypeError, ValueError):
+            logger.warning(f"record_fill: invalid fill_price for {fill_id} -- rejected.")
+            return False
+        if fill_price <= 0:
+            logger.warning(f"record_fill: fill_price <= 0 for {fill_id} -- rejected.")
+            return False
+
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                """
+                INSERT INTO order_fills
+                    (fill_id, request_id, broker_order_id, symbol, side,
+                     filled_quantity, fill_price, fees, source, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    fill_id,
+                    request_id,
+                    broker_order_id,
+                    symbol.upper(),
+                    side.upper(),
+                    filled_quantity,
+                    fill_price,
+                    float(fees),
+                    source,
+                    now,
+                ),
+            )
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+        except Exception as exc:
+            logger.warning(f"record_fill: unexpected error for {fill_id}: {exc.__class__.__name__}")
+            return False
+        finally:
+            conn.close()
+
+    def fill_exists(self, fill_id: str) -> bool:
+        """Return True if a fill with the given fill_id already exists."""
+        if not fill_id:
+            return False
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM order_fills WHERE fill_id = ?", (fill_id,))
+            return cursor.fetchone() is not None
+        finally:
+            conn.close()
+
+    def get_fills_for_request(self, request_id: str) -> list:
+        """Return all fill rows for a given request_id, oldest first."""
+        if not request_id:
+            return []
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM order_fills WHERE request_id = ? ORDER BY id ASC",
+                (request_id,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_all_fills_chronological(self) -> list:
+        """Return ALL fill rows ordered chronologically (oldest first).
+
+        Primary source for portfolio rebuild. Does NOT return credentials.
+        """
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM order_fills ORDER BY id ASC")
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_cumulative_filled_quantity(self, request_id: str) -> int:
+        """Return sum of filled_quantity across all fills for a request_id.
+
+        Used for delta-fill detection. Returns 0 if no fills exist yet.
+        """
+        if not request_id:
+            return 0
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COALESCE(SUM(filled_quantity), 0) FROM order_fills WHERE request_id = ?",
+                (request_id,),
+            )
+            row = cursor.fetchone()
+            return int(row[0]) if row else 0
+        finally:
+            conn.close()

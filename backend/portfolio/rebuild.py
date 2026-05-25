@@ -1,18 +1,24 @@
 """backend/portfolio/rebuild.py
 
-Portfolio rebuild service — Phase 18H.
+Portfolio rebuild service — Phase 18H/18I.
 
-Replays persisted FILLED orders from the OMS (OrderStore SQLite) into the
-in-memory PortfolioEngine / PositionTracker on backend startup.
+On startup, replays persisted fill events from the OMS (OrderStore SQLite) into
+the in-memory PortfolioEngine / PositionTracker.
+
+Phase 18I upgrade:
+- Primary source is now ``order_fills`` ledger (get_all_fills_chronological).
+  Each row = one discrete fill event, supporting partial fills correctly.
+- Fallback for older DBs: if order_fills is empty, falls back to the Phase 18H
+  path (get_filled_orders — one row per FILLED order, qty=total).
 
 SAFETY CONTRACT:
 - Read-only from OrderStore; never writes to OMS.
 - Never calls a broker API.
-- Never invents or fakes a fill price; skips rows without avg_fill_price.
+- Never invents or fakes a fill price; skips rows without fill_price.
 - Never touches .env or credentials.
 - PAPER mode only; does not enable live trading.
-- Idempotent: tracking a set of replayed request_ids prevents double-counting
-  on repeated calls within the same process lifetime.
+- Idempotent: fills already applied to portfolio are skipped (tracked by fill_id
+  via PositionTracker._fill_history event_ids, or by request_id for legacy path).
 """
 
 from __future__ import annotations
@@ -38,6 +44,7 @@ class PortfolioRebuildSummary:
     skipped_rows: int = 0
     rebuilt_positions: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    source: str = "unknown"  # "fill_ledger" or "filled_orders_fallback"
 
 
 # ---------------------------------------------------------------------------
@@ -50,60 +57,245 @@ def rebuild_portfolio_from_fills(
     *,
     _replayed_ids: set[str] | None = None,
 ) -> PortfolioRebuildSummary:
-    """Replay persisted FILLED orders from *order_store* into *portfolio_engine*.
+    """Replay persisted fill events from *order_store* into *portfolio_engine*.
+
+    Phase 18I: tries order_fills ledger first (supports partial fills).
+    Falls back to order_requests FILLED rows if the ledger is empty.
 
     Parameters
     ----------
     order_store:
-        The persistent OMS store. Only ``get_filled_orders()`` is called.
+        The persistent OMS store. Calls ``get_all_fills_chronological()`` and,
+        on fallback, ``get_filled_orders()``.
     portfolio_engine:
         The in-memory portfolio engine whose ``PositionTracker`` will be updated.
     _replayed_ids:
-        Optional external set for idempotency tracking across calls (mainly for
-        testing).  When ``None`` a fresh set is used so that a second call on
-        the same ``portfolio_engine`` instance will skip already-replayed fills
-        (tracked via ``portfolio_engine.positions._fill_history`` event_ids).
+        Optional external set of already-replayed fill_ids for idempotency
+        (used by tests). When ``None``, the existing PositionTracker history
+        is consulted automatically.
 
     Returns
     -------
     PortfolioRebuildSummary
         Counts and any warnings about skipped rows.
     """
-    # Lazy import to avoid circular imports at module load time.
     from backend.core.events import OrderStateEvent
     from backend.core.types import OrderStatus
 
     summary = PortfolioRebuildSummary()
 
     # ------------------------------------------------------------------
-    # Build idempotency guard from already-replayed request_ids.
-    # We use the order_id field that PositionTracker stores in _fill_history.
-    # On the very first call the history is empty so nothing is pre-excluded.
+    # Try fill ledger first (Phase 18I primary path)
     # ------------------------------------------------------------------
+    fill_rows = _load_fill_ledger(order_store, summary)
+    if fill_rows is not None:
+        # fill_rows may be an empty list (new DB with no fills yet) or
+        # a non-empty list of fill-ledger rows.
+        if fill_rows:
+            summary.source = "fill_ledger"
+            _replay_fill_rows(
+                fill_rows=fill_rows,
+                portfolio_engine=portfolio_engine,
+                order_store=order_store,
+                summary=summary,
+                _replayed_ids=_replayed_ids,
+                id_field="fill_id",
+            )
+        else:
+            # Fill ledger exists but is empty — fall back to order_requests
+            _run_fallback_rebuild(
+                order_store, portfolio_engine, summary, _replayed_ids
+            )
+    else:
+        # get_all_fills_chronological raised (method not present on older store)
+        _run_fallback_rebuild(
+            order_store, portfolio_engine, summary, _replayed_ids
+        )
+
+    return summary
+
+
+# ---------------------------------------------------------------------------
+# Fill-ledger replay path (Phase 18I)
+# ---------------------------------------------------------------------------
+
+def _load_fill_ledger(
+    order_store: "OrderStore",
+    summary: PortfolioRebuildSummary,
+) -> list | None:
+    """Call get_all_fills_chronological. Return None on AttributeError/Exception."""
+    try:
+        return order_store.get_all_fills_chronological()
+    except AttributeError:
+        return None  # method not yet available — use fallback
+    except Exception as exc:
+        msg = f"Portfolio rebuild: fill ledger read failed: {exc.__class__.__name__}"
+        logger.warning(msg)
+        summary.warnings.append(msg)
+        return None
+
+
+def _replay_fill_rows(
+    fill_rows: list,
+    portfolio_engine: "PortfolioEngine",
+    order_store: "OrderStore",
+    summary: PortfolioRebuildSummary,
+    _replayed_ids: set[str] | None,
+    id_field: str = "fill_id",
+) -> None:
+    """Replay a list of fill rows (order_fills schema) into portfolio_engine."""
+    from backend.core.events import OrderStateEvent
+    from backend.core.types import OrderStatus
+
+    # Build set of already-seen IDs from PositionTracker or external param.
     if _replayed_ids is None:
-        seen_request_ids: set[str] = {
+        seen_ids: set[str] = {
+            entry.get("event_id", "")
+            for entry in portfolio_engine.positions._fill_history
+        }
+    else:
+        seen_ids = _replayed_ids
+
+    for row in fill_rows:
+        fill_id = row.get(id_field) or row.get("fill_id") or ""
+        request_id = row.get("request_id") or ""
+        symbol = (row.get("symbol") or "").upper()
+        side = (row.get("side") or "").upper()
+        broker_order_id = row.get("broker_order_id")
+
+        # --- Idempotency ---
+        if fill_id and fill_id in seen_ids:
+            continue
+
+        # --- Quantity ---
+        try:
+            qty = int(row.get("filled_quantity") or row.get("quantity") or 0)
+        except (TypeError, ValueError):
+            qty = 0
+        if qty <= 0:
+            msg = (
+                f"Portfolio rebuild: skipping fill {fill_id!r} — "
+                f"invalid filled_quantity."
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+
+        # --- Fill price ---
+        raw_price = row.get("fill_price") or row.get("avg_fill_price")
+        if raw_price is None:
+            msg = (
+                f"Portfolio rebuild: skipping fill {fill_id!r} ({symbol} {side} x{qty}) "
+                "— no fill_price available."
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+        try:
+            fill_price = float(raw_price)
+        except (TypeError, ValueError):
+            msg = (
+                f"Portfolio rebuild: skipping fill {fill_id!r} — "
+                f"invalid fill_price value: {raw_price!r}"
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+        if fill_price <= 0:
+            msg = (
+                f"Portfolio rebuild: skipping fill {fill_id!r} — "
+                f"fill_price non-positive ({fill_price})."
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+
+        # --- Side validation ---
+        if side not in ("BUY", "SELL"):
+            msg = (
+                f"Portfolio rebuild: skipping fill {fill_id!r} — unknown side {side!r}."
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+
+        # --- Synthesise an OrderStateEvent (FILLED) for PositionTracker ---
+        # Use fill_id as the event_id so PositionTracker._fill_history can
+        # deduplicate on repeated calls.
+        event = OrderStateEvent(
+            order_id=request_id or fill_id,
+            broker_order_id=broker_order_id,
+            symbol=symbol,
+            side=side,
+            quantity=qty,
+            filled_quantity=qty,
+            avg_fill_price=fill_price,
+            status=OrderStatus.FILLED.value,
+            reject_reason=None,
+            order_request_id=request_id,
+        )
+        # Override event_id with fill_id so _fill_history stores a stable key.
+        event.event_id = fill_id or event.event_id
+
+        try:
+            fees_dict = portfolio_engine.fee_model.calculate(side, qty, fill_price)
+            portfolio_engine.positions.on_fill(event, fees_dict)
+        except Exception as exc:
+            msg = (
+                f"Portfolio rebuild: error replaying fill {fill_id!r}: "
+                f"{exc.__class__.__name__}: {exc}"
+            )
+            logger.warning(msg)
+            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+
+        if fill_id:
+            seen_ids.add(fill_id)
+
+        summary.total_fills_processed += 1
+        if symbol not in summary.rebuilt_positions:
+            summary.rebuilt_positions.append(symbol)
+
+
+# ---------------------------------------------------------------------------
+# Fallback rebuild path (Phase 18H — order_requests FILLED rows)
+# ---------------------------------------------------------------------------
+
+def _run_fallback_rebuild(
+    order_store: "OrderStore",
+    portfolio_engine: "PortfolioEngine",
+    summary: PortfolioRebuildSummary,
+    _replayed_ids: set[str] | None,
+) -> None:
+    """Replay FILLED rows from order_requests (one row = full order quantity)."""
+    from backend.core.events import OrderStateEvent
+    from backend.core.types import OrderStatus
+
+    summary.source = "filled_orders_fallback"
+
+    if _replayed_ids is None:
+        seen_ids: set[str] = {
             entry["order_id"]
             for entry in portfolio_engine.positions._fill_history
             if entry.get("order_id")
         }
     else:
-        seen_request_ids = _replayed_ids
+        seen_ids = _replayed_ids
 
-    # ------------------------------------------------------------------
-    # Fetch fills from SQLite — read-only, no broker calls.
-    # ------------------------------------------------------------------
     try:
         filled_rows = order_store.get_filled_orders()
     except Exception as exc:
         msg = f"Portfolio rebuild: failed to read filled orders: {exc.__class__.__name__}"
         logger.warning(msg)
         summary.warnings.append(msg)
-        return summary
+        return
 
-    # ------------------------------------------------------------------
-    # Replay each fill in chronological order (get_filled_orders returns
-    # oldest-first via ORDER BY id ASC).
-    # ------------------------------------------------------------------
     for row in filled_rows:
         request_id = row.get("request_id") or ""
         symbol = (row.get("symbol") or "").upper()
@@ -111,18 +303,12 @@ def rebuild_portfolio_from_fills(
         quantity = int(row.get("quantity") or 0)
         broker_order_id = row.get("broker_order_id")
 
-        # --- Idempotency: skip already-replayed fills ---
-        if request_id and request_id in seen_request_ids:
-            # Already in position tracker from a previous replay in this process.
+        if request_id and request_id in seen_ids:
             continue
 
-        # --- Skip rows without a usable fill price ---
-        # We do NOT invent a price; we skip and warn.
         raw_price = row.get("avg_fill_price") or row.get("fill_price")
         if raw_price is None:
-            # avg_fill_price column not present yet — try order_events for a fill event
             raw_price = _try_get_fill_price_from_events(order_store, request_id)
-
         if not raw_price:
             msg = (
                 f"Portfolio rebuild: skipping {request_id} ({symbol} {side} x{quantity}) "
@@ -132,51 +318,15 @@ def rebuild_portfolio_from_fills(
             summary.warnings.append(msg)
             summary.skipped_rows += 1
             continue
-
         try:
             fill_price = float(raw_price)
         except (TypeError, ValueError):
-            msg = (
-                f"Portfolio rebuild: skipping {request_id} — "
-                f"invalid avg_fill_price value: {raw_price!r}"
-            )
-            logger.warning(msg)
-            summary.warnings.append(msg)
+            summary.skipped_rows += 1
+            continue
+        if fill_price <= 0 or side not in ("BUY", "SELL") or quantity <= 0:
             summary.skipped_rows += 1
             continue
 
-        if fill_price <= 0:
-            msg = (
-                f"Portfolio rebuild: skipping {request_id} — "
-                f"avg_fill_price is non-positive ({fill_price})."
-            )
-            logger.warning(msg)
-            summary.warnings.append(msg)
-            summary.skipped_rows += 1
-            continue
-
-        # --- Validate side and quantity ---
-        if side not in ("BUY", "SELL"):
-            msg = (
-                f"Portfolio rebuild: skipping {request_id} — "
-                f"unknown side {side!r}."
-            )
-            logger.warning(msg)
-            summary.warnings.append(msg)
-            summary.skipped_rows += 1
-            continue
-
-        if quantity <= 0:
-            msg = (
-                f"Portfolio rebuild: skipping {request_id} — "
-                f"quantity is non-positive ({quantity})."
-            )
-            logger.warning(msg)
-            summary.warnings.append(msg)
-            summary.skipped_rows += 1
-            continue
-
-        # --- Synthesise an OrderStateEvent and feed it to PortfolioEngine ---
         event = OrderStateEvent(
             order_id=request_id,
             broker_order_id=broker_order_id,
@@ -189,12 +339,9 @@ def rebuild_portfolio_from_fills(
             reject_reason=None,
             order_request_id=request_id,
         )
-
-        # Call the synchronous part of on_fill directly to avoid the async
-        # event publish overhead during startup rebuild.
         try:
-            fees = portfolio_engine.fee_model.calculate(side, quantity, fill_price)
-            portfolio_engine.positions.on_fill(event, fees)
+            fees_dict = portfolio_engine.fee_model.calculate(side, quantity, fill_price)
+            portfolio_engine.positions.on_fill(event, fees_dict)
         except Exception as exc:
             msg = (
                 f"Portfolio rebuild: error replaying {request_id}: "
@@ -205,15 +352,11 @@ def rebuild_portfolio_from_fills(
             summary.skipped_rows += 1
             continue
 
-        # Mark as seen so duplicate rows are skipped.
         if request_id:
-            seen_request_ids.add(request_id)
-
+            seen_ids.add(request_id)
         summary.total_fills_processed += 1
         if symbol not in summary.rebuilt_positions:
             summary.rebuilt_positions.append(symbol)
-
-    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -223,10 +366,9 @@ def rebuild_portfolio_from_fills(
 def _try_get_fill_price_from_events(
     order_store: "OrderStore", request_id: str
 ) -> float | None:
-    """Best-effort: look for a fill price in order_events for *request_id*.
+    """Best-effort: look for fill price in order_events for *request_id*.
 
-    Returns the first non-None price found in FILLED/PAPER_FILLED events, or
-    None if nothing useful is available.
+    Returns None if nothing useful found (order_events has no price column yet).
     """
     if not request_id:
         return None
@@ -235,10 +377,10 @@ def _try_get_fill_price_from_events(
     except Exception:
         return None
 
+    # order_events does not carry a price column yet — always returns None.
+    # Retained as extension point for future enrichment.
     for ev in events:
         status = (ev.get("status") or "").upper()
         if status in ("FILLED", "PAPER_FILLED"):
-            # order_events does not yet have a price column — return None
-            # so caller properly skips with warning.
             pass
     return None

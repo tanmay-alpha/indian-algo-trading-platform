@@ -6,6 +6,7 @@ from backend.core.events import OrderRequestEvent, OrderStateEvent
 from backend.core.types import OrderSide, OrderStatus, OrderType, TradingMode
 from backend.execution.fee_model import NSEFeeModel
 from backend.execution.order_state_machine import OrderStateMachine
+from backend.execution.order_store import OrderStore
 
 
 class PaperOrderManager:
@@ -15,12 +16,14 @@ class PaperOrderManager:
         trade_journal=None,
         fee_model: Optional[NSEFeeModel] = None,
         order_state_machine: Optional[OrderStateMachine] = None,
+        order_store: Optional[OrderStore] = None,
     ):
         self.positions = {}
         self.event_bus = event_bus
         self.trade_journal = trade_journal
         self.fee_model = fee_model or NSEFeeModel()
         self.order_state_machine = order_state_machine or OrderStateMachine(event_bus=event_bus)
+        self.order_store = order_store  # Optional; Phase 18I fill ledger
 
     async def place_order(self, order_request: OrderRequestEvent, latest_market: dict) -> OrderStateEvent:
         state = self.order_state_machine.create_order(order_request, TradingMode.PAPER.value)
@@ -49,6 +52,26 @@ class PaperOrderManager:
         }
         if fees["total_fees"] > fees["turnover"] * 0.02:
             logger.warning("Paper fill fees exceed expected threshold")
+
+        # Phase 18I: persist fill to order_fills ledger.
+        # fill_id = "{request_id}:0" — deterministic for a single paper market fill.
+        # Failure is logged, never propagated (fill record is not the primary execution path).
+        if self.order_store is not None:
+            request_id = getattr(order_request, "request_id", None) or state.order_id
+            try:
+                self.order_store.record_fill(
+                    fill_id=f"{request_id}:0",
+                    request_id=request_id,
+                    symbol=order_request.symbol,
+                    side=order_request.side,
+                    filled_quantity=order_request.quantity,
+                    fill_price=fill_price,
+                    fees=float(fees.get("total_fees") or 0.0),
+                    source="paper",
+                )
+            except Exception as exc:
+                logger.warning(f"PaperOrderManager: fill ledger write failed for {request_id}: {exc.__class__.__name__}")
+
         if self.trade_journal:
             await self.trade_journal.record_fill(
                 event,

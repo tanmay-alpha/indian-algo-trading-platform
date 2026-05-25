@@ -100,7 +100,18 @@ class OrderPoller:
                     broker_order_id=broker_order_id,
                     db_status=status,
                     reject_reason=reject_reason,
+                    avg_fill_price=avg_fill_price,
                 )
+                # Phase 18I: record partial fill delta into order_fills ledger.
+                if filled_quantity > 0 and avg_fill_price and avg_fill_price > 0:
+                    self._record_fill_delta(
+                        request_id=order.intent_id,
+                        broker_order_id=broker_order_id,
+                        symbol=order.symbol,
+                        side=order.side,
+                        new_filled_quantity=filled_quantity,
+                        fill_price=avg_fill_price,
+                    )
             except ValueError:
                 logger.warning("Broker order state transition mismatch")
 
@@ -110,10 +121,11 @@ class OrderPoller:
         broker_order_id: str,
         db_status: str,
         reject_reason: Optional[str] = None,
+        avg_fill_price: Optional[float] = None,
     ) -> None:
         """Write broker-derived order status update to the persistent OrderStore.
 
-        Intentionally defensive — if request_id is absent or store is unavailable
+        Intentionally defensive -- if request_id is absent or store is unavailable
         we log a warning but do not raise, to avoid blocking the poll loop.
         """
         if not self.order_store or not request_id:
@@ -124,6 +136,7 @@ class OrderPoller:
                 db_status,
                 reason=reject_reason,
                 broker_order_id=broker_order_id,
+                avg_fill_price=avg_fill_price,
             )
             self.order_store.add_order_event(
                 request_id,
@@ -134,6 +147,45 @@ class OrderPoller:
             )
         except Exception as exc:
             logger.warning(f"OrderPoller: failed to persist update for {request_id}: {exc.__class__.__name__}")
+
+    def _record_fill_delta(
+        self,
+        request_id: Optional[str],
+        broker_order_id: str,
+        symbol: str,
+        side: str,
+        new_filled_quantity: int,
+        fill_price: float,
+    ) -> None:
+        """Record only the incremental quantity filled since the last poll.
+
+        Computes delta = new_filled_quantity - already_recorded.
+        Uses fill_id = "{request_id}:{broker_order_id}:{new_filled_quantity}" for
+        idempotency -- re-polling the same total quantity is a no-op.
+        Defensive: logs but does not raise on any error.
+        """
+        if not self.order_store or not request_id:
+            return
+        try:
+            already = self.order_store.get_cumulative_filled_quantity(request_id)
+            delta = new_filled_quantity - already
+            if delta <= 0:
+                return  # no new quantity to record
+            fill_id = f"{request_id}:{broker_order_id}:{new_filled_quantity}"
+            self.order_store.record_fill(
+                fill_id=fill_id,
+                request_id=request_id,
+                broker_order_id=broker_order_id,
+                symbol=symbol,
+                side=side,
+                filled_quantity=delta,
+                fill_price=fill_price,
+                source="broker_poll",
+            )
+        except Exception as exc:
+            logger.warning(
+                f"OrderPoller: fill delta record failed for {request_id}: {exc.__class__.__name__}"
+            )
 
     def _map_status(self, status: str) -> Optional[str]:
         from backend.execution.reconciliation import normalize_broker_order_status
