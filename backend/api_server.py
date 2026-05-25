@@ -501,13 +501,37 @@ async def startup_event():
     except Exception as _recovery_exc:
         logger.warning(f"OMS RECOVERY: startup recovery failed safely: {_recovery_exc.__class__.__name__}")
 
+    # ---- Portfolio Rebuild from Persisted Fills ----
+    # Replay FILLED orders from OMS SQLite into the in-memory PortfolioEngine.
+    # Runs after OMS recovery, before accepting new portfolio reads.
+    # Never calls broker APIs; read-only from local DB.
+    # Skips rows without a fill price (warns but does not crash).
+    try:
+        from backend.portfolio.rebuild import rebuild_portfolio_from_fills
+        _rebuild_summary = rebuild_portfolio_from_fills(
+            order_store=router.order_store,
+            portfolio_engine=portfolio_engine,
+        )
+        logger.info(
+            f"PORTFOLIO REBUILD: {_rebuild_summary.total_fills_processed} fill(s) processed, "
+            f"{_rebuild_summary.skipped_rows} skipped."
+        )
+        if _rebuild_summary.warnings:
+            for _w in _rebuild_summary.warnings:
+                logger.warning(f"PORTFOLIO REBUILD: {_w}")
+    except Exception as _rebuild_exc:
+        logger.warning(
+            f"PORTFOLIO REBUILD: startup rebuild failed safely: {_rebuild_exc.__class__.__name__}"
+        )
+
     # Start broker connectivity separately so failed login cannot crash the API.
     asyncio.create_task(start_gateway_background(loop))
-    
+
     if settings.demo_mode:
         logger.info("DEMO MODE enabled")
 
     logger.info(f"TERMINAL: Backend operational in {execution_mode} mode")
+
 
 
 async def shutdown_event():

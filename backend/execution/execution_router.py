@@ -328,6 +328,7 @@ class ExecutionRouter:
             db_status,
             reason=res_event.reject_reason if status in (OrderStatus.REJECTED.value, OrderStatus.CANCELLED.value) else None,
             broker_order_id=broker_id,
+            avg_fill_price=res_event.avg_fill_price if status == OrderStatus.FILLED.value else None,
         )
         self.order_store.add_order_event(
             request_id,
@@ -379,6 +380,7 @@ class ExecutionRouter:
             db_status,
             reason=event.reject_reason if event.status in (OrderStatus.REJECTED.value, OrderStatus.CANCELLED.value) else None,
             broker_order_id=broker_id,
+            avg_fill_price=event.avg_fill_price if event.status == OrderStatus.FILLED.value else None,
         )
         self.order_store.add_order_event(
             request_id,

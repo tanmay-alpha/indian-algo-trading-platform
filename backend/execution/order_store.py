@@ -103,6 +103,7 @@ class OrderStore:
             for col, col_def in [
                 ("broker_order_id", "TEXT"),
                 ("reject_reason", "TEXT"),
+                ("avg_fill_price", "REAL"),
             ]:
                 if col not in existing_cols:
                     cursor.execute(f"ALTER TABLE order_requests ADD COLUMN {col} {col_def}")
@@ -180,17 +181,29 @@ class OrderStore:
         status: str,
         reason: Optional[str] = None,
         broker_order_id: Optional[str] = None,
+        avg_fill_price: Optional[float] = None,
     ) -> None:
-        """
-        Update the status of an order request.
-        Optionally store a reject/cancel reason and/or persist the broker_order_id.
-        Does NOT overwrite existing broker_order_id when None is passed (preserves prior value).
+        """Update the status of an order request.
+
+        Optionally stores a reject/cancel reason, persists broker_order_id,
+        and stores avg_fill_price when the order has been filled.
+        Does NOT overwrite existing broker_order_id when None is passed.
         """
         now = datetime.now(timezone.utc).isoformat()
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            if broker_order_id is not None:
+            if broker_order_id is not None and avg_fill_price is not None:
+                cursor.execute(
+                    """
+                    UPDATE order_requests
+                    SET status = ?, reject_reason = ?, broker_order_id = ?,
+                        avg_fill_price = ?, updated_at = ?
+                    WHERE request_id = ?
+                    """,
+                    (status, reason, broker_order_id, avg_fill_price, now, request_id),
+                )
+            elif broker_order_id is not None:
                 cursor.execute(
                     """
                     UPDATE order_requests
@@ -198,6 +211,15 @@ class OrderStore:
                     WHERE request_id = ?
                     """,
                     (status, reason, broker_order_id, now, request_id),
+                )
+            elif avg_fill_price is not None:
+                cursor.execute(
+                    """
+                    UPDATE order_requests
+                    SET status = ?, reject_reason = ?, avg_fill_price = ?, updated_at = ?
+                    WHERE request_id = ?
+                    """,
+                    (status, reason, avg_fill_price, now, request_id),
                 )
             elif reason is not None:
                 cursor.execute(
@@ -337,6 +359,28 @@ class OrderStore:
         finally:
             conn.close()
 
+    def get_filled_orders(self) -> list:
+        """Return all FILLED order requests in chronological order (oldest first).
+
+        Used by the portfolio rebuild service to replay executed fills into
+        PortfolioEngine/PositionTracker on startup.
+
+        Includes only rows with status == 'FILLED'.
+        Excludes REJECTED, CANCELLED, RISK_REJECTED, DUPLICATE_REJECTED.
+        Does NOT return credentials, tokens, or broker API keys.
+        Fields returned: request_id, client_order_id, broker_order_id, symbol,
+        side, quantity, order_type, mode, status, created_at, updated_at.
+        """
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM order_requests WHERE status = 'FILLED' ORDER BY id ASC"
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
     def get_active_requests(self) -> list:
         """Return all non-terminal order requests ordered oldest-first.
 
@@ -356,3 +400,4 @@ class OrderStore:
             return [dict(row) for row in cursor.fetchall()]
         finally:
             conn.close()
+
