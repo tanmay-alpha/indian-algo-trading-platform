@@ -16,16 +16,25 @@ graph TD
     CS --> IND[IndicatorEngine C++/Python Fallback]
     CS --> STRAT[StrategyEngine]
     IND --> STRAT
-    STRAT --> SIG[SignalEvent]
+    STRAT --> SIG[StrategySignal]
     SIG --> VAL[SignalValidator]
     VAL --> RISK[RiskManager / PreTradeRiskGate]
     PORT[PortfolioEngine] -->|exposure/PnL context| RISK
-    RISK --> OMS[OrderManager / OMS]
+    RISK --> OMS[Persistent OMS]
     OMS --> EXEC[ExecutionRouter]
     EXEC --> PAPER[PaperBrokerAdapter Default]
     EXEC -.locked/disabled.-> LIVE[LiveBrokerAdapter]
     PAPER --> EVENTS[OrderStateEvent / FillEvent / RejectEvent]
     LIVE --> EVENTS
+    EVENTS --> FILL[FillLedger]
+    FILL --> REB[PortfolioRebuild]
+    REB --> PORT
+    EVENTS --> AUDIT[Journal / Audit Logs / SQLite]
+    AUDIT --> RECON[Broker Reconciliation]
+    RECON --> DB[OMS Dashboard]
+    EVENTS --> WS
+    WS --> FE
+    DB --> FE
     EVENTS --> PORT
     EVENTS --> AUDIT[Journal / Audit Logs / Persistence]
     EVENTS --> WS
@@ -102,11 +111,11 @@ Market closed periods are expected to produce no live ticks. The WebSocket heart
 ## Execution Safety Flow
 
 ```text
-SignalEvent -> SignalValidator -> OrderIntent -> PreTradeRiskGate -> ExecutionRouter
-  -> PaperBrokerAdapter (Default) -> OrderStateEvent/FillEvent -> TradeJournal
+StrategySignal -> SignalValidator -> RiskGate -> OMS -> PaperBroker -> FillLedger -> PortfolioRebuild -> OMS Dashboard
 ```
 
 PAPER mode is the default. LIVE execution is gated and disabled by default. Live broker placement must pass explicit safety checks before any broker call can be made.
+The new Trading Safety Engine v1 relies on a persistent SQLite OMS, broker order ID tracking, startup OMS recovery, and a partial fill ledger.
 
 ## Portfolio Flow
 

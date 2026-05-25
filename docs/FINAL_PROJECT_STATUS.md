@@ -12,6 +12,9 @@
 - C++17 indicator core exists with optional pybind11 bridge and Python fallback.
 - Strategy templates and offline backtesting routes are implemented.
 - Portfolio summary and session-scoped portfolio state are available.
+- Trading Safety Engine v1 with PreTradeRiskGate, SignalValidator, and persistent OMS.
+- Startup OMS order recovery and broker reconciliation flow.
+- Admin-protected OMS Dashboard (Order Blotter, Fill Ledger, Audit Trail).
 - Observability/status routes and final security hardening are documented.
 
 ## What Is Demo-Only
@@ -22,6 +25,7 @@
 - Market discovery/screener UI.
 - Portfolio display when not backed by persistent broker reconciliation.
 - Observability dashboards without a durable external metrics stack.
+- Local SQLite usage for OMS/Fill Ledger demonstration.
 
 ## What Is Intentionally Disabled
 

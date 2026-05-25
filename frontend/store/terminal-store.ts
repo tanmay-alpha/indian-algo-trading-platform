@@ -40,6 +40,14 @@ import type {
   BacktestResult,
   StrategySignal,
   ChartSignalMarker,
+  OmsHealthResponse,
+  OmsStatusResponse,
+  OmsOrder,
+  OmsEvent,
+  OmsFill,
+  OrderAuditBundle,
+  OmsReconciliationStatus,
+  OmsDataState,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -57,6 +65,13 @@ import {
   getStrategyStatus,
   getStrategyTemplates,
   runStrategyBacktest,
+  getOmsHealth,
+  getOmsStatus,
+  getRecentOmsOrders,
+  getRecentOmsEvents,
+  getRecentOmsFills,
+  getOrderAudit,
+  getOmsReconciliationStatus,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -145,6 +160,21 @@ export interface TerminalState {
   // Events / signals (most recent first)
   events: SystemEvent[]
   signals: SignalEvent[]
+
+  // OMS / Order Blotter (Phase 18L)
+  omsAdminToken: string | null       // in-memory only, never persisted
+  omsHealth: OmsHealthResponse | null
+  omsStatus: OmsStatusResponse | null
+  recentOmsOrders: OmsOrder[]
+  recentOmsEvents: OmsEvent[]
+  recentOmsFills: OmsFill[]
+  selectedOmsOrderAudit: OrderAuditBundle | null
+  omsReconciliationStatus: OmsReconciliationStatus | null
+  omsLoading: boolean
+  omsError: string | null
+  omsAdminRequired: boolean
+  omsDataState: OmsDataState
+  omsLastUpdatedAt: number | null
 }
 
 export interface TerminalActions {
@@ -212,6 +242,19 @@ export interface TerminalActions {
 
   setMode: (m: 'PAPER' | 'LIVE') => void
   setAutoPilot: (v: boolean) => void
+
+  // OMS actions (Phase 18L)
+  setOmsAdminToken: (token: string | null) => void
+  clearOmsAdminToken: () => void
+  fetchOmsHealth: () => Promise<void>
+  fetchOmsStatus: () => Promise<void>
+  fetchRecentOmsOrders: () => Promise<void>
+  fetchRecentOmsEvents: () => Promise<void>
+  fetchRecentOmsFills: () => Promise<void>
+  fetchOrderAudit: (requestId: string) => Promise<void>
+  clearOrderAudit: () => void
+  fetchOmsReconciliationStatus: () => Promise<void>
+  refreshOmsDashboard: () => Promise<void>
 }
 
 export type TerminalStore = TerminalState & TerminalActions
@@ -319,6 +362,21 @@ const initialState: TerminalState = {
 
   events: [],
   signals: [],
+
+  // OMS initial state
+  omsAdminToken: null,
+  omsHealth: null,
+  omsStatus: null,
+  recentOmsOrders: [],
+  recentOmsEvents: [],
+  recentOmsFills: [],
+  selectedOmsOrderAudit: null,
+  omsReconciliationStatus: null,
+  omsLoading: false,
+  omsError: null,
+  omsAdminRequired: false,
+  omsDataState: 'LOADING',
+  omsLastUpdatedAt: null,
 }
 
 const MAX_EVENTS = 200
@@ -945,6 +1003,115 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setMode: (m) => set({ executionMode: m }),
   setAutoPilot: (v) => set({ autoPilot: v }),
+
+  // ---- OMS Actions (Phase 18L) ----
+  setOmsAdminToken: (token) => set({ omsAdminToken: token, omsAdminRequired: false }),
+  clearOmsAdminToken: () =>
+    set({
+      omsAdminToken: null,
+      omsAdminRequired: false,
+      omsStatus: null,
+      recentOmsOrders: [],
+      recentOmsEvents: [],
+      recentOmsFills: [],
+      selectedOmsOrderAudit: null,
+      omsReconciliationStatus: null,
+      omsDataState: 'ADMIN_REQUIRED',
+    }),
+
+  fetchOmsHealth: async () => {
+    const result = await getOmsHealth()
+    if (result.ok) {
+      set({ omsHealth: result.data })
+    } else if ('backendUnavailable' in result) {
+      set({ omsDataState: 'BACKEND_UNAVAILABLE', omsHealth: null })
+    }
+  },
+
+  fetchOmsStatus: async () => {
+    const token = get().omsAdminToken
+    set({ omsLoading: true, omsError: null })
+    const result = await getOmsStatus(token)
+    if (result.ok) {
+      set({ omsStatus: result.data, omsLoading: false, omsDataState: 'ONLINE', omsAdminRequired: false })
+    } else if ('adminRequired' in result) {
+      set({ omsLoading: false, omsAdminRequired: true, omsDataState: 'ADMIN_REQUIRED' })
+    } else if ('backendUnavailable' in result) {
+      set({ omsLoading: false, omsDataState: 'BACKEND_UNAVAILABLE' })
+    } else {
+      set({ omsLoading: false, omsError: 'error' in result ? result.error : 'Unknown error', omsDataState: 'ERROR' })
+    }
+  },
+
+  fetchRecentOmsOrders: async () => {
+    const token = get().omsAdminToken
+    const result = await getRecentOmsOrders(token, 50)
+    if (result.ok) {
+      set({ recentOmsOrders: result.data.orders, omsAdminRequired: false })
+    } else if ('adminRequired' in result) {
+      set({ omsAdminRequired: true, omsDataState: 'ADMIN_REQUIRED' })
+    } else if ('backendUnavailable' in result) {
+      set({ omsDataState: 'BACKEND_UNAVAILABLE' })
+    }
+  },
+
+  fetchRecentOmsEvents: async () => {
+    const token = get().omsAdminToken
+    const result = await getRecentOmsEvents(token, 100)
+    if (result.ok) {
+      set({ recentOmsEvents: result.data.events, omsAdminRequired: false })
+    } else if ('adminRequired' in result) {
+      set({ omsAdminRequired: true, omsDataState: 'ADMIN_REQUIRED' })
+    }
+  },
+
+  fetchRecentOmsFills: async () => {
+    const token = get().omsAdminToken
+    const result = await getRecentOmsFills(token, 100)
+    if (result.ok) {
+      set({ recentOmsFills: result.data.fills, omsAdminRequired: false })
+    } else if ('adminRequired' in result) {
+      set({ omsAdminRequired: true, omsDataState: 'ADMIN_REQUIRED' })
+    }
+  },
+
+  fetchOrderAudit: async (requestId: string) => {
+    const token = get().omsAdminToken
+    set({ omsLoading: true })
+    const result = await getOrderAudit(requestId, token)
+    if (result.ok) {
+      set({ selectedOmsOrderAudit: result.data, omsLoading: false })
+    } else if ('adminRequired' in result) {
+      set({ omsAdminRequired: true, omsLoading: false, omsDataState: 'ADMIN_REQUIRED' })
+    } else {
+      set({ omsLoading: false })
+    }
+  },
+
+  clearOrderAudit: () => set({ selectedOmsOrderAudit: null }),
+
+  fetchOmsReconciliationStatus: async () => {
+    const token = get().omsAdminToken
+    const result = await getOmsReconciliationStatus(token)
+    if (result.ok) {
+      set({ omsReconciliationStatus: result.data })
+    } else if ('adminRequired' in result) {
+      set({ omsAdminRequired: true, omsDataState: 'ADMIN_REQUIRED' })
+    }
+  },
+
+  refreshOmsDashboard: async () => {
+    set({ omsLoading: true, omsError: null })
+    await Promise.allSettled([
+      get().fetchOmsHealth(),
+      get().fetchOmsStatus(),
+      get().fetchRecentOmsOrders(),
+      get().fetchRecentOmsEvents(),
+      get().fetchRecentOmsFills(),
+      get().fetchOmsReconciliationStatus(),
+    ])
+    set({ omsLoading: false, omsLastUpdatedAt: Date.now() })
+  },
 }))
 
 // ---------- helpers ----------

@@ -33,6 +33,13 @@ import type {
   ObservabilityStatus,
   StrategyRunHistoryResponse,
   MetricPoint,
+  OmsHealthResponse,
+  OmsStatusResponse,
+  OmsOrder,
+  OmsEvent,
+  OmsFill,
+  OrderAuditBundle,
+  OmsReconciliationStatus,
 } from './types'
 
 export class APIError extends Error {
@@ -694,5 +701,147 @@ function unavailableBacktestResult(payload: StrategyConfig, reason: string): Bac
     equity_curve: [],
     metrics: emptyMetrics,
     reason,
+  }
+}
+
+// =====================================================
+// OMS API Client (Phase 18L) — all read-only
+// =====================================================
+
+/** Result wrapper for OMS calls that may require admin auth or be unavailable. */
+export type OmsResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; adminRequired: true }
+  | { ok: false; backendUnavailable: true }
+  | { ok: false; error: string }
+
+/** Build admin-token headers only when a token is provided. Never hardcode. */
+function adminHeaders(adminToken?: string | null): Record<string, string> {
+  if (!adminToken) return {}
+  return { 'X-Admin-Token': adminToken }
+}
+
+/** GET /oms/health — public, no token required. */
+export async function getOmsHealth(): Promise<OmsResult<OmsHealthResponse>> {
+  try {
+    const data = await request<OmsHealthResponse>(ENDPOINTS.omsHealth)
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError && err.status === 0) return { ok: false, backendUnavailable: true }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/status — admin-protected. */
+export async function getOmsStatus(adminToken?: string | null): Promise<OmsResult<OmsStatusResponse>> {
+  try {
+    const data = await request<OmsStatusResponse>(ENDPOINTS.omsStatus, {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/orders/recent — admin-protected. */
+export async function getRecentOmsOrders(
+  adminToken?: string | null,
+  limit = 50
+): Promise<OmsResult<{ orders: OmsOrder[]; count: number; queried_at: string }>> {
+  try {
+    const data = await request<{ orders: OmsOrder[]; count: number; limit: number; queried_at: string }>(
+      `${ENDPOINTS.omsOrdersRecent}?limit=${limit}`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/events/recent — admin-protected. */
+export async function getRecentOmsEvents(
+  adminToken?: string | null,
+  limit = 100
+): Promise<OmsResult<{ events: OmsEvent[]; count: number; queried_at: string }>> {
+  try {
+    const data = await request<{ events: OmsEvent[]; count: number; limit: number; queried_at: string }>(
+      `${ENDPOINTS.omsEventsRecent}?limit=${limit}`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/fills/recent — admin-protected. */
+export async function getRecentOmsFills(
+  adminToken?: string | null,
+  limit = 100
+): Promise<OmsResult<{ fills: OmsFill[]; count: number; queried_at: string }>> {
+  try {
+    const data = await request<{ fills: OmsFill[]; count: number; limit: number; queried_at: string }>(
+      `${ENDPOINTS.omsFillsRecent}?limit=${limit}`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/orders/{requestId}/audit — admin-protected. */
+export async function getOrderAudit(
+  requestId: string,
+  adminToken?: string | null
+): Promise<OmsResult<OrderAuditBundle>> {
+  try {
+    const data = await request<OrderAuditBundle>(
+      `${ENDPOINTS.omsOrderAudit}/${encodeURIComponent(requestId)}/audit`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /oms/reconciliation/status — admin-protected. */
+export async function getOmsReconciliationStatus(
+  adminToken?: string | null
+): Promise<OmsResult<OmsReconciliationStatus>> {
+  try {
+    const data = await request<OmsReconciliationStatus>(ENDPOINTS.omsReconciliationStatus, {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
   }
 }

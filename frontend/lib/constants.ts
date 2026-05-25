@@ -42,6 +42,14 @@ export const ENDPOINTS = {
   strategyTemplates: '/strategies/templates',
   strategyBacktest: '/strategies/backtest',
   strategySignalPreview: '/strategies/signal-preview',
+  // OMS (Phase 18L)
+  omsHealth: '/oms/health',
+  omsStatus: '/oms/status',
+  omsOrdersRecent: '/oms/orders/recent',
+  omsEventsRecent: '/oms/events/recent',
+  omsFillsRecent: '/oms/fills/recent',
+  omsOrderAudit: '/oms/orders', // + /{request_id}/audit
+  omsReconciliationStatus: '/oms/reconciliation/status',
 } as const
 
 export const STALE_THRESHOLD_MS = 8000
@@ -63,6 +71,7 @@ export const WORKSPACES: WorkspaceDef[] = [
   { id: 'strategy', label: 'Strategy Lab', short: 'STR', shortcut: '5' },
   { id: 'risk', label: 'Risk / System', short: 'RSK', shortcut: '6' },
   { id: 'journal', label: 'Journal', short: 'JNL', shortcut: '7' },
+  { id: 'oms', label: 'OMS Blotter', short: 'OMS', shortcut: '8' },
 ]
 
 // ----- Presets -----

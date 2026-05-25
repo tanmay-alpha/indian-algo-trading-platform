@@ -25,6 +25,7 @@ const ICONS: Record<WorkspaceId, ReactNode> = {
   strategy: <Cpu className="w-4 h-4" />,
   risk: <ShieldCheck className="w-4 h-4" />,
   journal: <Notebook className="w-4 h-4" />,
+  oms: <ShieldCheck className="w-4 h-4" />,
 }
 
 function railLabel(label: string) {

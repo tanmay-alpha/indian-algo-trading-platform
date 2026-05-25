@@ -104,11 +104,25 @@ Candles -> IndicatorEngine -> Strategy Templates -> BacktestEngine
 ### Execution Safety Flow
 
 ```text
-SignalEvent -> SignalValidator -> OrderIntent -> PreTradeRiskGate -> OMS -> ExecutionRouter 
-  -> PaperBrokerAdapter -> OrderStateEvent / FillEvent -> PortfolioEngine
+StrategySignal -> SignalValidator -> RiskGate -> OMS -> PaperBroker -> FillLedger -> PortfolioRebuild -> OMS Dashboard
 ```
 
 Live order placement is strictly disabled/locked.
+
+## Trading Safety Engine v1
+
+The backend enforces a strict "Safety-First" execution architecture:
+- **SignalValidator**: Decouples strategy signal generation from execution paths.
+- **PreTradeRiskGate**: Validates account limits, kill switches, and duplicate signals.
+- **Persistent OMS**: SQLite-backed order state preventing in-memory data loss.
+- **Idempotency**: Protects against duplicate network requests.
+- **Broker Order ID Persistence**: Tracks remote broker state locally.
+- **Startup OMS Recovery**: Reloads active pending orders on backend restarts.
+- **Broker Reconciliation**: Audits local state against broker reports.
+- **Fill Ledger**: Durable record of partial and complete execution fills.
+- **Portfolio Rebuild**: Reconstructs portfolio metrics strictly from verified fill events.
+- **Realistic Paper Broker**: Simulates market hours, slippage, limit orders, and execution fees.
+- **OMS Dashboard**: Admin-protected, read-only frontend blotter for transparency.
 
 ## Tech Stack
 
@@ -235,15 +249,18 @@ Strategy routes do not place real orders, do not connect signals to live executi
 | Security hardening | Complete | Admin token dependency, sanitizer, security docs/tests |
 | Final presentation package | Complete | README, demo script, resume, LinkedIn, release checklist |
 
-## Known Limitations
+## Honest Limitations
 
-- Render Free cold starts can take 30-60 seconds.
-- WebSocket reliability depends on deployment/environment.
-- SQLite/cache may be ephemeral on Render Free.
-- This is not production trading software and real live order placement is disabled/locked.
-- Some frontend panels are demo/research focused.
-- The C++ extension may not compile on every host.
-- Market data availability depends on broker session, subscription symbols, and market hours.
+- **PAPER Only**: The system is designed strictly for paper trading research.
+- **Live Trading Disabled**: Live order routing and real execution are hardcoded to remain locked.
+- **No Real Order Placement**: The platform will not place live financial orders.
+- **SQLite Demo Storage**: Order persistence is local/SQLite and not meant for distributed HA production.
+- **No Production Scheduler**: Broker reconciliation is triggered via admin API, not a robust cron/scheduler.
+- **No Cancel/Modify Flow**: The OMS supports placing orders, but order modification and cancellation are not yet implemented.
+- **No Production Auth**: The admin token gate is simple and lacks enterprise RBAC or OAuth.
+- **Render Free Tier Limitations**: Cold starts can take 30-60 seconds, and storage/cache may be ephemeral on the free tier.
+- **WebSocket Reliability**: Depends heavily on deployment environment.
+- **C++ Extension**: May require specific build tools depending on the host environment.
 
 ## What I Learned
 

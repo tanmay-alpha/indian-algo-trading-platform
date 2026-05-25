@@ -23,8 +23,12 @@ MAET Terminal is my personal market analytics and execution terminal for Indian 
 9. Run or explain a backtest only if candle data is available. Do not invent results.
 10. Open Portfolio and explain PAPER portfolio state and session-scoped data.
 11. Open System Health or Journal to show status/events/observability if available.
-12. Open backend health: `https://maet-backend.onrender.com/health`.
-13. Explain deployment: Vercel frontend, Render backend, known Render Free limitations.
+12. Open the OMS Dashboard workspace to view the Trading Safety Engine state.
+13. Explain the admin token gate (X-Admin-Token required to view order/fill blotters).
+14. Show the empty/real state of the blotter (no fake orders/fills if none were placed).
+15. Explain the safety-first backend (SignalValidator, RiskGate, persistent SQLite OMS, broker reconciliation).
+16. Open backend health: `https://maet-backend.onrender.com/health`.
+17. Explain deployment: Vercel frontend, Render backend, known Render Free limitations.
 
 ## What To Say If Market Is Closed
 
@@ -64,9 +68,9 @@ pybind11 lets Python call the C++ indicator core directly while keeping the Fast
 
 The backend should still run on Render or any environment where native compilation is unavailable. The fallback keeps deployment reliable for demo/staging.
 
-### Why PAPER mode?
+### Why PAPER mode and OMS?
 
-This is a learning/demo project. PAPER mode keeps demos safe and prevents accidental real orders. LIVE trading is intentionally locked.
+This is a learning/demo project. PAPER mode keeps demos safe and prevents accidental real orders. LIVE trading is intentionally locked. The persistent OMS (Order Management System), fill ledger, and PreTradeRiskGate prove that I understand execution safety, idempotency, and reconciliation without needing to risk real capital.
 
 ### Why Vercel + Render?
 

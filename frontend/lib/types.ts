@@ -11,6 +11,7 @@ export type WorkspaceId =
   | 'strategy'
   | 'risk'
   | 'journal'
+  | 'oms'
 
 export type PresetId =
   | 'scalper'
@@ -741,3 +742,96 @@ export interface WsEnvelope<T = unknown> {
 
 // ----- Chart timeframe -----
 export type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '1d'
+
+// =====================================================
+// OMS / Order Blotter Types (Phase 18L)
+// =====================================================
+
+export interface OmsHealthResponse {
+  status: 'ok' | string
+  oms_initialized: boolean
+  queried_at: string
+}
+
+export interface OmsSummary {
+  total_orders: number
+  active_orders: number
+  terminal_orders: number
+  filled_orders: number
+  rejected_orders: number
+  partial_fill_count: number
+  fill_count: number
+  latest_order_at: string | null
+  latest_fill_at: string | null
+}
+
+export interface OmsOrder {
+  request_id: string
+  client_order_id: string | null
+  broker_order_id: string | null
+  symbol: string
+  side: 'BUY' | 'SELL' | string
+  quantity: number
+  order_type: 'MARKET' | 'LIMIT' | string
+  mode: 'PAPER' | 'LIVE' | string
+  status: string
+  reject_reason: string | null
+  avg_fill_price: number | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface OmsEvent {
+  request_id: string
+  event_type: string
+  status: string | null
+  reason: string | null
+  created_at: string | null
+}
+
+export interface OmsFill {
+  fill_id: string
+  request_id: string
+  broker_order_id: string | null
+  symbol: string
+  side: string
+  filled_quantity: number
+  fill_price: number
+  fees: number | null
+  source: string | null
+  created_at: string | null
+}
+
+export interface OrderAuditBundle {
+  order: OmsOrder | null
+  events: OmsEvent[]
+  fills: OmsFill[]
+  queried_at?: string
+}
+
+export interface OmsStatusResponse {
+  oms: OmsSummary | null
+  in_memory_active_orders: number
+  portfolio_rebuild: {
+    fills_processed: number
+    skipped_rows: number
+    rebuilt_positions: string[]
+    warnings_count: number
+    source: string
+    last_rebuild_at: string | null
+  } | null
+  queried_at: string
+  trading_mode: string
+}
+
+export interface OmsReconciliationStatus {
+  status: 'ok' | 'no_report' | string
+  message?: string
+  report?: Record<string, unknown>
+  last_run_at: string | null
+  queried_at: string
+}
+
+/** Structured OMS data-availability states */
+export type OmsDataState = 'LOADING' | 'ONLINE' | 'ADMIN_REQUIRED' | 'BACKEND_UNAVAILABLE' | 'ERROR'
+

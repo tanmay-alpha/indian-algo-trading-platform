@@ -30,6 +30,7 @@ import { MacdPanel } from '@/components/chart/macd-panel'
 import { StrategyLab } from '@/components/strategy/strategy-lab'
 import { MarketsWorkspace } from './markets-workspace'
 import { JournalWorkspace as ObservabilityJournalWorkspace } from './journal-workspace'
+import { OmsDashboard } from '@/components/oms/oms-dashboard'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -47,6 +48,7 @@ export function WorkspaceContent() {
       {active === 'strategy' && <StrategyWorkspace />}
       {active === 'risk' && <RiskWorkspace />}
       {active === 'journal' && <JournalWorkspace />}
+      {active === 'oms' && <OmsWorkspace />}
     </section>
   )
 }
@@ -326,6 +328,14 @@ function JournalWorkspace() {
   return (
     <WorkspaceFrame id="journal" icon={<BookOpen className="w-4 h-4" />}>
       <ObservabilityJournalWorkspace />
+    </WorkspaceFrame>
+  )
+}
+
+function OmsWorkspace() {
+  return (
+    <WorkspaceFrame id="oms" icon={<ShieldCheck className="w-4 h-4" />}>
+      <OmsDashboard />
     </WorkspaceFrame>
   )
 }

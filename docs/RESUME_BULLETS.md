@@ -6,24 +6,22 @@ MAET Terminal - Full-Stack Trading Analytics Workstation
 
 ## One-Line Description
 
-1. Built a full-stack PAPER-mode trading analytics terminal for Indian NSE markets using FastAPI, Next.js, WebSocket, C++17, and pybind11.
+1. Built an AI-assisted paper-mode trading terminal with event-driven FastAPI backend, WebSocket market data, persistent OMS, idempotent order flow, fill ledger, reconciliation engine, C++/Python indicators, and a Next.js OMS dashboard.
 2. Developed an event-driven market research workstation with broker data ingestion, technical indicators, offline backtesting, and deployment on Vercel/Render.
-3. Created a demo trading terminal to learn backend systems, realtime frontend state, C++/Python interop, and cloud deployment.
+3. Created a demo trading terminal to learn backend systems, realtime frontend state, C++/Python interop, safe execution practices, and cloud deployment.
 
 ## Resume Bullet Options
 
-- Built a full-stack PAPER-mode trading analytics workstation with FastAPI, Next.js, TypeScript, WebSocket, Zustand, and Tailwind for Indian NSE market research.
+- Built AI-assisted paper-mode trading terminal with event-driven FastAPI backend, WebSocket market data, persistent OMS, idempotent order flow, fill ledger, reconciliation engine, C++/Python indicators, and Next.js OMS dashboard.
 - Implemented an event-driven backend pipeline using TickBus and EventBus to process broker gateway status, market ticks, candles, portfolio events, and frontend broadcasts.
 - Developed a C++17 technical indicator core with pybind11 bindings and a Python fallback engine for SMA, EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands.
-- Exposed indicator calculations through FastAPI routes and visualized EMA, VWAP, Bollinger Bands, RSI, and MACD in a terminal-style chart workspace.
+- Designed paper execution safety boundaries with PAPER default mode, persistent OMS, idempotent order tracking, PreTradeRiskGate, sanitizer, and admin-token protection for sensitive routes.
 - Created offline strategy research APIs with templates for EMA crossover, RSI mean reversion, MACD trend, VWAP pullback, and Bollinger breakout backtests.
-- Designed paper execution safety boundaries with PAPER default mode, LIVE lock, kill switch concepts, PreTradeRiskGate, sanitizer, and admin-token protection for sensitive routes.
 - Deployed a public demo using Vercel for the Next.js frontend and Render for the FastAPI backend, including REST/WebSocket URL hardening and cold-start states.
-- Added pytest coverage, C++ indicator tests, security documentation, credential rotation guidance, cleanup audit, and a C++ migration plan for future analytics modules.
 
 ## Best 3 Bullets To Use
 
-- Built a full-stack PAPER-mode trading analytics workstation with FastAPI, Next.js, TypeScript, WebSocket, Zustand, and Tailwind for Indian NSE market research.
+- Built AI-assisted paper-mode trading terminal with event-driven FastAPI backend, WebSocket market data, persistent OMS, idempotent order flow, fill ledger, reconciliation engine, C++/Python indicators, and Next.js OMS dashboard.
 - Developed a C++17 technical indicator core with pybind11 bindings and Python fallback for SMA, EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands, exposed through FastAPI routes.
 - Implemented an event-driven backend pipeline using TickBus/EventBus for broker market data, CandleStore updates, portfolio state, WebSocket broadcasting, and offline strategy backtesting.
 
