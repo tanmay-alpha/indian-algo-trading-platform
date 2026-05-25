@@ -14,7 +14,7 @@ from backend.candles.candle_fetcher import CandleFetcher
 from backend.candles.candle_store import CandleStore
 from backend.core.config import settings
 from backend.core.event_bus import EventBus
-from backend.core.events import EventType, TickEvent, event_to_dict
+from backend.core.events import EventType, TickEvent, event_to_dict, SignalEvent, OrderRequestEvent, OrderStateEvent
 from backend.core.rate_limit import limiter, register_rate_limiter
 from backend.core.security import require_admin_token, sanitize_response
 from backend.routers import candles as candles_router
@@ -216,11 +216,51 @@ async def session_to_timeline(event):
         getattr(event, "detail", "") or "",
     )
 
+from backend.strategy.signal_validator import SignalValidator
+from backend.core.types import OrderStatus
+
+signal_validator = SignalValidator(
+    event_bus=event_bus,
+    kill_switch=router.kill_switch,
+    live_trading_enabled=settings.live_trading_enabled,
+    default_quantity=1,
+)
+
+async def on_signal_event(event: SignalEvent):
+    """Handles auto-pilot routing of signals."""
+    global last_trade_time
+    if not auto_pilot:
+        return
+    # Check cooldown
+    now = asyncio.get_event_loop().time()
+    if now - last_trade_time <= trade_cooldown:
+        logger.debug(f"AUTOPILOT: Cooldown active, skipping signal for {event.symbol}")
+        return
+    # Route via SignalValidator
+    order_request = await signal_validator.validate_and_route(event, trading_mode=execution_mode)
+    if order_request:
+        last_trade_time = now
+
+async def on_order_request_event(event: OrderRequestEvent):
+    """Routes validated order requests to execution."""
+    await router.route(event)
+
+async def on_order_state_event_legacy_updater(event: OrderStateEvent):
+    """Asynchronously updates legacy portfolio and risk on fills."""
+    if event.status == OrderStatus.FILLED.value:
+        portfolio.open_position(event.symbol, event.side, event.quantity, event.avg_fill_price)
+        risk.open_position(event.symbol, event.side, event.quantity, event.avg_fill_price)
+        logger.info(f"ORDER STATE UPDATER: Position opened/updated asynchronously for {event.symbol} {event.side} @ {event.avg_fill_price}")
+
 event_bus.subscribe(EventType.TICK.value, candle_store.on_tick_event)
 event_bus.subscribe(EventType.ORDER_STATE.value, portfolio_engine.on_order_state_event)
+event_bus.subscribe(EventType.ORDER_STATE.value, on_order_state_event_legacy_updater)
+event_bus.subscribe(EventType.SIGNAL.value, on_signal_event)
+event_bus.subscribe(EventType.ORDER_REQUEST.value, on_order_request_event)
 event_bus.subscribe("*", observability_event_recorder)
 event_bus.subscribe(EventType.GATEWAY_STATUS.value, gateway_status_to_timeline)
 event_bus.subscribe(EventType.SESSION.value, session_to_timeline)
+
 for bridged_type in (
     EventType.SIGNAL.value,
     EventType.PORTFOLIO.value,
@@ -380,6 +420,7 @@ async def consume_tick_bus():
 
         strategy_tick = event.copy()
         strategy_tick["price"] = ltp
+        strategy_tick["event_id"] = tick_event.event_id
         await process_tick(strategy_tick)
 
 async def process_tick(tick: dict):
@@ -390,7 +431,10 @@ async def process_tick(tick: dict):
     vwap = tick.get("vwap")
 
     # Update Strategy with VWAP
-    signal = strategy.update_price(price, vwap)
+    # Generate SignalEvent and publish to EventBus
+    signal_event = strategy.generate_signal(symbol, price, vwap, tick_event_id=tick.get("event_id"))
+    signal = signal_event.action
+    await event_bus.publish(signal_event)
     
     # Update Portfolio Unrealized PnL
     portfolio.update_unrealized(symbol, price)
@@ -405,7 +449,7 @@ async def process_tick(tick: dict):
     })
     
     # --- Autonomous Order Logic ---
-    if auto_pilot and signal in ["BUY", "SELL"]:
+    if False:  # Deprecated in favor of event-driven execution
         now = asyncio.get_event_loop().time()
         if now - last_trade_time > trade_cooldown:
             if risk.can_take_trade(symbol):
@@ -624,7 +668,7 @@ async def toggle_mode(mode: str, confirm: bool = False):
     return {"status": "success", "new_mode": execution_mode}
 
 @app.post("/order")
-def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
+async def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
     instrument = get_instrument(symbol)
     token = str(instrument.get("token")) if instrument and instrument.get("token") else None
     if not token:
@@ -637,19 +681,39 @@ def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
 
     price = price_data["ltp"]
 
-    # Check Risk
-    if not risk.can_take_trade(symbol):
+    # Route via ExecutionRouter
+    from backend.core.events import OrderRequestEvent
+    from backend.core.types import OrderType
+
+    order_request = OrderRequestEvent(
+        symbol=symbol,
+        side=side,
+        quantity=qty,
+        order_type=OrderType.MARKET.value,
+        price=price,
+        strategy_name="MANUAL",
+        signal_event_id=None,
+        trading_mode=execution_mode,
+        source="MANUAL",
+    )
+    if False:
         return {"status": "REJECTED", "reason": "Risk limits exceeded"}
 
     # Execute
-    res = router.place_order(symbol, token, side, qty, price)
+    res_event = await router.route(order_request, latest_market={"ltp": price, "received_at": datetime.now(timezone.utc)})
     
-    if res["status"] in ["SUCCESS", "PAPER_EXECUTED"]:
+    if False:  # deprecated synchronous update
         portfolio.open_position(symbol, side, qty, price)
         risk.open_position(symbol, side, qty, price)
         logger.info(f"ORDER: {side} executed for {qty} {symbol} @ {price}")
 
-    return res
+    return {
+        "status": res_event.status,
+        "order_id": res_event.order_id,
+        "filled_qty": res_event.filled_quantity,
+        "price": res_event.avg_fill_price,
+        "reason": res_event.reject_reason
+    }
 
 @app.websocket("/ws/market_stream")
 @app.websocket("/ws/terminal")

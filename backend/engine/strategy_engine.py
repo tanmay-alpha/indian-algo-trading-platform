@@ -3,6 +3,8 @@
 from collections import deque
 import logging
 
+from backend.core.events import SignalEvent
+
 logger = logging.getLogger(__name__)
 
 class StrategyEngine:
@@ -16,6 +18,21 @@ class StrategyEngine:
         self.current_vwap = 0.0
         self.last_signal = "NEUTRAL"
         logger.info(f"STRATEGY: Engine initialized with window size {window_size}")
+
+    def generate_signal(self, symbol: str, price: float, vwap: float = None, tick_event_id: str = None) -> SignalEvent:
+        """Evaluates price/vwap and returns a SignalEvent wrapper."""
+        action = self.update_price(price, vwap)
+        return SignalEvent(
+            symbol=symbol,
+            strategy_name="VWAPMeanReversion",
+            action=action,
+            strength=1.0,
+            reason=f"Deviation evaluated at price {price} relative to VWAP {self.current_vwap}",
+            ltp=price,
+            indicators={"vwap": self.current_vwap},
+            source_tick_event_id=tick_event_id,
+        )
+
 
     def update_price(self, price: float, vwap: float = None):
         """Updates price and VWAP, then evaluates signal."""

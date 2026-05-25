@@ -57,14 +57,28 @@ class ExecutionRouter:
             live_enabled=self.live_enabled,
         )
         self.executor = self.paper_manager if self.mode == TradingMode.PAPER.value else self.live_manager
+        self._processed_request_ids = set()
+
 
     async def submit_intent(self, intent: OrderIntent, latest_market: Optional[dict] = None) -> OrderStateEvent:
         decision = await self.risk_gate.evaluate(intent, latest_market)
         if not decision.approved:
-            return self._risk_rejected_event(intent, decision)
+            reject_event = self._risk_rejected_event(intent, decision)
+            if self.event_bus:
+                await self.event_bus.publish(reject_event)
+            return reject_event
         return await self.route(order_intent_to_request_event(intent), latest_market=latest_market)
 
     async def route(self, order_request: OrderRequestEvent, latest_market: Optional[dict] = None) -> OrderStateEvent:
+        # Minimal in-memory duplicate check
+        if order_request.event_id in self._processed_request_ids:
+            logger.warning(f"EXECUTION ROUTER: Duplicate OrderRequestEvent detected: {order_request.event_id}")
+            reject_event = self._simple_rejected_event(order_request, "duplicate_request")
+            if self.event_bus:
+                await self.event_bus.publish(reject_event)
+            return reject_event
+        self._processed_request_ids.add(order_request.event_id)
+
         intent = OrderIntent(
             symbol=order_request.symbol,
             side=order_request.side,
@@ -78,16 +92,28 @@ class ExecutionRouter:
         )
         decision = await self.risk_gate.evaluate(intent, latest_market)
         if not decision.approved:
-            return self._risk_rejected_event(intent, decision, order_request.event_id)
+            reject_event = self._risk_rejected_event(intent, decision, order_request.event_id)
+            if self.event_bus:
+                await self.event_bus.publish(reject_event)
+            return reject_event
+
         if self.mode == TradingMode.PAPER.value:
             return await self.paper_manager.place_order(order_request, latest_market or {})
         if self.mode == TradingMode.LIVE.value:
             if not await self._live_checks_pass():
-                return self._simple_rejected_event(order_request, "live_safety_check_failed")
+                reject_event = self._simple_rejected_event(order_request, "live_safety_check_failed")
+                if self.event_bus:
+                    await self.event_bus.publish(reject_event)
+                return reject_event
             self.live_manager.trading_mode = self.mode
             self.live_manager.live_enabled = self.live_enabled
             return await self.live_manager.place_order(order_request)
-        return self._simple_rejected_event(order_request, "invalid_execution_mode")
+
+        reject_event = self._simple_rejected_event(order_request, "invalid_execution_mode")
+        if self.event_bus:
+            await self.event_bus.publish(reject_event)
+        return reject_event
+
 
     async def switch_to_live(self, confirm: bool = False) -> bool:
         if not confirm:
@@ -123,9 +149,15 @@ class ExecutionRouter:
         }
 
     def place_order(self, symbol, token=None, side=None, quantity=None, price=None):
+        """
+        DEPRECATED: Use event-driven async route() instead.
+        This legacy method bypasses PreTradeRiskGate checks and is kept only for
+        backward compatibility with legacy routes/tests.
+        """
         if self.mode != TradingMode.PAPER.value:
             return {"status": OrderStatus.REJECTED.value, "reason": "live_execution_locked"}
         return self.paper_manager.place_order_legacy(symbol, token, side, quantity, price)
+
 
     async def route_order(self, order_request: OrderRequestEvent, latest_market: Optional[dict] = None) -> OrderStateEvent:
         return await self.route(order_request, latest_market)
