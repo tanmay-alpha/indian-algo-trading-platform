@@ -1166,3 +1166,135 @@ def test_condition_32_full_suite_baseline():
         if os.path.exists(path):
             os.remove(path)
 
+
+# =====================================================================
+# PHASE 18F — Startup Active Order Recovery Tests (33–40)
+# =====================================================================
+
+from backend.execution.order_store import is_terminal_order_status, TERMINAL_ORDER_STATUSES
+from backend.execution.order_state_machine import OrderStateMachine as _OSM
+
+
+def test_condition_33_terminal_statuses_excluded_from_active(temp_db_path):
+    """18F-1. Terminal statuses must NOT appear in get_active_requests()."""
+    store = OrderStore(temp_db_path)
+    # Insert one row for each terminal status
+    for i, status in enumerate(sorted(TERMINAL_ORDER_STATUSES)):
+        store.add_order_request(
+            f"req_terminal_{i}", f"c_{i}", f"i_{i}",
+            "SBIN", "BUY", 10, "MARKET", "PAPER", status,
+        )
+    active = store.get_active_requests()
+    # None of the returned rows should have a terminal status
+    for row in active:
+        assert row["status"] not in TERMINAL_ORDER_STATUSES, (
+            f"Terminal status '{row['status']}' appeared in get_active_requests()"
+        )
+
+
+def test_condition_34_non_terminal_statuses_returned_as_active(temp_db_path):
+    """18F-2. Non-terminal statuses (RECEIVED, PENDING, OPEN, ROUTED_TO_PAPER) ARE returned."""
+    store = OrderStore(temp_db_path)
+    active_statuses = ["RECEIVED", "PENDING", "OPEN", "RISK_APPROVED", "ROUTED_TO_PAPER"]
+    for i, status in enumerate(active_statuses):
+        store.add_order_request(
+            f"req_active_{i}", f"c_{i}", f"i_{i}",
+            "SBIN", "BUY", 10, "MARKET", "PAPER", status,
+        )
+    active = store.get_active_requests()
+    returned_statuses = {r["status"] for r in active}
+    for status in active_statuses:
+        assert status in returned_statuses, f"Expected '{status}' in active requests but not found"
+
+
+def test_condition_35_is_terminal_helper(temp_db_path):
+    """18F-3. is_terminal_order_status() correctly classifies all known statuses."""
+    for t in ["FILLED", "REJECTED", "CANCELLED", "RISK_REJECTED", "DUPLICATE_REJECTED"]:
+        assert is_terminal_order_status(t), f"Expected {t} to be terminal"
+    for a in ["RECEIVED", "PENDING", "OPEN", "RISK_APPROVED", "ROUTED_TO_PAPER", "ROUTED_TO_LIVE"]:
+        assert not is_terminal_order_status(a), f"Expected {a} to be non-terminal"
+
+
+def test_condition_36_osm_load_from_store_restores_active_orders(temp_db_path):
+    """18F-4. OrderStateMachine.load_from_store() loads non-terminal rows into _orders."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_r1", "c1", "i1", "SBIN", "BUY", 5, "MARKET", "PAPER", "ROUTED_TO_PAPER")
+    store.add_order_request("req_r2", "c2", "i2", "RELIANCE", "SELL", 3, "MARKET", "PAPER", "PENDING")
+    # Terminal row that should NOT be loaded
+    store.add_order_request("req_r3", "c3", "i3", "TCS", "BUY", 1, "MARKET", "PAPER", "FILLED")
+
+    osm = _OSM(event_bus=None)
+    active = store.get_active_requests()
+    loaded = osm.load_from_store(active)
+
+    assert loaded == 2  # req_r1 and req_r2 only
+    assert "req_r1" in osm._orders
+    assert "req_r2" in osm._orders
+    assert "req_r3" not in osm._orders
+
+    # Verify mapping: ROUTED_TO_PAPER -> PENDING in OSM
+    from backend.core.types import OrderStatus
+    assert osm._orders["req_r1"].status == OrderStatus.PENDING.value
+    assert osm._orders["req_r2"].status == OrderStatus.PENDING.value
+
+
+def test_condition_37_load_from_store_is_idempotent(temp_db_path):
+    """18F-5. Calling load_from_store() twice does not create duplicate in-memory entries."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_dup_r", "c1", "i1", "SBIN", "BUY", 5, "MARKET", "PAPER", "PENDING")
+
+    osm = _OSM(event_bus=None)
+    active = store.get_active_requests()
+
+    loaded_first = osm.load_from_store(active)
+    loaded_second = osm.load_from_store(active)
+
+    assert loaded_first == 1
+    assert loaded_second == 0  # Already loaded; skipped
+    assert len([k for k in osm._orders if k == "req_dup_r"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_condition_38_load_from_store_does_not_publish_events(temp_db_path):
+    """18F-6. load_from_store() never publishes OrderStateEvent or any event on the bus."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_noevent", "c1", "i1", "SBIN", "BUY", 5, "MARKET", "PAPER", "PENDING")
+
+    events_received = []
+    bus = EventBus()
+    bus.subscribe("*", AsyncMock(side_effect=lambda e: events_received.append(e)))
+
+    osm = _OSM(event_bus=bus)
+    active = store.get_active_requests()
+    osm.load_from_store(active)
+    # Allow any spurious tasks to run
+    await asyncio.sleep(0)
+
+    assert len(events_received) == 0, (
+        f"load_from_store published {len(events_received)} event(s) but should publish none"
+    )
+
+
+def test_condition_39_recover_from_store_seeds_duplicate_detection(temp_db_path, clean_event_bus):
+    """18F-7. ExecutionRouter.recover_from_store() seeds _processed_request_ids so
+    recovered request IDs cannot be re-submitted after restart."""
+    store = OrderStore(temp_db_path)
+    store.add_order_request("req_seed", "c1", "i1", "SBIN", "BUY", 5, "MARKET", "PAPER", "ROUTED_TO_PAPER")
+
+    router_r = ExecutionRouter(event_bus=clean_event_bus, mode=TradingMode.PAPER.value, order_store=store)
+    count = router_r.recover_from_store()
+
+    assert count == 1
+    # The request_id must now be in the duplicate-detection set
+    assert "req_seed" in router_r._processed_request_ids
+
+
+def test_condition_40_api_import_safe_after_recovery(temp_db_path):
+    """18F-8. Backend API import still succeeds with startup recovery wired in."""
+    # If api_server imports correctly and recover_from_store is defined, this test passes.
+    import backend.api_server as _api
+    assert hasattr(_api.router, "recover_from_store"), (
+        "ExecutionRouter must expose recover_from_store() for startup wiring"
+    )
+    # Verify the method is callable without crashing
+    assert callable(_api.router.recover_from_store)

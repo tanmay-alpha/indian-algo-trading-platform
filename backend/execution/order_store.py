@@ -1,12 +1,37 @@
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Any, List, Dict
+from typing import Optional
 from loguru import logger
 
 
-# Status values that mean the order is still active and may be updated by broker poll.
-_TERMINAL_STATUSES = {"FILLED", "REJECTED", "CANCELLED", "RISK_REJECTED"}
+# -----------------------------------------------------------------------
+# Terminal status constants — centralised here so OrderStateMachine and
+# ExecutionRouter can import from a single authoritative source.
+# -----------------------------------------------------------------------
+
+TERMINAL_ORDER_STATUSES: frozenset[str] = frozenset({
+    "FILLED",
+    "REJECTED",
+    "CANCELLED",
+    "RISK_REJECTED",
+    "DUPLICATE_REJECTED",
+})
+
+# Keep private alias for internal use inside this module.
+_TERMINAL_STATUSES = TERMINAL_ORDER_STATUSES
+
+
+def is_terminal_order_status(status: str) -> bool:
+    """Return True if *status* represents a final, non-recoverable order state.
+
+    Terminal statuses:
+        FILLED, REJECTED, CANCELLED, RISK_REJECTED, DUPLICATE_REJECTED
+
+    Active / non-terminal statuses (examples):
+        RECEIVED, PENDING, OPEN, RISK_APPROVED, ROUTED_TO_PAPER, ROUTED_TO_LIVE
+    """
+    return status in TERMINAL_ORDER_STATUSES
 
 
 class OrderStore:
@@ -313,14 +338,20 @@ class OrderStore:
             conn.close()
 
     def get_active_requests(self) -> list:
-        """Return all non-terminal order requests (useful for future startup recovery)."""
+        """Return all non-terminal order requests ordered oldest-first.
+
+        Used during startup recovery to reload active orders into the
+        in-memory OrderStateMachine without losing state across restarts.
+        Returns all fields including request_id, broker_order_id, symbol,
+        side, quantity, order_type, mode, status, created_at, updated_at.
+        """
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            placeholders = ",".join("?" * len(_TERMINAL_STATUSES))
+            placeholders = ",".join("?" * len(TERMINAL_ORDER_STATUSES))
             cursor.execute(
                 f"SELECT * FROM order_requests WHERE status NOT IN ({placeholders}) ORDER BY id ASC",
-                tuple(_TERMINAL_STATUSES),
+                tuple(TERMINAL_ORDER_STATUSES),
             )
             return [dict(row) for row in cursor.fetchall()]
         finally:

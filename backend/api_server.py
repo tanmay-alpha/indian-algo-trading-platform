@@ -488,7 +488,17 @@ async def startup_event():
         app.state.sampler_task = sampler_task
 
     await load_instrument_master_best_effort()
-    
+
+    # ---- OMS Startup Recovery ----
+    # Reload non-terminal orders from SQLite into the in-memory OrderStateMachine.
+    # This runs synchronously before accepting traffic so no order is orphaned.
+    # Never calls broker APIs; only reads from local DB.
+    try:
+        recovered = router.recover_from_store()
+        logger.info(f"OMS RECOVERY: startup recovered {recovered} active order(s).")
+    except Exception as _recovery_exc:
+        logger.warning(f"OMS RECOVERY: startup recovery failed safely: {_recovery_exc.__class__.__name__}")
+
     # Start broker connectivity separately so failed login cannot crash the API.
     asyncio.create_task(start_gateway_background(loop))
     
@@ -496,6 +506,7 @@ async def startup_event():
         logger.info("DEMO MODE enabled")
 
     logger.info(f"TERMINAL: Backend operational in {execution_mode} mode")
+
 
 async def shutdown_event():
     if sampler_task and not sampler_task.done():
@@ -714,6 +725,20 @@ async def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
         "price": res_event.avg_fill_price,
         "reason": res_event.reject_reason
     }
+
+@app.get("/orders/audit/recent", dependencies=[Depends(require_admin_token)])
+async def get_recent_orders(limit: int = Query(default=50, ge=1, le=100)):
+    raw_requests = router.order_store.get_recent_requests(limit=limit)
+    sanitized_requests = []
+    for req in raw_requests:
+        req_id = req.get("request_id")
+        events = router.order_store.get_order_events(req_id)
+        sanitized_events = [dict(ev) for ev in events]
+        sanitized_requests.append({
+            **dict(req),
+            "events": sanitized_events
+        })
+    return sanitize_response({"orders": sanitized_requests})
 
 @app.websocket("/ws/market_stream")
 @app.websocket("/ws/terminal")

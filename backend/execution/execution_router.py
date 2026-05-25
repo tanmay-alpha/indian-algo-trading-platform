@@ -94,6 +94,48 @@ class ExecutionRouter:
     # Public API
     # ------------------------------------------------------------------
 
+    def recover_from_store(self) -> int:
+        """Reload non-terminal orders persisted in OrderStore into memory.
+
+        Must be called during startup, after all components are initialised
+        and BEFORE the server begins accepting new order events.
+
+        What it does:
+        1. Calls ``order_store.get_active_requests()`` to fetch all rows whose
+           status is not terminal (FILLED / REJECTED / CANCELLED / RISK_REJECTED /
+           DUPLICATE_REJECTED).
+        2. Passes the rows to ``order_state_machine.load_from_store()`` which
+           reconstructs minimal ``InternalOrderState`` objects without publishing
+           any events or calling broker APIs.
+        3. Seeds ``self._processed_request_ids`` from the recovered rows so that
+           duplicate-detection continues to work correctly across restarts.
+        4. Logs a safe count-only summary (no symbols, no credentials).
+
+        Safety guarantees:
+        - Never publishes OrderStateEvent or any event.
+        - Never calls broker APIs.
+        - Never places or modifies orders.
+        - Errors per row are swallowed inside load_from_store; startup never crashes.
+
+        Returns the number of orders successfully recovered.
+        """
+        try:
+            active_rows = self.order_store.get_active_requests()
+        except Exception as exc:
+            logger.warning(f"OMS RECOVERY: Could not load active requests: {exc.__class__.__name__}")
+            return 0
+
+        count = self.order_state_machine.load_from_store(active_rows)
+
+        # Seed duplicate-detection set so re-submitted request_ids are blocked.
+        for row in active_rows:
+            rid = row.get("request_id")
+            if rid:
+                self._processed_request_ids.add(rid)
+
+        logger.info(f"OMS RECOVERY: ExecutionRouter seeded {len(self._processed_request_ids)} request IDs for duplicate detection.")
+        return count
+
     async def submit_intent(self, intent: OrderIntent, latest_market: Optional[dict] = None) -> OrderStateEvent:
         order_request = order_intent_to_request_event(intent)
         order_request.event_id = intent.intent_id

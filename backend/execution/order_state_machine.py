@@ -1,16 +1,33 @@
 from dataclasses import replace
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
 from backend.core.events import OrderRequestEvent, OrderStateEvent
 from backend.core.types import OrderStatus
 from backend.execution.models import InternalOrderState, OrderIntent, utc_now
+from backend.execution.order_store import TERMINAL_ORDER_STATUSES
 
 
 TERMINAL = {OrderStatus.FILLED.value, OrderStatus.CANCELLED.value, OrderStatus.REJECTED.value}
 TRANSITIONS = {
     OrderStatus.PENDING.value: {OrderStatus.OPEN.value, OrderStatus.FILLED.value, OrderStatus.REJECTED.value},
     OrderStatus.OPEN.value: {OrderStatus.FILLED.value, OrderStatus.CANCELLED.value, OrderStatus.REJECTED.value},
+}
+
+# Map DB/OMS extended status strings to the nearest valid InternalOrderState status.
+# InternalOrderState only accepts PENDING, OPEN, FILLED, REJECTED, CANCELLED.
+_DB_STATUS_TO_OSM: dict[str, str] = {
+    "RECEIVED":          OrderStatus.PENDING.value,
+    "RISK_APPROVED":     OrderStatus.PENDING.value,
+    "ROUTED_TO_PAPER":   OrderStatus.PENDING.value,
+    "ROUTED_TO_LIVE":    OrderStatus.PENDING.value,
+    "SUBMITTED":         OrderStatus.PENDING.value,
+    "PENDING":           OrderStatus.PENDING.value,
+    "OPEN":              OrderStatus.OPEN.value,
+    "FILLED":            OrderStatus.FILLED.value,
+    "REJECTED":          OrderStatus.REJECTED.value,
+    "CANCELLED":         OrderStatus.CANCELLED.value,
 }
 
 
@@ -85,6 +102,81 @@ class OrderStateMachine:
 
     def has_pending_or_open_orders(self) -> bool:
         return bool(self.pending_orders() or self.open_orders())
+
+    def load_from_store(self, active_orders: list[dict]) -> int:
+        """Reload persisted non-terminal orders into the in-memory state machine.
+
+        Called during startup recovery.  For each row returned by
+        ``OrderStore.get_active_requests()`` this method reconstructs a
+        minimal ``InternalOrderState`` and registers it in ``self._orders``
+        using the ``request_id`` as the ``order_id`` key.
+
+        Safety guarantees:
+        - Never publishes OrderStateEvent or any event on the event bus.
+        - Never calls broker APIs.
+        - Never modifies existing in-memory orders (idempotent / no duplicates).
+        - Skips rows that are already loaded or have unmappable fields.
+        - Skips rows whose status is terminal (defensive guard).
+        - Logs a safe count-only summary (no symbols or credentials).
+
+        Returns the number of orders successfully loaded.
+        """
+        loaded = 0
+        skipped = 0
+        for row in active_orders:
+            request_id = row.get("request_id")
+            if not request_id:
+                skipped += 1
+                continue
+
+            # Skip if already tracked (idempotent — no duplicates).
+            if request_id in self._orders:
+                skipped += 1
+                continue
+
+            db_status = str(row.get("status") or "PENDING")
+
+            # Defensive: skip terminal rows that slipped through the query.
+            if db_status in TERMINAL_ORDER_STATUSES:
+                skipped += 1
+                continue
+
+            # Map extended DB status to valid OSM status.
+            osm_status = _DB_STATUS_TO_OSM.get(db_status, OrderStatus.PENDING.value)
+
+            try:
+                quantity = int(row.get("quantity") or 0)
+                if quantity <= 0:
+                    skipped += 1
+                    continue
+
+                state = InternalOrderState(
+                    order_id=request_id,             # use request_id as stable key
+                    broker_order_id=row.get("broker_order_id"),
+                    intent_id=request_id,
+                    symbol=str(row.get("symbol") or ""),
+                    side=str(row.get("side") or ""),
+                    quantity=quantity,
+                    filled_quantity=0,
+                    order_type=str(row.get("order_type") or "MARKET"),
+                    requested_price=None,
+                    avg_fill_price=None,
+                    status=osm_status,
+                    reject_reason=row.get("reject_reason"),
+                    trading_mode=str(row.get("mode") or "PAPER"),
+                )
+                self._orders[request_id] = state
+                loaded += 1
+            except Exception:
+                # Silently skip malformed legacy rows; do not crash startup.
+                skipped += 1
+                continue
+
+        from loguru import logger
+        logger.info(
+            f"OMS RECOVERY: Recovered {loaded} active orders; skipped {skipped} rows."
+        )
+        return loaded
 
     def status(self) -> dict:
         by_status: dict[str, int] = {}
