@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, Body
 
 from backend.core.security import require_admin_token
 from backend.portfolio.portfolio_engine import PortfolioEngine
@@ -43,7 +43,7 @@ def portfolio_reconciliation_status(request: Request):
 
 
 @router.post("/reconcile/orders", dependencies=[Depends(require_admin_token)])
-async def portfolio_reconcile_orders(request: Request, broker_orders: list = None):
+async def portfolio_reconcile_orders(request: Request, broker_orders: list | None = Body(default=None)):
     execution_router = getattr(request.app.state, "execution_router", None)
     if not execution_router:
         raise HTTPException(status_code=500, detail="Execution router not initialized")

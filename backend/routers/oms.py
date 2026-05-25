@@ -27,7 +27,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body
 
 from backend.core.security import require_admin_token, sanitize_response
 
@@ -250,7 +250,7 @@ def oms_reconciliation_status(request: Request):
 # ---------------------------------------------------------------------------
 
 @router.post("/reconciliation/run", dependencies=[Depends(require_admin_token)])
-async def oms_reconciliation_run(request: Request, broker_orders: list | None = None):
+async def oms_reconciliation_run(request: Request, broker_orders: list | None = Body(default=None)):
     """Dry-run the reconciliation engine against a supplied broker snapshot.
 
     If *broker_orders* is not supplied and no broker session is active,
