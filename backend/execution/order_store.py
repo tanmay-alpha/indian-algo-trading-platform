@@ -453,8 +453,159 @@ class OrderStore:
         finally:
             conn.close()
     # ------------------------------------------------------------------
+    # Admin / Operational Read Methods (Phase 18J)
+    # ------------------------------------------------------------------
+
+    def get_recent_order_requests(self, limit: int = 50) -> list:
+        """Return the most recent *limit* order_requests rows, newest first.
+
+        Safe for admin API: no credentials. Max limit capped at 200.
+        """
+        limit = min(max(1, int(limit)), 200)
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM order_requests ORDER BY id DESC LIMIT ?", (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_recent_order_events(self, limit: int = 100) -> list:
+        """Return the most recent *limit* order_events rows, newest first.
+
+        Safe for admin API: no credentials. Max limit capped at 200.
+        """
+        limit = min(max(1, int(limit)), 200)
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM order_events ORDER BY id DESC LIMIT ?", (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_recent_fills(self, limit: int = 100) -> list:
+        """Return the most recent *limit* fill rows from order_fills, newest first.
+
+        Safe for admin API: no credentials. Max limit capped at 200.
+        """
+        limit = min(max(1, int(limit)), 200)
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM order_fills ORDER BY id DESC LIMIT ?", (limit,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_order_audit(self, request_id: str) -> dict:
+        """Return a full audit bundle for *request_id*: order row + events + fills.
+
+        Returns empty dicts/lists when request_id is unknown — never raises.
+        Safe for admin API: no credentials.
+        """
+        if not request_id:
+            return {"order": None, "events": [], "fills": [], "request_id": ""}
+        order = self.get_order_request(request_id)
+        events = self.get_order_events(request_id)
+        fills = self.get_fills_for_request(request_id)
+        return {
+            "request_id": request_id,
+            "order": order,
+            "events": events,
+            "fills": fills,
+        }
+
+    def get_oms_summary(self) -> dict:
+        """Return aggregate OMS statistics for the /oms/status endpoint.
+
+        Fields:
+          total_orders, active_orders, terminal_orders, filled_orders,
+          rejected_orders, partial_fill_count (orders with >0 but not FILLED),
+          fill_count, latest_order_at, latest_fill_at.
+
+        Never returns credentials. Safe for sanitize_response().
+        """
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+
+            # Total order count
+            cursor.execute("SELECT COUNT(*) FROM order_requests")
+            total_orders = cursor.fetchone()[0] or 0
+
+            # Active (non-terminal) orders
+            placeholders = ",".join("?" * len(TERMINAL_ORDER_STATUSES))
+            cursor.execute(
+                f"SELECT COUNT(*) FROM order_requests WHERE status NOT IN ({placeholders})",
+                tuple(TERMINAL_ORDER_STATUSES),
+            )
+            active_orders = cursor.fetchone()[0] or 0
+
+            # Terminal orders
+            cursor.execute(
+                f"SELECT COUNT(*) FROM order_requests WHERE status IN ({placeholders})",
+                tuple(TERMINAL_ORDER_STATUSES),
+            )
+            terminal_orders = cursor.fetchone()[0] or 0
+
+            # FILLED orders
+            cursor.execute("SELECT COUNT(*) FROM order_requests WHERE status = 'FILLED'")
+            filled_orders = cursor.fetchone()[0] or 0
+
+            # REJECTED orders (all reject variants)
+            cursor.execute(
+                "SELECT COUNT(*) FROM order_requests WHERE status LIKE '%REJECT%'"
+            )
+            rejected_orders = cursor.fetchone()[0] or 0
+
+            # Orders that have at least one fill but are NOT in FILLED terminal state
+            # (i.e. partially filled and still active)
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT request_id) FROM order_fills
+                WHERE request_id NOT IN (
+                    SELECT request_id FROM order_requests WHERE status = 'FILLED'
+                )
+                """
+            )
+            partial_fill_count = cursor.fetchone()[0] or 0
+
+            # Total fill records
+            cursor.execute("SELECT COUNT(*) FROM order_fills")
+            fill_count = cursor.fetchone()[0] or 0
+
+            # Latest timestamps
+            cursor.execute("SELECT MAX(created_at) FROM order_requests")
+            latest_order_at = cursor.fetchone()[0]
+
+            cursor.execute("SELECT MAX(created_at) FROM order_fills")
+            latest_fill_at = cursor.fetchone()[0]
+
+            return {
+                "total_orders": total_orders,
+                "active_orders": active_orders,
+                "terminal_orders": terminal_orders,
+                "filled_orders": filled_orders,
+                "rejected_orders": rejected_orders,
+                "partial_fill_count": partial_fill_count,
+                "fill_count": fill_count,
+                "latest_order_at": latest_order_at,
+                "latest_fill_at": latest_fill_at,
+            }
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
     # Fill Ledger -- order_fills table
     # ------------------------------------------------------------------
+
 
     def record_fill(
         self,

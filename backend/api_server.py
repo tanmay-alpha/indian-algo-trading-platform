@@ -23,6 +23,7 @@ from backend.routers import portfolio as portfolio_router
 from backend.routers import strategies as strategies_router
 from backend.routers import discovery as discovery_router
 from backend.routers import observability as observability_router
+from backend.routers import oms as oms_router
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.templates import get_strategy_templates
@@ -89,6 +90,7 @@ app.include_router(strategies_router.router)
 app.include_router(discovery_router.router)
 app.include_router(observability_router.router)
 app.include_router(observability_router.prometheus_router)
+app.include_router(oms_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
@@ -165,6 +167,13 @@ app.state.obs_event_log = obs_event_log
 app.state.obs_timeline = obs_timeline
 app.state.execution_router = router
 app.state.backtest_history = []
+# Phase 18J: OMS admin visibility state
+app.state.order_store = getattr(router, "order_store", None)
+app.state.trading_mode = execution_mode
+app.state.oms_rebuild_summary = None  # populated after startup rebuild
+app.state.oms_rebuild_at = None
+app.state.last_reconciliation_report = None
+app.state.last_reconciliation_at = None
 
 
 def utc_timestamp() -> str:
