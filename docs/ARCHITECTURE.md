@@ -4,35 +4,51 @@ MAET Terminal is a staged broker-terminal and algorithmic trading platform for I
 
 ## Architecture Overview
 
-```text
-Vercel Frontend
-  -> Render FastAPI Backend
-    -> SessionManager / SmartAPI
-      -> SmartWebSocketV2
-        -> TickBus
-          -> EventBus
-            -> CandleStore
-            -> ExecutionRouter
-            -> PortfolioEngine
-          -> WebSocket/REST
-            -> Terminal UI
+```mermaid
+graph TD
+    FE[Next.js Frontend + Zustand] <-->|REST + WebSocket| API[FastAPI API Layer]
+    API --> WS[WebSocketBroadcaster]
+    API --> AUTH[Security/Admin Guards]
+    ANGEL[Angel One SmartWebSocketV2] --> MDG[MarketDataGateway]
+    MDG --> TICK[TickBus]
+    TICK --> EVT[EventBus]
+    EVT --> CS[CandleStore]
+    CS --> IND[IndicatorEngine C++/Python Fallback]
+    CS --> STRAT[StrategyEngine]
+    IND --> STRAT
+    STRAT --> SIG[SignalEvent]
+    SIG --> VAL[SignalValidator]
+    VAL --> RISK[RiskManager / PreTradeRiskGate]
+    PORT[PortfolioEngine] -->|exposure/PnL context| RISK
+    RISK --> OMS[OrderManager / OMS]
+    OMS --> EXEC[ExecutionRouter]
+    EXEC --> PAPER[PaperBrokerAdapter Default]
+    EXEC -.locked/disabled.-> LIVE[LiveBrokerAdapter]
+    PAPER --> EVENTS[OrderStateEvent / FillEvent / RejectEvent]
+    LIVE --> EVENTS
+    EVENTS --> PORT
+    EVENTS --> AUDIT[Journal / Audit Logs / Persistence]
+    EVENTS --> WS
+    WS --> FE
 ```
 
-The frontend is deployed separately from the backend. The backend owns broker connectivity, session lifecycle, market data ingestion, event routing, candles, execution safety, and portfolio state.
+### Safe Trading Flow
+1. **StrategyEngine emits SignalEvent only**: It calculates indicators and price deviations, emitting raw signals (BUY/SELL/NEUTRAL) rather than executing trades or updating portfolios directly.
+2. **SignalValidator**: Intercepts `SignalEvent` and converts approved strategy signals into an `OrderIntent`.
+3. **RiskManager / PreTradeRiskGate**: Checks validation rules such as the global kill switch status, current trading mode (paper vs. live), max order quantity, max order notional, current exposure limits, and duplicate order risk. It uses state context from the `PortfolioEngine` for exposure and PnL metrics.
+4. **OrderManager / OMS**: Owns the lifecycle of order execution, client-side order ID (`client_order_id`) generation, idempotency, duplicate prevention, broker order ID mapping, order status transitions, and audit logs.
+5. **ExecutionRouter**: Routes validated `OrderIntent` objects. By default, orders are routed to the `PaperBrokerAdapter`.
+6. **LiveBrokerAdapter (Locked/Disabled)**: The live trading adapter is completely disabled and locked to prevent accidental execution in real markets.
+7. **PortfolioEngine updates after events only**: The portfolio is decoupled from order routing and updates its positions, holdings, and PnL metrics *only* when it receives an asynchronous `OrderStateEvent`, `FillEvent`, or `RejectEvent`.
+8. **Decoupled Frontend**: The Next.js frontend never communicates directly with the internal backtesting or execution engines; all data and status queries flow strictly through the FastAPI REST/WebSocket API layer.
 
 ## Event Pipeline
 
 ```text
-SmartAPI
-  -> SmartWebSocketV2
-    -> normalized tick dict
-      -> TickBus
-        -> TickEvent
-          -> EventBus
-            -> CandleStore
-            -> PortfolioEngine
-            -> WebSocket bridge
-              -> Terminal UI
+SmartAPI -> SmartWebSocketV2 -> Normalized Ticks -> TickBus -> EventBus
+  -> CandleStore -> IndicatorEngine -> StrategyEngine -> SignalEvent
+  -> SignalValidator -> RiskManager -> OrderManager -> ExecutionRouter -> PaperBrokerAdapter
+  -> FillEvent/OrderStateEvent -> PortfolioEngine -> WS Broadcaster -> Frontend UI
 ```
 
 Raw broker tick payloads are normalized inside the gateway before reaching downstream modules.
@@ -78,14 +94,7 @@ Raw broker tick payloads are normalized inside the gateway before reaching downs
 ## Market Data Flow
 
 ```text
-SmartAPI
-  -> SmartWebSocketV2
-  -> TickBus
-  -> EventBus
-  -> CandleStore
-  -> PortfolioEngine
-  -> WebSocket/REST
-  -> Frontend
+SmartAPI -> SmartWebSocketV2 -> MarketDataGateway -> TickBus -> EventBus -> CandleStore -> WebSocket/REST -> Frontend
 ```
 
 Market closed periods are expected to produce no live ticks. The WebSocket heartbeat and REST status fallback keep terminal status visible even without tick traffic.
@@ -93,13 +102,8 @@ Market closed periods are expected to produce no live ticks. The WebSocket heart
 ## Execution Safety Flow
 
 ```text
-OrderIntent
-  -> PreTradeRiskGate
-  -> ExecutionRouter
-  -> PaperOrderManager / LiveOrderManager
-  -> OrderStateMachine
-  -> OrderStateEvent
-  -> TradeJournal
+SignalEvent -> SignalValidator -> OrderIntent -> PreTradeRiskGate -> ExecutionRouter
+  -> PaperBrokerAdapter (Default) -> OrderStateEvent/FillEvent -> TradeJournal
 ```
 
 PAPER mode is the default. LIVE execution is gated and disabled by default. Live broker placement must pass explicit safety checks before any broker call can be made.
@@ -107,12 +111,7 @@ PAPER mode is the default. LIVE execution is gated and disabled by default. Live
 ## Portfolio Flow
 
 ```text
-Filled OrderStateEvent
-  -> PositionTracker
-  -> PortfolioEngine
-  -> PortfolioEvent
-  -> API/WS
-  -> Frontend
+OrderStateEvent / FillEvent / RejectEvent -> PositionTracker -> PortfolioEngine -> PortfolioEvent -> API/WS -> Frontend
 ```
 
 PAPER mode treats internal fills and the trade journal as source of truth. LIVE mode is designed to reconcile with broker positions and holdings.

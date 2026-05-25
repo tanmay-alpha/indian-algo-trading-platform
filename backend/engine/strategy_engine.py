@@ -21,10 +21,11 @@ class StrategyEngine:
         """Updates price and VWAP, then evaluates signal."""
         try:
             self.prices.append(float(price))
-            if vwap:
+            if vwap is not None:
                 self.current_vwap = float(vwap)
             
-            if len(self.prices) < 5:
+            warmup_limit = min(5, self.prices.maxlen or 5)
+            if len(self.prices) < warmup_limit:
                 return "NEUTRAL"
 
             return self.evaluate()
@@ -37,7 +38,7 @@ class StrategyEngine:
         VWAP Mean Reversion Strategy.
         Generates signals based on price deviation from institutional VWAP.
         """
-        if self.current_vwap == 0:
+        if self.current_vwap == 0.0:
             return "NEUTRAL"
 
         current_price = self.prices[-1]
@@ -60,3 +61,4 @@ class StrategyEngine:
             self.last_signal = "NEUTRAL"
 
         return self.last_signal
+

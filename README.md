@@ -47,24 +47,36 @@ This is not a SaaS product, not production trading software, and not financial a
 Screenshots should be captured from the live demo or local development environment. Do not include screenshots containing credentials, tokens, private account data, fake prices, fake PnL, or fake backtest results.
 Suggested folder: `docs/screenshots/`
 
-## Architecture
+## Architecture & Safe Trading Flow
+
+This platform is designed strictly for **PAPER/demo/research** purposes, not for live production trading. To ensure operational safety, the platform implements a decoupled, event-driven architecture with the following execution flow:
 
 ```text
-Browser / Vercel frontend
-  -> REST + WebSocket -> FastAPI backend / Render
-  -> SessionManager -> Angel One SmartAPI -> MarketDataGateway
-  -> TickBus -> EventBus
-  -> CandleStore -> IndicatorEngine -> StrategyEngine -> PortfolioEngine
-  -> WebSocket broadcaster -> Frontend UI
-
-C++17 indicator core
-  -> pybind11
-  -> Python IndicatorEngine
-  -> FastAPI indicator routes
-  -> Frontend chart overlays + RSI/MACD panels
+Frontend (Next.js/Zustand)
+  -> FastAPI REST/WebSocket API layer
+  -> MarketDataGateway
+  -> TickBus/EventBus
+  -> CandleStore -> IndicatorEngine
+  -> StrategyEngine (Emits SignalEvent only)
+  -> SignalValidator (Converts to OrderIntent)
+  -> RiskManager / PreTradeRiskGate
+  -> OrderManager/OMS
+  -> ExecutionRouter
+  -> PaperBrokerAdapter (Default) / LiveBrokerAdapter (Locked & Disabled)
+  -> OrderStateEvent / FillEvent / RejectEvent
+  -> PortfolioEngine (Updates on event receipts only)
+  -> Journal / Audit / Persistence
+  -> WebSocketBroadcaster -> Frontend UI
 ```
 
-The backend owns broker connectivity and never sends broker credentials to the browser.
+### Key Execution Safety Principles:
+1. **StrategyEngine emits SignalEvent only**: Strategy modules do not place orders or directly update portfolios. They only calculate indicator deviations and emit signals.
+2. **SignalValidator**: Validates strategy signals and generates an official `OrderIntent`.
+3. **RiskManager / PreTradeRiskGate**: Checks the system kill switch, max quantity, max notional limits, total portfolio exposure, and filters duplicate signal risks before passing orders downstream.
+4. **OrderManager / OMS**: Controls order identifiers (`client_order_id`), prevents duplicate submissions (idempotency), tracks order states, maps to broker IDs, and records audit journals.
+5. **ExecutionRouter & Adapters**: Routes execution intents to the `PaperBrokerAdapter` by default. The `LiveBrokerAdapter` is completely locked and disabled in code.
+6. **PortfolioEngine Updates**: The portfolio is fully decoupled from active strategy engines and only updates its internal state (holdings, positions, PnL) upon receiving an asynchronous `OrderStateEvent`, `FillEvent`, or `RejectEvent`.
+7. **No Direct Engine Access**: The frontend never connects directly to execution or backtesting engines; all communications are channeled through the FastAPI REST and WebSocket layers.
 
 ## Data Flow
 
@@ -72,31 +84,31 @@ The backend owns broker connectivity and never sends broker credentials to the b
 
 ```text
 Angel SmartAPI -> SmartWebSocketV2 -> MarketDataGateway -> TickBus
--> EventBus -> CandleStore -> WebSocket -> Frontend
+  -> EventBus -> CandleStore -> WebSocketBroadcaster -> Frontend UI
 ```
 
 ### Indicator Flow
 
 ```text
-CandleStore -> IndicatorEngine -> C++ pybind11 or Python fallback
--> /indicators routes -> Chart overlays
+CandleStore -> IndicatorEngine -> C++ pybind11 (or Python fallback)
+  -> FastAPI /indicators routes -> Chart overlays
 ```
 
 ### Strategy Backtest Flow
 
 ```text
 Candles -> IndicatorEngine -> Strategy Templates -> BacktestEngine
--> Metrics/Trades/Equity Curve -> Strategy UI
+  -> Metrics/Trades/Equity Curve -> REST API -> Strategy UI
 ```
 
 ### Execution Safety Flow
 
 ```text
-OrderIntent -> PreTradeRiskGate -> ExecutionRouter -> Paper manager
--> OrderStateMachine -> PortfolioEngine
+SignalEvent -> SignalValidator -> OrderIntent -> PreTradeRiskGate -> OMS -> ExecutionRouter 
+  -> PaperBrokerAdapter -> OrderStateEvent / FillEvent -> PortfolioEngine
 ```
 
-Live order placement is disabled/locked.
+Live order placement is strictly disabled/locked.
 
 ## Tech Stack
 
