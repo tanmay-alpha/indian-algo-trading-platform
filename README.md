@@ -124,6 +124,10 @@ The backend enforces a strict "Safety-First" execution architecture:
 - **Realistic Paper Broker**: Simulates market hours, slippage, limit orders, and execution fees.
 - **OMS Dashboard**: Admin-protected, read-only frontend blotter for transparency.
 
+> [!WARNING]
+> **Ephemeral SQLite Storage & Render Free Limits**: In this demo deployment on Render Free, the local SQLite database (`data/trades.db`) resides on an ephemeral file system. Because Render Free instances spin down after inactivity and recycle their containers on restarts or redeploys, any persisted paper order logs, fill histories, and portfolio state will periodically reset. In a production environment, this SQLite store would be replaced by a managed database like PostgreSQL (e.g., Supabase, Neon, or RDS) to ensure durable, long-term persistence.
+
+
 ## Tech Stack
 
 | Layer | Technology | Purpose |

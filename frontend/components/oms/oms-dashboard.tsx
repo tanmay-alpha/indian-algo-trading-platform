@@ -163,6 +163,17 @@ function SummaryTab() {
 
   return (
     <div className="p-3 space-y-3 overflow-auto">
+      {/* Ephemeral storage warnings */}
+      <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2 flex gap-2 text-amber-400/95">
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+        <div className="text-[10px] font-mono leading-normal">
+          <span className="font-semibold uppercase text-amber-300">Deployment Notice:</span> This demo runs on Render Free. 
+          The SQLite database resides on ephemeral storage. 
+          Order blotters, partial fill ledgers, and reconciled state will reset when the backend restarts or sleeps. 
+          A production system would require a persistent SQL database like PostgreSQL.
+        </div>
+      </div>
+
       {/* Health row */}
       <div className="flex items-center gap-2 rounded border border-border bg-panel/60 px-3 py-2">
         {health?.oms_initialized ? (

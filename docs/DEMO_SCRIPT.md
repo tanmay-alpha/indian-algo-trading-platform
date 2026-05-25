@@ -40,7 +40,7 @@ Do not fake live ticks or prices during market-closed periods.
 
 Render Free can cold start after inactivity. The first request may take 30-60 seconds. The frontend has a backend waking state for this case.
 
-This is a hosting limitation, not an architecture failure. A production trading deployment would use a persistent VPS or cloud VM with stable process management, persistent storage, and monitoring.
+This is a hosting limitation, not an architecture failure. Also, because Render Free's local storage is ephemeral, the SQLite database resets on each sleep/restart cycle. A production trading deployment would use a persistent VPS or cloud VM with stable process management, a managed persistent database like PostgreSQL, and monitoring.
 
 ## Interview Q&A
 
@@ -78,7 +78,7 @@ Vercel is straightforward for Next.js. Render is simple for a public FastAPI dem
 
 ### What is not production-ready?
 
-It is not production trading software. Render Free can sleep, cache/storage can be ephemeral, auth is intentionally simple, and live order placement is disabled. A production system would need stronger persistence, observability, auth, secrets management, uptime guarantees, and formal risk controls.
+It is not production trading software. Render Free can sleep, its local SQLite storage is ephemeral and resets on restart, auth is intentionally simple, and live order placement is disabled. A production system would need a managed database (like PostgreSQL/Supabase/Neon) for durable persistence, plus stronger observability, auth, secrets management, uptime guarantees, and formal risk controls.
 
 ### How did AI help?
 

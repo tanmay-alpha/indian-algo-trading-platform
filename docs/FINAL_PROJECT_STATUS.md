@@ -37,7 +37,7 @@
 
 ## What Is Not Production-Ready
 
-- Render Free can sleep and has ephemeral disk.
+- Render Free can sleep and has ephemeral disk. The local SQLite database (`data/trades.db`) resides on ephemeral storage, meaning order blotters, fill histories, and portfolio state will periodically reset when the instance restarts or recycles. A production system would require a managed persistent database like PostgreSQL/Supabase/Neon.
 - WebSocket stability depends on deployment/network environment.
 - Auth is simple admin-token protection, not user management.
 - Persistence is not production-grade.
