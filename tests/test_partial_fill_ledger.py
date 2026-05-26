@@ -453,7 +453,8 @@ def test_record_fill_stores_uppercase():
 # 18. PaperOrderManager — records fill to ledger on successful paper execution
 # ---------------------------------------------------------------------------
 
-def test_paper_order_manager_records_fill():
+@pytest.mark.asyncio
+async def test_paper_order_manager_records_fill():
     """PaperOrderManager.place_order should write to the fill ledger if order_store provided."""
     store, path = make_store()
     try:
@@ -476,10 +477,9 @@ def test_paper_order_manager_records_fill():
             source="test",
         )
         market_data = {"ltp": 555.0, "best_ask": 556.0, "spread": 0.5}
-        event = asyncio.get_event_loop().run_until_complete(
-            manager.place_order(req, market_data)
-        )
+        event = await manager.place_order(req, market_data)
         assert event.status == "FILLED"
+
         # Fill ledger uses event_id as request_id (Phase 18K canonical mapping)
         fills = store.get_fills_for_request(req.event_id)
         assert len(fills) == 1
