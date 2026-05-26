@@ -25,7 +25,8 @@ class Watchlist(Base):
     __tablename__ = "watchlists"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, index=True, nullable=False)
+    user_id = Column(String, index=True, nullable=False, default="default")
     created_at = Column(String, nullable=True)
     
     items = relationship("WatchlistItem", back_populates="watchlist", cascade="all, delete-orphan")

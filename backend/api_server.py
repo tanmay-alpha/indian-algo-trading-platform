@@ -24,6 +24,8 @@ from backend.routers import strategies as strategies_router
 from backend.routers import discovery as discovery_router
 from backend.routers import observability as observability_router
 from backend.routers import oms as oms_router
+from backend.routers import watchlists as watchlists_router
+from backend.services.watchlist_service import WatchlistService
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.templates import get_strategy_templates
@@ -92,6 +94,7 @@ app.include_router(discovery_router.router)
 app.include_router(observability_router.router)
 app.include_router(observability_router.prometheus_router)
 app.include_router(oms_router.router)
+app.include_router(watchlists_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
@@ -314,9 +317,19 @@ def get_instrument_master_status():
 
 @app.get("/market-watch")
 def get_market_watch():
+    # Phase 19D: Try DB-backed watchlist first, fall back to in-memory.
+    # Subscription boundary: only selected watchlist symbols are subscribed, not the full instrument universe.
+    try:
+        svc = WatchlistService(market_watch=market_watch)
+        result = svc.get_market_watch_snapshot()
+        if result.get("items"):
+            return sanitize_response(result)
+    except Exception as _exc:
+        logger.debug("DB market-watch snapshot failed, using fallback: %s", _exc)
     return sanitize_response({
         "symbols": market_watch.symbols,
         "items": market_watch.snapshot(),
+        "source": "fallback",
     })
 
 @app.post("/market-watch", dependencies=[Depends(require_admin_token)])

@@ -16,6 +16,8 @@
 - Startup OMS order recovery and broker reconciliation flow.
 - Admin-protected OMS Dashboard (Order Blotter, Fill Ledger, Audit Trail).
 - Observability/status routes and final security hardening are documented.
+- **Phase 19A–C**: SQLAlchemy database foundation, Alembic migrations, DB-backed instrument master search.
+- **Phase 19D**: Persistent DB-backed watchlists. Instruments are searchable from the full universe but WebSocket subscriptions remain limited to selected watchlist symbols only. Auth-linked watchlists deferred to Phase 20. Live trading remains disabled.
 
 ## What Is Demo-Only
 
