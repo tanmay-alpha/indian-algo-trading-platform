@@ -129,7 +129,7 @@ export function MarketsWorkspace() {
 
   const onInstrumentClick = (symbol: string) => {
     setSelectedSymbol(symbol)
-    setWorkspace('charts')
+    setWorkspace('trade')
   }
 
   const onRunScreener = async () => {

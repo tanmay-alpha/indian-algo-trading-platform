@@ -36,13 +36,6 @@ module.exports = {
         // Mode
         paper: 'var(--paper)',
         live: 'var(--live)',
-        // Aliases (legacy components)
-        background: 'var(--bg)',
-        accent: 'var(--info)',
-        success: 'var(--up)',
-        danger: 'var(--down)',
-        warning: 'var(--warn)',
-        'text-main': 'var(--text)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -56,12 +49,12 @@ module.exports = {
         md: ['14px', { lineHeight: '20px' }],
       },
       spacing: {
-        rail: '44px',
+        rail: '48px',
         watchlist: '280px',
         drawer: '320px',
         topbar: '42px',
         statusbar: '26px',
-        dock: '240px',
+        dock: '32px', // Compact foundation for collapsible drawer
       },
       boxShadow: {
         panel: '0 1px 0 rgba(255,255,255,0.02) inset',

@@ -6,36 +6,36 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, ui-monospace, monospace;
 
-  /* --- Surfaces (deeper, more contrast) --- */
-  --bg: #050709;
-  --bg-2: #080c12;
-  --panel: #0c1118;
-  --panel-2: #10161f;
-  --panel-3: #161d28;
+  /* --- Surfaces (Broker-Grade Deeper Dark) --- */
+  --bg: #05070a;
+  --bg-2: #080d12;
+  --panel: #0b1118;
+  --panel-2: #101720;
+  --panel-3: #151e2a;
 
-  /* --- Borders --- */
-  --border: rgba(255,255,255,0.055);
-  --border-strong: rgba(255,255,255,0.10);
-  --border-accent: rgba(84,193,236,0.30);
+  /* --- Borders (Subtle, non-distracting) --- */
+  --border: #17202b;
+  --border-strong: #232e3b;
+  --border-accent: rgba(56, 189, 248, 0.25);
 
-  /* --- Text (more contrast levels) --- */
-  --text: #e2e8f0;
+  /* --- Text (Optimized contrast) --- */
+  --text: #eef2f7;
   --text-2: #94a3b8;
   --text-dim: #64748b;
-  --text-faint: #3d4a5c;
+  --text-faint: #334155;
 
-  /* --- Market state (more saturated) --- */
-  --up: #16c784;
-  --up-dim: rgba(22,199,132,0.12);
-  --up-glow: rgba(22,199,132,0.20);
-  --down: #ea3943;
-  --down-dim: rgba(234,57,67,0.12);
+  /* --- Market state --- */
+  --up: #10b981;
+  --up-dim: rgba(16, 185, 129, 0.1);
+  --up-glow: rgba(16, 185, 129, 0.15);
+  --down: #ef4444;
+  --down-dim: rgba(239, 68, 68, 0.1);
 
   /* --- Status colors --- */
   --warn: #f59e0b;
-  --warn-dim: rgba(245,158,11,0.12);
+  --warn-dim: rgba(245, 158, 11, 0.1);
   --info: #38bdf8;
-  --info-dim: rgba(56,189,248,0.12);
+  --info-dim: rgba(56, 189, 248, 0.1);
   --locked: #475569;
 
   /* --- Mode badges --- */
@@ -117,22 +117,21 @@ button:disabled,
   cursor: not-allowed;
 }
 
-/* Terminal grid backdrop */
+/* Terminal grid backdrop (Subtler) */
 .term-grid {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 .chart-grid {
   background-image:
-    linear-gradient(rgba(84, 193, 236, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(84, 193, 236, 0.045) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(56, 189, 248, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
   background-size: 120px 80px, 120px 80px, 24px 24px, 24px 24px;
-  mask-image: radial-gradient(circle at center, black 0%, black 62%, transparent 100%);
 }
 
 .price-up { color: var(--up); }

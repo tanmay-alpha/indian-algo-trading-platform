@@ -192,6 +192,7 @@ export interface TerminalState {
   watchlistError: string | null
   watchlistAdminRequired: boolean
   watchlistLastUpdatedAt: number | null
+  bottomDockOpen: boolean
 }
 
 export interface TerminalActions {
@@ -199,6 +200,7 @@ export interface TerminalActions {
   setPreset: (p: PresetId | null) => void
   setRightPanelTab: (t: RightPanelTab) => void
   setBottomDockTab: (t: DockTabId) => void
+  setBottomDockOpen: (open: boolean) => void
   setChartTimeframe: (t: Timeframe) => void
 
   toggleCommandPalette: (open?: boolean) => void
@@ -413,6 +415,7 @@ const initialState: TerminalState = {
   watchlistLastUpdatedAt: null,
   chartLayoutMode: 'CLEAN',
   showPatternLabels: false,
+  bottomDockOpen: true,
 }
 
 const MAX_EVENTS = 200
@@ -433,6 +436,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setRightPanelTab: (t) => set({ rightPanelTab: t }),
   setBottomDockTab: (t) => set({ bottomDockTab: t }),
+  setBottomDockOpen: (open) => set({ bottomDockOpen: open }),
   setChartLayoutMode: (mode) => set({ chartLayoutMode: mode }),
   setShowPatternLabels: (show) => set({ showPatternLabels: show }),
   setChartTimeframe: (t) => {
@@ -1282,9 +1286,9 @@ function workspaceForPreset(p: PresetId): WorkspaceId | null {
     case 'scalper':
       return 'trade'
     case 'swing':
-      return 'charts'
+      return 'trade'
     case 'risk-monitor':
-      return 'risk'
+      return 'oms'
     case 'strategy-lab':
       return 'strategy'
     case 'market-discovery':

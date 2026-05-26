@@ -6,12 +6,10 @@
 export type WorkspaceId =
   | 'trade'
   | 'markets'
-  | 'charts'
-  | 'portfolio'
   | 'strategy'
-  | 'risk'
-  | 'journal'
+  | 'portfolio'
   | 'oms'
+  | 'journal'
 
 export type PresetId =
   | 'scalper'

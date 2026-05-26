@@ -66,12 +66,10 @@ export interface WorkspaceDef {
 export const WORKSPACES: WorkspaceDef[] = [
   { id: 'trade', label: 'Trade', short: 'TRD', shortcut: '1' },
   { id: 'markets', label: 'Markets', short: 'MKT', shortcut: '2' },
-  { id: 'charts', label: 'Charts', short: 'CHT', shortcut: '3' },
+  { id: 'strategy', label: 'Strategy Lab', short: 'STR', shortcut: '3' },
   { id: 'portfolio', label: 'Portfolio', short: 'PRT', shortcut: '4' },
-  { id: 'strategy', label: 'Strategy Lab', short: 'STR', shortcut: '5' },
-  { id: 'risk', label: 'Risk / System', short: 'RSK', shortcut: '6' },
-  { id: 'journal', label: 'Journal', short: 'JNL', shortcut: '7' },
-  { id: 'oms', label: 'OMS Blotter', short: 'OMS', shortcut: '8' },
+  { id: 'oms', label: 'OMS Blotter', short: 'OMS', shortcut: '5' },
+  { id: 'journal', label: 'Journal', short: 'JNL', shortcut: '6' },
 ]
 
 // ----- Presets -----
@@ -92,13 +90,13 @@ export const PRESETS: PresetDef[] = [
   {
     id: 'swing',
     label: 'Swing',
-    workspace: 'charts',
+    workspace: 'trade',
     description: 'Large chart + indicators + journal context',
   },
   {
     id: 'risk-monitor',
     label: 'Risk Monitor',
-    workspace: 'risk',
+    workspace: 'oms',
     description: 'Tick drop, stale data, session health, execution lock',
   },
   {

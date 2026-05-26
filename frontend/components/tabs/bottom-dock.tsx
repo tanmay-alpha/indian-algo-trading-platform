@@ -32,36 +32,55 @@ const ICONS: Record<DockTabId, ReactNode> = {
 export function BottomDock() {
   const tab = useTerminalStore((s) => s.bottomDockTab)
   const setTab = useTerminalStore((s) => s.setBottomDockTab)
+  const isOpen = useTerminalStore((s) => s.bottomDockOpen)
+  const setOpen = useTerminalStore((s) => s.setBottomDockOpen)
 
   return (
-    <section className="h-dock shrink-0 border-t border-border bg-bg-2 flex flex-col shadow-panel">
+    <section className={cn(
+      "shrink-0 border-t border-border bg-bg-2 flex flex-col shadow-panel transition-all duration-200 ease-in-out",
+      isOpen ? "h-[220px]" : "h-9"
+    )}>
       <div className="h-9 flex items-center border-b border-border overflow-x-auto bg-panel/30">
-        {DOCK_TABS.map((dockTab) => (
-          <button
-            key={dockTab.id}
-            onClick={() => setTab(dockTab.id)}
-            className={cn(
-              'h-9 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-2xs font-medium transition-colors',
-              tab === dockTab.id
-                ? 'text-info bg-info/[0.07] border-b-info'
-                : 'text-text-dim border-b-transparent hover:text-text hover:bg-white/[0.03]'
-            )}
-          >
-            {ICONS[dockTab.id]}
-            {dockTab.label}
-          </button>
-        ))}
+        <div className="flex-1 flex items-center">
+          {DOCK_TABS.map((dockTab) => (
+            <button
+              key={dockTab.id}
+              onClick={() => {
+                setTab(dockTab.id)
+                if (!isOpen) setOpen(true)
+              }}
+              className={cn(
+                'h-9 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-[10px] font-medium transition-colors whitespace-nowrap',
+                tab === dockTab.id && isOpen
+                  ? 'text-info bg-info/[0.07] border-b-info'
+                  : 'text-text-dim border-b-transparent hover:text-text hover:bg-white/[0.03]'
+              )}
+            >
+              {ICONS[dockTab.id]}
+              {dockTab.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setOpen(!isOpen)}
+          className="h-9 px-3 border-l border-border text-text-faint hover:text-text hover:bg-white/[0.03] transition-colors"
+          title={isOpen ? "Collapse (Shift+D)" : "Expand"}
+        >
+          <TrendingUp className={cn("w-3.5 h-3.5 transition-transform duration-200", isOpen ? "rotate-180" : "")} />
+        </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto">
-        {tab === 'orders' && <TableEmpty title="No orders yet" hint="Order execution is disabled in this build." columns={['Time', 'Symbol', 'Side', 'Qty', 'Status']} />}
-        {tab === 'positions' && <PositionsContent />}
-        {tab === 'holdings' && <HoldingsContent />}
-        {tab === 'trades' && <TableEmpty title="No trades" hint="Trade history is empty." columns={['Time', 'Symbol', 'Side', 'Qty', 'Price']} />}
-        {tab === 'pnl' && <PnLContent />}
-        {tab === 'signals' && <SignalsContent />}
-        {tab === 'events' && <EventsContent />}
-        {tab === 'system-health' && <SystemHealthTab />}
-      </div>
+      {isOpen && (
+        <div className="flex-1 min-h-0 overflow-auto bg-bg/40">
+          {tab === 'orders' && <TableEmpty title="No orders yet" hint="Order execution is disabled in this build." columns={['Time', 'Symbol', 'Side', 'Qty', 'Status']} />}
+          {tab === 'positions' && <PositionsContent />}
+          {tab === 'holdings' && <HoldingsContent />}
+          {tab === 'trades' && <TableEmpty title="No trades" hint="Trade history is empty." columns={['Time', 'Symbol', 'Side', 'Qty', 'Price']} />}
+          {tab === 'pnl' && <PnLContent />}
+          {tab === 'signals' && <SignalsContent />}
+          {tab === 'events' && <EventsContent />}
+          {tab === 'system-health' && <SystemHealthTab />}
+        </div>
+      )}
     </section>
   )
 }

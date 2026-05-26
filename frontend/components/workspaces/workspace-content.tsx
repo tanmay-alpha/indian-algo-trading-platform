@@ -1,18 +1,11 @@
 'use client'
 
 import {
-  BarChart3,
-  BookOpen,
-  Briefcase,
-  Cpu,
-  Globe2,
-  LineChart,
   RefreshCw,
-  ShieldCheck,
 } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
-import { TIMEFRAMES, WORKSPACES } from '@/lib/constants'
+import { TIMEFRAMES } from '@/lib/constants'
 import { cn, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
 import {
   formatIndicatorValue,
@@ -38,17 +31,11 @@ export function WorkspaceContent() {
   return (
     <section className="flex-1 min-h-0 overflow-hidden">
       {active === 'trade' && <TradeWorkspace />}
-      {active === 'markets' && (
-        <WorkspaceFrame id="markets" icon={<Globe2 className="w-4 h-4" />}>
-          <MarketsWorkspace />
-        </WorkspaceFrame>
-      )}
-      {active === 'charts' && <ChartsWorkspace />}
-      {active === 'portfolio' && <PortfolioWorkspace />}
+      {active === 'markets' && <MarketsWorkspace />}
       {active === 'strategy' && <StrategyWorkspace />}
-      {active === 'risk' && <RiskWorkspace />}
-      {active === 'journal' && <JournalWorkspace />}
+      {active === 'portfolio' && <PortfolioWorkspace />}
       {active === 'oms' && <OmsWorkspace />}
+      {active === 'journal' && <JournalWorkspace />}
     </section>
   )
 }
@@ -56,51 +43,45 @@ export function WorkspaceContent() {
 function TradeWorkspace() {
   const tick = useTerminalStore((s) => s.currentTick)
   const selected = useTerminalStore((s) => s.selectedSymbol)
-  return (
-    <WorkspaceFrame id="trade" icon={<BarChart3 className="w-4 h-4" />}>
-      <div className="h-full grid grid-rows-[auto_1fr]">
-        <div className="h-12 px-4 flex items-center justify-between border-b border-border bg-panel/60">
-          <div className="font-mono">
-            <span className="text-text-dim text-2xs uppercase tracking-wider">Selected</span>
-            <div className="text-sm text-text">{selected ?? tick?.symbol ?? 'No symbol selected'}</div>
-          </div>
-          <div className="flex items-center gap-5 font-mono text-xs">
-            <Metric label="LTP" value={fmtPrice(tick?.ltp ?? tick?.price)} />
-            <Metric label="VWAP" value={fmtPrice(tick?.vwap)} />
-            <Metric label="VOL" value={fmtVolume(tick?.volume)} />
-          </div>
-        </div>
-        <PremiumChartPanel />
-      </div>
-    </WorkspaceFrame>
-  )
-}
-
-function ChartsWorkspace() {
   const timeframe = useTerminalStore((s) => s.chartTimeframe)
   const setTimeframe = useTerminalStore((s) => s.setChartTimeframe)
+
   return (
-    <WorkspaceFrame id="charts" icon={<LineChart className="w-4 h-4" />}>
-      <div className="h-full flex flex-col">
-        <div className="h-10 px-4 flex items-center gap-1.5 border-b border-border bg-panel/60">
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              className={cn(
-                'h-6 px-2 rounded-sm border text-2xs font-mono uppercase',
-                timeframe === tf
-                  ? 'text-info bg-info-dim border-info/30'
-                  : 'text-text-dim bg-panel border-border hover:text-text'
-              )}
-            >
-              {tf}
-            </button>
-          ))}
+    <div className="h-full flex flex-col">
+      {/* Dynamic Header: Timeframe + Symbol Quick Stats */}
+      <div className="h-9 px-3 flex items-center justify-between border-b border-border bg-panel/30">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            {TIMEFRAMES.map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={cn(
+                  'h-5 px-1.5 rounded-sm text-[10px] font-mono uppercase transition-colors',
+                  timeframe === tf
+                    ? 'text-info bg-info/10'
+                    : 'text-text-faint hover:text-text-dim'
+                )}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+          <div className="w-px h-3 bg-border mx-1" />
+          <div className="text-[11px] font-mono font-medium text-text">
+            {selected ?? tick?.symbol ?? 'SELECT SYMBOL'}
+          </div>
         </div>
+        <div className="flex items-center gap-4 font-mono text-[10px]">
+          <Metric label="LTP" value={fmtPrice(tick?.ltp ?? tick?.price)} />
+          <Metric label="VWAP" value={fmtPrice(tick?.vwap)} />
+          <Metric label="VOL" value={fmtVolume(tick?.volume)} />
+        </div>
+      </div>
+      <div className="flex-1 min-h-0">
         <PremiumChartPanel />
       </div>
-    </WorkspaceFrame>
+    </div>
   )
 }
 
@@ -116,8 +97,7 @@ function PortfolioWorkspace() {
   const quality = summary?.data_status === 'AVAILABLE' ? 'LIVE' : error ? 'BACKEND OFFLINE' : 'UNAVAILABLE'
   const source = summary?.source_of_truth || (summary?.trading_mode === 'LIVE' ? 'BROKER' : 'INTERNAL')
   return (
-    <WorkspaceFrame id="portfolio" icon={<Briefcase className="w-4 h-4" />}>
-      <div className="h-full min-h-0 overflow-auto p-3 space-y-3">
+    <div className="h-full min-h-0 overflow-auto p-3 space-y-3">
         <div className="flex items-center justify-between rounded-sm border border-border bg-panel/60 px-3 py-2">
           <div>
             <div className="text-xs font-semibold text-text">Portfolio Control</div>
@@ -228,7 +208,6 @@ function PortfolioWorkspace() {
           </PortfolioPanel>
         </div>
       </div>
-    </WorkspaceFrame>
   )
 }
 
@@ -299,68 +278,17 @@ function PortfolioTable({
 }
 
 function StrategyWorkspace() {
-  return (
-    <WorkspaceFrame id="strategy" icon={<Cpu className="w-4 h-4" />}>
-      <StrategyLab />
-    </WorkspaceFrame>
-  )
-}
-
-function RiskWorkspace() {
-  const status = useTerminalStore((s) => s.terminalStatus)
-  const broker = useTerminalStore((s) => s.brokerStatus)
-  const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
-  return (
-    <WorkspaceFrame id="risk" icon={<ShieldCheck className="w-4 h-4" />}>
-      <div className="p-4 grid grid-cols-2 gap-3">
-        <Stat title="Broker" value={broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '\u2014'} />
-        <Stat title="Feed Token" value={broker?.feed_token_available ? 'AVAILABLE' : broker ? 'WAITING' : '\u2014'} />
-        <Stat title="EventBus Total" value={String(status?.event_bus?.total ?? '\u2014')} />
-        <Stat title="Tick Drop" value={status?.tick_bus?.drop_rate_pct == null ? '\u2014' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`} />
-        <Stat title="Portfolio Net PnL" value={fmtPrice(portfolioSummary?.net_pnl ?? status?.portfolio?.net_pnl)} />
-        <Stat title="Portfolio Drawdown" value={fmtPrice(portfolioSummary?.current_drawdown ?? status?.portfolio?.current_drawdown)} />
-      </div>
-    </WorkspaceFrame>
-  )
+  return <StrategyLab />
 }
 
 function JournalWorkspace() {
-  return (
-    <WorkspaceFrame id="journal" icon={<BookOpen className="w-4 h-4" />}>
-      <ObservabilityJournalWorkspace />
-    </WorkspaceFrame>
-  )
+  return <ObservabilityJournalWorkspace />
 }
 
 function OmsWorkspace() {
-  return (
-    <WorkspaceFrame id="oms" icon={<ShieldCheck className="w-4 h-4" />}>
-      <OmsDashboard />
-    </WorkspaceFrame>
-  )
+  return <OmsDashboard />
 }
 
-function WorkspaceFrame({
-  id,
-  icon,
-  children,
-}: {
-  id: WorkspaceId
-  icon: ReactNode
-  children: ReactNode
-}) {
-  const def = WORKSPACES.find((w) => w.id === id)
-  return (
-    <div className="h-full flex flex-col">
-      <div className="h-9 px-4 flex items-center gap-2 border-b border-border bg-bg-2">
-        <span className="text-info">{icon}</span>
-        <span className="font-mono text-xs uppercase tracking-wider text-text">{def?.label}</span>
-        <span className="text-2xs font-mono text-text-faint">WORKSPACE</span>
-      </div>
-      <div className="flex-1 min-h-0 overflow-auto">{children}</div>
-    </div>
-  )
-}
 
 function PremiumChartPanel() {
   const selected = useTerminalStore((s) => s.selectedSymbol)
@@ -400,7 +328,7 @@ function PremiumChartPanel() {
   }, [fetchChartIndicators, selected, timeframe])
 
   return (
-    <div className="relative flex-1 min-h-0 overflow-hidden bg-[#070b12]">
+    <div className="relative flex-1 min-h-0 overflow-hidden bg-bg">
       <div className="h-full min-h-0 flex flex-col">
         <IndicatorChartShell
           symbol={selected ?? tick?.symbol ?? null}
@@ -435,30 +363,24 @@ function PremiumChartPanel() {
           onToggleSubpanel={toggleIndicatorSubpanel}
         />
       )}
-      {layoutMode === 'ANALYSIS' && (
-        <div className="absolute left-4 right-16 bottom-0 h-9 flex items-center justify-between border-t border-border bg-bg-2/85 px-3 text-[10px] font-mono text-text-faint">
-          <span>Event timeline</span>
-          <span>Signals, candle loads, and feed changes will appear here</span>
-        </div>
-      )}
     </div>
   )
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="text-text-faint">{label}</span>
-      <span className="text-text">{value}</span>
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-panel/40 border border-border/40">
+      <span className="text-text-dim uppercase text-[9px] tracking-tight">{label}</span>
+      <span className="text-text font-medium tabular-nums">{value}</span>
     </span>
   )
 }
 
 function Stat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="border border-border bg-panel/70 p-3 rounded-sm">
-      <div className="text-2xs font-mono uppercase tracking-wider text-text-faint">{title}</div>
-      <div className="mt-2 text-sm font-mono text-text">{value}</div>
+    <div className="border border-border bg-panel/50 p-2.5 rounded-sm">
+      <div className="text-[9px] font-mono uppercase tracking-widest text-text-faint">{title}</div>
+      <div className="mt-1 text-sm font-mono text-text tabular-nums">{value}</div>
     </div>
   )
 }

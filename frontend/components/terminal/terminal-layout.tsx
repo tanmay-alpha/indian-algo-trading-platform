@@ -17,17 +17,17 @@ import type { WorkspaceId } from '@/lib/types'
 const WORKSPACE_KEYS: Record<string, WorkspaceId> = {
   '1': 'trade',
   '2': 'markets',
-  '3': 'charts',
+  '3': 'strategy',
   '4': 'portfolio',
-  '5': 'strategy',
-  '6': 'risk',
-  '7': 'journal',
+  '5': 'oms',
+  '6': 'journal',
 }
 
 export function TerminalLayout() {
   const setWorkspace = useTerminalStore((s) => s.setWorkspace)
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette)
   const toggleShortcuts = useTerminalStore((s) => s.toggleShortcuts)
+  const bottomDockOpen = useTerminalStore((s) => s.bottomDockOpen)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -47,6 +47,12 @@ export function TerminalLayout() {
         toggleShortcuts(true)
         return
       }
+      if (!typing && event.shiftKey && event.key.toUpperCase() === 'D') {
+        event.preventDefault()
+        const { bottomDockOpen, setBottomDockOpen } = useTerminalStore.getState()
+        setBottomDockOpen(!bottomDockOpen)
+        return
+      }
       if (!typing && WORKSPACE_KEYS[event.key]) {
         event.preventDefault()
         setWorkspace(WORKSPACE_KEYS[event.key])
@@ -61,17 +67,21 @@ export function TerminalLayout() {
   const isFocusMode = layoutMode === 'FOCUS'
 
   return (
-    <div className="h-screen min-w-[1100px] flex flex-col bg-bg text-text overflow-hidden">
+    <div className="h-screen flex flex-col bg-bg text-text overflow-hidden select-none">
       <div className="flex flex-1 min-h-0">
         <WorkspaceRail />
         <div className="flex-1 min-w-0 flex flex-col">
           <DemoBanner />
           <TopMarketBar />
-          <div className="flex-1 min-h-0 flex">
+          <div className="flex-1 min-h-0 flex relative">
             {!isFocusMode && <WatchlistPanel />}
-            <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-bg term-grid">
-              <WorkspaceContent />
-              {!isFocusMode && <BottomDock />}
+            <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-bg relative">
+              {/* Visual background noise - subtler grid */}
+              <div className="absolute inset-0 term-grid pointer-events-none opacity-40 z-0" />
+              <div className="flex-1 min-h-0 flex flex-col z-10">
+                <WorkspaceContent />
+              </div>
+              {!isFocusMode && bottomDockOpen && <BottomDock />}
             </main>
             {!isFocusMode && <RightTradePanel />}
           </div>

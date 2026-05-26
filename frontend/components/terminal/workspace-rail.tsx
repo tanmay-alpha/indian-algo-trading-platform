@@ -7,7 +7,6 @@ import {
   Cpu,
   Globe2,
   Keyboard,
-  LineChart,
   Notebook,
   ShieldCheck,
 } from 'lucide-react'
@@ -20,17 +19,15 @@ import { cn } from '@/lib/utils'
 const ICONS: Record<WorkspaceId, ReactNode> = {
   trade: <CandlestickChart className="w-4 h-4" />,
   markets: <Globe2 className="w-4 h-4" />,
-  charts: <LineChart className="w-4 h-4" />,
-  portfolio: <Briefcase className="w-4 h-4" />,
   strategy: <Cpu className="w-4 h-4" />,
-  risk: <ShieldCheck className="w-4 h-4" />,
-  journal: <Notebook className="w-4 h-4" />,
+  portfolio: <Briefcase className="w-4 h-4" />,
   oms: <ShieldCheck className="w-4 h-4" />,
+  journal: <Notebook className="w-4 h-4" />,
 }
 
 function railLabel(label: string) {
-  if (label === 'Strategy Lab') return 'Strategy'
-  if (label === 'Risk / System') return 'Risk'
+  if (label === 'Strategy Lab') return 'Lab'
+  if (label === 'OMS Blotter') return 'OMS'
   return label
 }
 

@@ -213,7 +213,7 @@ function CommandPaletteDialog() {
         if (!sym) break
         if (c.id.startsWith('sym-open-')) {
           setSelected(sym)
-          setWorkspace('charts')
+          setWorkspace('trade')
         } else if (c.id.startsWith('sym-add-')) {
           addToWatchlist(sym)
         }

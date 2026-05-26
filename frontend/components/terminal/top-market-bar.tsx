@@ -33,10 +33,10 @@ export function TopMarketBar() {
   return (
     <header className="flex h-topbar shrink-0 items-center border-b border-border bg-bg">
       {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
-        <div className="absolute right-4 top-[42px] z-40 rounded-sm border border-info/25 bg-bg-2/95 px-3 py-2 text-[10px] font-mono text-info shadow-panel">
-          <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-info animate-pulse-soft" />
+        <div className="absolute left-1/2 top-[48px] -translate-x-1/2 z-40 rounded border border-info/20 bg-bg-2/95 px-4 py-1.5 text-[10px] font-mono text-info shadow-modal backdrop-blur-sm">
+          <span className="mr-2 inline-block h-1 w-1 rounded-full bg-info animate-pulse-soft" />
           {backendWakeState === 'WAKING'
-            ? 'Backend waking up on free tier... this can take about 30 seconds.'
+            ? 'Backend waking up... this can take about 30 seconds.'
             : 'Backend unavailable - retrying.'}
         </div>
       )}
