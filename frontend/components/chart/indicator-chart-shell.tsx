@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { createChart, LineStyle, ColorType, CandlestickSeries, LineSeries, createSeriesMarkers } from 'lightweight-charts'
+import {
+  createChart,
+  LineStyle,
+  ColorType,
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries,
+  createSeriesMarkers,
+} from 'lightweight-charts'
 import type {
   BollingerPoint,
   Candle,
@@ -14,6 +22,21 @@ import {
 } from '@/lib/indicator-series'
 import { cn, marketSessionLabel } from '@/lib/utils'
 import { getPatternsForSymbol } from '@/lib/api'
+import {
+  normalizeExchangeSymbol,
+  getTradingViewChartUrl,
+  getAngelOneChartUrl,
+} from '@/lib/symbol-links'
+import {
+  RefreshCw,
+  Maximize2,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Sparkles,
+  Database,
+  AlertTriangle,
+} from 'lucide-react'
 
 export function IndicatorChartShell({
   symbol,
@@ -39,8 +62,11 @@ export function IndicatorChartShell({
   onFetchCandles?: () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<any>(null)
   const [patterns, setPatterns] = useState<PatternMarker[]>([])
   const [patternsLoading, setPatternsLoading] = useState(false)
+  const [showPatterns, setShowPatterns] = useState(true)
+  const [showVolume, setShowVolume] = useState(true)
   const [hoveredData, setHoveredData] = useState<{
     time: number
     open: number
@@ -91,6 +117,25 @@ export function IndicatorChartShell({
   useEffect(() => {
     if (candles.length === 0 || !containerRef.current) return
 
+    // Deduplicate input candles by epoch time to avoid lightweight-charts assertions
+    const seenTimes = new Set<number>()
+    const uniqueCandles: Candle[] = []
+    for (let i = candles.length - 1; i >= 0; i--) {
+      const c = candles[i]
+      let t = typeof c.time === 'number' ? c.time : Number(c.time)
+      if (isNaN(t)) {
+        t = Math.floor(Date.parse(c.time as string) / 1000)
+      } else if (t > 100_000_000_000) {
+        t = Math.floor(t / 1000)
+      }
+      if (!seenTimes.has(t)) {
+        seenTimes.add(t)
+        uniqueCandles.push(c)
+      }
+    }
+    uniqueCandles.reverse()
+    candles = uniqueCandles
+
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 360,
@@ -110,6 +155,7 @@ export function IndicatorChartShell({
         secondsVisible: false,
       },
     })
+    chartRef.current = chart
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#16c784',
@@ -141,6 +187,34 @@ export function IndicatorChartShell({
 
     // Fit content
     chart.timeScale().fitContent()
+
+    // Add Volume Series if enabled
+    const totalVolume = candles.reduce((acc, c) => acc + Number(c.volume || 0), 0)
+    const isVolumeAvailable = totalVolume > 0
+    if (showVolume && isVolumeAvailable) {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        color: '#26a69a',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume', // Render overlay
+      })
+
+      volumeSeries.priceScale().applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      })
+
+      const volumeData = candles.map((c) => {
+        const t = getEpochSeconds(c.time)
+        const isUp = Number(c.close) >= Number(c.open)
+        return t !== null ? {
+          time: t,
+          value: Number(c.volume || 0),
+          color: isUp ? 'rgba(22, 199, 132, 0.25)' : 'rgba(234, 57, 67, 0.25)',
+        } : null
+      }).filter((v): v is { time: number; value: number; color: string } => v !== null)
+
+      volumeData.sort((a, b) => (a.time as number) - (b.time as number))
+      volumeSeries.setData(volumeData as any)
+    }
 
     // Add EMA
     if (overlays.ema) {
@@ -222,22 +296,25 @@ export function IndicatorChartShell({
     const candleSecondsList = chartData.map((d) => d.time as number)
     const merged: Record<number, any> = {}
 
-    patterns.forEach((p) => {
-      const pTime = getEpochSeconds(p.time)
-      if (pTime === null) return
-      const candleTime = mapTimeToCandleSec(pTime, candleSecondsList)
-      if (candleTime === null) return
+    if (showPatterns) {
+      patterns.forEach((p) => {
+        const pTime = getEpochSeconds(p.time)
+        if (pTime === null) return
+        const candleTime = mapTimeToCandleSec(pTime, candleSecondsList)
+        if (candleTime === null) return
 
-      merged[candleTime] = {
-        time: candleTime,
-        position: p.direction === 'bullish' ? 'belowBar' : 'aboveBar',
-        shape: p.direction === 'bullish' ? 'arrowUp' : (p.direction === 'bearish' ? 'arrowDown' : 'circle'),
-        color: p.direction === 'bullish' ? '#10b981' : (p.direction === 'bearish' ? '#ef4444' : '#94a3b8'),
-        text: p.pattern,
-        description: p.description,
-        isPattern: true,
-      }
-    })
+        merged[candleTime] = {
+          time: candleTime,
+          position: p.direction === 'bullish' ? 'belowBar' : 'aboveBar',
+          shape: p.direction === 'bullish' ? 'arrowUp' : (p.direction === 'bearish' ? 'arrowDown' : 'circle'),
+          color: p.direction === 'bullish' ? '#10b981' : (p.direction === 'bearish' ? '#ef4444' : '#94a3b8'),
+          text: p.pattern,
+          description: p.description,
+          confidence: p.confidence,
+          isPattern: true,
+        }
+      })
+    }
 
     signalMarkers.forEach((s) => {
       const sTime = getEpochSeconds(s.time)
@@ -305,11 +382,15 @@ export function IndicatorChartShell({
       })
 
       if (marker) {
+        let displayDesc = marker.description
+        if (marker.isPattern && marker.confidence !== undefined) {
+          displayDesc = `${displayDesc} (Confidence: ${(marker.confidence * 100).toFixed(0)}%)`
+        }
         setTooltip({
           x: param.point.x,
           y: param.point.y,
           title: marker.text,
-          description: marker.description,
+          description: displayDesc,
           color: marker.color,
         })
       } else {
@@ -328,167 +409,423 @@ export function IndicatorChartShell({
 
     return () => {
       resizeObserver.disconnect()
+      chartRef.current = null
       chart.remove()
     }
-  }, [candles, result, overlays, signalMarkers, patterns])
+  }, [candles, result, overlays, signalMarkers, patterns, showPatterns, showVolume])
 
-  if (candles.length === 0) {
-    const empty = chartEmptyCopy(apiStatus, backendWakeState)
-    return (
-      <div className="relative flex-1 min-h-[360px] overflow-hidden bg-[#070b12]">
-        <div className="absolute inset-0 opacity-70 chart-grid" />
-        <div className="relative z-10 flex h-full min-h-[360px] flex-col items-center justify-center gap-4 p-6 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-panel-2">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="text-text-faint"
-            >
-              <path d="M3 3v18h18M9 9l3 3 3-3 3 3" />
-            </svg>
-          </div>
-          <div>
-            <div className="mb-1 text-sm font-semibold text-text-2">{empty.title}</div>
-            <div className="max-w-[280px] text-[11px] leading-relaxed text-text-faint">
-              {symbol
-                ? `Select a timeframe and load candles for ${symbol} to enable chart and indicators.`
-                : 'Select a symbol from the watchlist to begin.'}
-            </div>
-          </div>
-          {symbol && (
-            <button
-              type="button"
-              onClick={onFetchCandles}
-              disabled={isFetching || !onFetchCandles}
-              className={cn(
-                'flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px]',
-                'border-info/25 bg-info/5 text-info hover:bg-info/10',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                'transition-colors'
-              )}
-            >
-              {isFetching ? 'Loading...' : "Load Today's Candles"}
-            </button>
+  const handleResetView = () => {
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent()
+    }
+  }
+
+  // Symbol link mappings
+  const { symbol: cleanSymbol, exchange } = normalizeExchangeSymbol(symbol || '', 'NSE')
+  const tvUrl = getTradingViewChartUrl(symbol || '', exchange)
+  const aoUrl = getAngelOneChartUrl(symbol || '', exchange)
+
+  // Header quote calculations
+  let ltp = '-'
+  let changePercent = '-'
+  let changeColor = 'text-text'
+  let lastVolume = '-'
+  let lastCandleTime = '-'
+  const totalVolume = candles.reduce((acc, c) => acc + Number(c.volume || 0), 0)
+  const isVolumeAvailable = totalVolume > 0
+
+  if (candles.length > 0) {
+    const lastCandle = candles[candles.length - 1]
+    const firstCandle = candles[0]
+
+    ltp = `₹${Number(lastCandle.close).toFixed(2)}`
+    if (isVolumeAvailable) {
+      lastVolume = Number(lastCandle.volume || 0).toLocaleString('en-IN')
+    } else {
+      lastVolume = 'N/A'
+    }
+
+    const tVal = getEpochSeconds(lastCandle.time)
+    if (tVal !== null) {
+      lastCandleTime = new Date(tVal * 1000).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+    }
+
+    const openVal = Number(firstCandle.open)
+    const closeVal = Number(lastCandle.close)
+    if (openVal > 0) {
+      const diffPct = ((closeVal - openVal) / openVal) * 100
+      changePercent = `${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%`
+      changeColor = diffPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+    }
+  }
+
+  const session = marketSessionLabel()
+  const sourceBadge = candles.length > 0
+    ? (session === 'LIVE' ? 'LIVE TICKS' : 'REAL CANDLES')
+    : 'NO CANDLES'
+
+  // Toolbar Builder
+  const renderToolbar = () => (
+    <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-bg-2/50 px-4 py-2 gap-2 z-10 select-none">
+      {/* Left side: quote details & status */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-text">{cleanSymbol || 'NO SYMBOL'}</span>
+          {exchange && (
+            <span className="rounded bg-panel px-1.5 py-0.5 text-[9px] font-bold text-text-dim border border-border/40">
+              {exchange}
+            </span>
           )}
-          <div className="max-w-[300px] rounded border border-border/50 px-3 py-2 text-[10px] text-text-faint">
-            Candles are fetched from Angel One API and cached in memory. No synthetic data is generated.
+          <span className="rounded bg-info/10 text-info px-1.5 py-0.5 text-[9px] font-mono border border-info/25 font-semibold">
+            {timeframe}
+          </span>
+        </div>
+
+        {candles.length > 0 && (
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span className="text-text-faint">LTP:</span>
+            <span className="text-text font-bold">{ltp}</span>
+
+            <span className="text-text-faint">Change:</span>
+            <span className={cn('font-bold', changeColor)}>{changePercent}</span>
+
+            <span className="text-text-faint">Vol:</span>
+            <span className="text-text">{lastVolume}</span>
+
+            <span className="text-text-faint">Candles:</span>
+            <span className="text-text">{candles.length}</span>
+
+            <span className="text-text-faint">Last Time:</span>
+            <span className="text-text">{lastCandleTime}</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              'rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wide border',
+              sourceBadge === 'LIVE TICKS'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : sourceBadge === 'REAL CANDLES'
+                ? 'bg-info/10 text-info border-info/20'
+                : 'bg-panel text-text-faint border-border'
+            )}
+          >
+            {sourceBadge}
+          </span>
+          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-1">
+            <Database size={10} />
+            <span>ENGINE: PYTHON</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Right side: Action controls */}
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onFetchCandles}
+          disabled={isFetching || !symbol}
+          title="Fetch latest historical candles from broker cache"
+          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <RefreshCw size={11} className={cn('text-text-dim', isFetching && 'animate-spin')} />
+          <span>{isFetching ? 'Loading...' : 'Refresh'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleResetView}
+          disabled={candles.length === 0}
+          title="Reset chart timescale zoom to fit all candles"
+          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Maximize2 size={11} className="text-text-dim" />
+          <span>Reset</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowPatterns(!showPatterns)}
+          disabled={candles.length === 0}
+          title="Toggle visibility of backend pattern markers on the chart"
+          className={cn(
+            'flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+            showPatterns ? 'bg-info/10 border-info/30 text-info' : 'bg-panel border-border text-text-dim hover:bg-panel-2'
+          )}
+        >
+          {showPatterns ? <Eye size={11} /> : <EyeOff size={11} />}
+          <span>Patterns {patterns.length > 0 && `(${patterns.length})`}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowVolume(!showVolume)}
+          disabled={candles.length === 0 || !isVolumeAvailable}
+          title={isVolumeAvailable ? 'Toggle volume overlay series at the bottom of the chart' : 'Volume data unavailable'}
+          className={cn(
+            'flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+            showVolume && isVolumeAvailable ? 'bg-info/10 border-info/30 text-info' : 'bg-panel border-border text-text-dim hover:bg-panel-2'
+          )}
+        >
+          {showVolume && isVolumeAvailable ? <Eye size={11} /> : <EyeOff size={11} />}
+          <span>Volume</span>
+        </button>
+
+        <a
+          href={tvUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Analyze ${cleanSymbol} in a full TradingView chart`}
+          className={cn(
+            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors',
+            !symbol && 'opacity-40 pointer-events-none'
+          )}
+        >
+          <ExternalLink size={11} className="text-text-dim" />
+          <span>TradingView</span>
+        </a>
+
+        <a
+          href={aoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Opens Angel One chart; search symbol there if not auto-selected."
+          className={cn(
+            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors',
+            !symbol && 'opacity-40 pointer-events-none'
+          )}
+        >
+          <ExternalLink size={11} className="text-text-dim" />
+          <span>Angel One</span>
+        </a>
+      </div>
+    </div>
+  )
+
+  // Empty state handling
+  if (candles.length === 0) {
+    let emptyTitle = 'No symbol selected'
+    let emptyDescription = 'Select a symbol from Market Watch.'
+
+    if (symbol) {
+      if (apiStatus === 'OFFLINE') {
+        emptyTitle = 'Backend unavailable'
+        emptyDescription = 'Chart data cannot be loaded until the backend is reachable. No synthetic data is shown.'
+      } else if (backendWakeState === 'WAKING') {
+        emptyTitle = 'Waiting for backend data'
+        emptyDescription = 'The backend is waking up. Chart data will load automatically when REST status returns.'
+      } else {
+        if (session === 'LIVE') {
+          emptyTitle = 'Live ticks but no candles loaded'
+          emptyDescription = `Live ticks are available, but candles are not loaded yet for ${symbol} / ${timeframe}.`
+        } else if (session === 'MARKET CLOSED') {
+          emptyTitle = 'Market is closed'
+          emptyDescription = `Market is closed. Historical candles can still be loaded for ${symbol} / ${timeframe}.`
+        } else {
+          emptyTitle = `No candles loaded for ${symbol} / ${timeframe}`
+          emptyDescription = 'Historical OHLC data is not loaded yet for this symbol.'
+        }
+      }
+    }
+
+    return (
+      <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#070b12] border border-border/80 rounded-lg overflow-hidden">
+        {/* Render the toolbar */}
+        {renderToolbar()}
+
+        {/* Empty state details */}
+        <div className="relative flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center z-0">
+          <div className="absolute inset-0 opacity-40 chart-grid pointer-events-none" />
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-panel-2 shadow-sm relative z-10">
+            {apiStatus === 'OFFLINE' ? (
+              <AlertTriangle className="w-5 h-5 text-rose-400 animate-pulse" />
+            ) : (
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-text-faint animate-pulse"
+              >
+                <path d="M3 3v18h18M9 9l3 3 3-3 3 3" />
+              </svg>
+            )}
+          </div>
+
+          <div className="relative z-10 max-w-[400px]">
+            <div className="mb-1.5 text-sm font-semibold text-text-light">{emptyTitle}</div>
+            <div className="text-[11px] leading-relaxed text-text-dim">{emptyDescription}</div>
+          </div>
+
+          {symbol && apiStatus !== 'OFFLINE' && (
+            <div className="flex items-center gap-3 relative z-10 mt-2">
+              <button
+                type="button"
+                onClick={onFetchCandles}
+                disabled={isFetching}
+                className={cn(
+                  'flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] font-medium transition-colors shadow-sm',
+                  'border-info/30 bg-info/5 text-info hover:bg-info/10',
+                  'disabled:cursor-not-allowed disabled:opacity-50'
+                )}
+              >
+                <RefreshCw size={11} className={cn(isFetching && 'animate-spin')} />
+                <span>{isFetching ? 'Loading...' : "Load Today's Candles"}</span>
+              </button>
+
+              <a
+                href={tvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] font-medium border-border bg-panel hover:bg-panel-2 text-text transition-colors shadow-sm"
+              >
+                <ExternalLink size={11} className="text-text-dim" />
+                <span>Open in TradingView</span>
+              </a>
+            </div>
+          )}
+
+          <div className="relative z-10 max-w-[340px] rounded border border-border/40 bg-panel/30 px-3 py-2 text-[10px] text-text-faint mt-4">
+            <span className="font-semibold text-text-dim block mb-1">Real Data Policy</span>
+            No synthetic candles or dummy prices are used. All chart data maps directly to actual historical broker candles.
           </div>
         </div>
       </div>
     )
   }
 
-  // Bounding box checks for tooltip positioning inside the container
+  // Positioning calculations for tooltip
   const tooltipX = tooltip
     ? tooltip.x > (containerRef.current?.clientWidth || 0) - 220
       ? tooltip.x - 215
       : tooltip.x + 15
     : 0
 
-  const tooltipY = tooltip
-    ? tooltip.y > 360 - 100
-      ? tooltip.y - 85
-      : tooltip.y + 15
-    : 0
+  const tooltipY = tooltip ? (tooltip.y > 360 - 100 ? tooltip.y - 85 : tooltip.y + 15) : 0
 
   return (
-    <div className="relative flex-1 min-h-[360px] overflow-hidden bg-[#070b12]">
-      {/* Absolute Header Overlay */}
-      <div className="absolute left-4 right-16 top-4 h-12 rounded-md border border-border bg-bg-2/85 backdrop-blur-sm flex items-center justify-between px-3 z-10 pointer-events-none">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text">{symbol ?? 'Select a symbol'}</span>
-            <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-dim">
-              {timeframe}
+    <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#070b12] border border-border/80 rounded-lg overflow-hidden">
+      {/* 1. Toolbar */}
+      {renderToolbar()}
+
+      {/* 2. Legend & Summary Row */}
+      <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-[10px] font-mono text-text-dim select-none z-10">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="text-text-faint font-semibold uppercase tracking-wider text-[9px]">Markers:</span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Bullish / BUY</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-rose-500" />
+            <span>Bearish / SELL</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-slate-400" />
+            <span>Neutral / Info</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          {showPatterns && (
+            <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[9px] font-semibold">
+              <Sparkles size={10} />
+              <span>Patterns: {patterns.length}</span>
             </span>
-          </div>
-          <div className="mt-0.5 text-[10px] text-text-faint">
-            Candles: {candles.length} / Overlays from IndicatorEngine {patternsLoading && '(Recalculating Patterns...)'}
-          </div>
+          )}
+          {!isVolumeAvailable && (
+            <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[9px]">
+              Volume Unavailable
+            </span>
+          )}
+          <span className="text-text-faint text-[9px]">Chart Engine: Lightweight Charts v5</span>
         </div>
       </div>
 
-      {/* Interactive OHLC and Pattern/Signal Legend Overlay */}
-      {hoveredData && (
-        <div className="absolute right-4 top-4 z-20 rounded-md border border-border bg-bg-2/90 backdrop-blur-sm px-3 py-1.5 text-[11px] flex items-center gap-3 font-mono">
-          <span className="text-text-faint">O:</span><span className="text-text">{hoveredData.open.toFixed(2)}</span>
-          <span className="text-text-faint">H:</span><span className="text-text">{hoveredData.high.toFixed(2)}</span>
-          <span className="text-text-faint">L:</span><span className="text-text">{hoveredData.low.toFixed(2)}</span>
-          <span className="text-text-faint">C:</span><span className="text-text-emerald">{hoveredData.close.toFixed(2)}</span>
-          {(hoveredData.pattern || hoveredData.signal) && (
-            <div className="flex items-center gap-1.5 border-l border-border pl-3">
-              {hoveredData.signal && (
-                <span className={cn(
-                  "px-1.5 py-0.5 rounded text-[10px] font-bold",
-                  hoveredData.signal.includes("BUY") ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                )}>
-                  {hoveredData.signal}
-                </span>
-              )}
-              {hoveredData.pattern && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  {hoveredData.pattern}
-                </span>
-              )}
+      {/* 3. Main Chart Canvas Area */}
+      <div className="relative flex-1 bg-[#070b12]">
+        {/* Hovered Price Details Panel */}
+        {hoveredData && (
+          <div className="absolute right-4 top-4 z-20 rounded border border-border/80 bg-[#070b12]/90 backdrop-blur-sm px-2.5 py-1 text-[10px] flex items-center gap-3.5 font-mono text-text shadow-md select-none">
+            <div className="flex items-center gap-1">
+              <span className="text-text-faint">O:</span>
+              <span className="font-semibold">{hoveredData.open.toFixed(2)}</span>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Pattern/Signal Floating Tooltip */}
-      {tooltip && (
-        <div
-          className="absolute pointer-events-none z-30 rounded-md border border-border bg-bg-2/95 shadow-xl px-3 py-2 text-[11px] max-w-[200px]"
-          style={{
-            left: `${tooltipX}px`,
-            top: `${tooltipY}px`,
-            borderColor: tooltip.color,
-            borderWidth: '1px',
-          }}
-        >
-          <div className="font-bold mb-1" style={{ color: tooltip.color }}>
-            {tooltip.title}
+            <div className="flex items-center gap-1">
+              <span className="text-text-faint">H:</span>
+              <span className="font-semibold text-emerald-400">{hoveredData.high.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-text-faint">L:</span>
+              <span className="font-semibold text-rose-400">{hoveredData.low.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-text-faint">C:</span>
+              <span
+                className={cn(
+                  'font-semibold',
+                  hoveredData.close >= hoveredData.open ? 'text-emerald-400' : 'text-rose-400'
+                )}
+              >
+                {hoveredData.close.toFixed(2)}
+              </span>
+            </div>
+            {(hoveredData.pattern || hoveredData.signal) && (
+              <div className="flex items-center gap-1.5 border-l border-border/60 pl-3">
+                {hoveredData.signal && (
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.5 rounded text-[9px] font-bold border',
+                      hoveredData.signal.includes('BUY')
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    )}
+                  >
+                    {hoveredData.signal}
+                  </span>
+                )}
+                {hoveredData.pattern && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+                    {hoveredData.pattern}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          <div className="text-text-dim text-[10px] leading-snug">
-            {tooltip.description}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Chart container */}
-      <div ref={containerRef} className="w-full h-[360px]" />
+        {/* Pattern/Signal Floating Tooltip */}
+        {tooltip && (
+          <div
+            className="absolute pointer-events-none z-30 rounded-md border bg-bg-2/95 shadow-xl px-3 py-2 text-[11px] max-w-[220px] select-none"
+            style={{
+              left: `${tooltipX}px`,
+              top: `${tooltipY}px`,
+              borderColor: tooltip.color,
+              borderWidth: '1px',
+            }}
+          >
+            <div className="font-bold mb-1 flex items-center gap-1" style={{ color: tooltip.color }}>
+              <Sparkles size={11} />
+              <span>{tooltip.title}</span>
+            </div>
+            <div className="text-text-dim text-[10px] leading-relaxed">{tooltip.description}</div>
+          </div>
+        )}
+
+        {/* Chart container */}
+        <div ref={containerRef} className="w-full h-[360px]" />
+      </div>
     </div>
   )
-}
-
-function chartEmptyCopy(apiStatus: string, backendWakeState: string): { title: string; hint: string } {
-  const session = marketSessionLabel()
-  if (backendWakeState === 'WAKING') {
-    return {
-      title: 'Waiting for backend data',
-      hint: 'The backend is waking up. Chart data will load automatically when REST status returns.',
-    }
-  }
-  if (apiStatus === 'OFFLINE') {
-    return {
-      title: 'Backend unavailable',
-      hint: 'Chart data cannot be loaded until the backend is reachable. No synthetic data is shown.',
-    }
-  }
-  if (session !== 'LIVE') {
-    return {
-      title: 'Market closed - no live candles expected',
-      hint: 'Use fetched historical candles for this symbol/timeframe. No synthetic data is shown.',
-    }
-  }
-  return {
-    title: 'No candle data available',
-    hint: 'Load candles for this symbol/timeframe to enable chart overlays and indicators.',
-  }
 }
 
 // Helpers

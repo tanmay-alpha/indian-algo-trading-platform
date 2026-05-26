@@ -430,8 +430,8 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       chartTimeframe: t,
       backtestConfig: { ...state.backtestConfig, timeframe: t },
     }))
-    const { selectedSymbol, activeIndicatorNames } = get()
-    if (selectedSymbol && activeIndicatorNames.length > 0) {
+    const { selectedSymbol } = get()
+    if (selectedSymbol) {
       void get().fetchChartIndicators(selectedSymbol, t)
     }
   },
@@ -446,8 +446,8 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       selectedSymbol: s,
       backtestConfig: { ...state.backtestConfig, symbol: s || '' },
     }))
-    const { chartTimeframe, activeIndicatorNames } = get()
-    if (s && activeIndicatorNames.length > 0) {
+    const { chartTimeframe } = get()
+    if (s) {
       void get().fetchChartIndicators(s, chartTimeframe)
     }
   },
@@ -737,7 +737,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   },
   fetchChartIndicators: async (symbol, timeframe) => {
     const names = get().activeIndicatorNames
-    if (!symbol || names.length === 0) {
+    if (!symbol) {
       get().clearChartIndicators()
       return
     }
@@ -756,6 +756,21 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       candles = candleResponse.candles || []
     } catch {
       candles = []
+    }
+
+    if (names.length === 0) {
+      set((state) => ({
+        indicatorChartLoading: false,
+        indicatorLoading: false,
+        indicatorChartError: null,
+        indicatorError: null,
+        latestIndicatorResults: null,
+        chartCandlesBySymbolTimeframe: {
+          ...state.chartCandlesBySymbolTimeframe,
+          [key]: candles,
+        },
+      }))
+      return
     }
 
     const response = await getIndicatorsForSymbol(symbol, timeframe, names)
@@ -1298,8 +1313,8 @@ function activeNames(
 }
 
 function fetchOrClearActiveIndicators(get: () => TerminalStore): void {
-  const { selectedSymbol, chartTimeframe, activeIndicatorNames } = get()
-  if (!selectedSymbol || activeIndicatorNames.length === 0) {
+  const { selectedSymbol, chartTimeframe } = get()
+  if (!selectedSymbol) {
     get().clearChartIndicators()
     return
   }

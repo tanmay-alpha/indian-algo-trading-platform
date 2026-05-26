@@ -393,10 +393,10 @@ function PremiumChartPanel() {
   }, [fetchIndicatorStatus])
 
   useEffect(() => {
-    if (selected && activeIndicatorNames.length > 0) {
+    if (selected) {
       void fetchChartIndicators(selected, timeframe)
     }
-  }, [activeIndicatorNames, fetchChartIndicators, selected, timeframe])
+  }, [fetchChartIndicators, selected, timeframe])
 
   return (
     <div className="relative flex-1 min-h-0 overflow-hidden bg-[#070b12]">

@@ -111,3 +111,21 @@ def test_parse_angel_candle_row_valid():
 def test_parse_angel_candle_row_malformed():
     row = ["bad_datetime", "not_a_float"]
     assert CandleFetcher._parse_angel_candle_row(row) is None
+
+
+def test_get_candles_deduplicates_live_candle():
+    store = CandleStore()
+    # Load a historical candle at time 1020 (divisible by 60)
+    hist_candle = {"time": 1020, "open": 750.0, "high": 751.0, "low": 749.0, "close": 750.5, "volume": 1000}
+    store.load_historical("SBIN", "1m", [hist_candle])
+
+    # Update a live candle with the exact same timestamp
+    dt = datetime.fromtimestamp(1020, tz=timezone.utc)
+    store._update_live_candle("SBIN", 752.0, 1500, dt)
+
+    candles = store.get_candles("SBIN", "1m")
+    # Verify we get exactly 1 candle, and it contains the live update
+    assert len(candles) == 1
+    assert candles[0]["is_live"] is True
+    assert candles[0]["close"] == 752.0
+    assert candles[0]["volume"] == 1500

@@ -87,7 +87,16 @@ class CandleStore:
         if live is not None:
             live_copy = live.copy()
             live_copy["is_live"] = True
-            candles.append(live_copy)
+            if candles:
+                last_time = int(candles[-1]["time"])
+                live_time = int(live_copy["time"])
+                if last_time == live_time:
+                    # Update/overwrite the last historical candle with live tick updates
+                    candles[-1] = live_copy
+                elif last_time < live_time:
+                    candles.append(live_copy)
+            else:
+                candles.append(live_copy)
 
         if limit is not None:
             candles = candles[-max(int(limit), 0):]
