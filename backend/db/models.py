@@ -17,6 +17,7 @@ class Instrument(Base):
     instrumenttype = Column(String, nullable=True)
     exch_seg = Column(String, nullable=True)
     tick_size = Column(Float, nullable=True)
+    sector = Column(String, nullable=True)
     created_at = Column(String, nullable=True)
 
 

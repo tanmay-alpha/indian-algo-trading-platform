@@ -5,7 +5,6 @@ import math
 from pathlib import Path
 from typing import Optional
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INSTRUMENT_DIR = PROJECT_ROOT / "data" / "instruments"
 JSON_PATH = INSTRUMENT_DIR / "angel_instruments.json"
@@ -67,6 +66,34 @@ _FALLBACK_INSTRUMENTS = [
     {"symbol": "LT", "clean_symbol": "LT", "name": "Larsen and Toubro", "token": "11483", "exchange": "NSE", "sector": "Infrastructure", "instrument_type": "EQ", "lot_size": None, "tick_size": None},
 ]
 
+_db_engine = None
+_db_session_factory = None
+_db_disabled = False
+
+def _get_db_session():
+    global _db_engine, _db_session_factory, _db_disabled
+    if _db_disabled:
+        return None
+    if _db_engine is None:
+        from backend.core.database import create_engine_safe, get_session_factory
+        _db_engine = create_engine_safe()
+        _db_session_factory = get_session_factory(_db_engine)
+    return _db_session_factory()
+
+def _instrument_to_dict(inst) -> dict:
+    if not inst:
+        return {}
+    return {
+        "symbol": inst.symbol,
+        "clean_symbol": normalize_symbol(inst.symbol),
+        "name": inst.name or "",
+        "token": inst.token,
+        "exchange": inst.exch_seg or "NSE",
+        "sector": inst.sector or "",
+        "instrument_type": inst.instrumenttype or "EQ",
+        "lot_size": inst.lotsize,
+        "tick_size": inst.tick_size,
+    }
 
 def normalize_symbol(symbol: str) -> str:
     s = str(symbol or "").strip().upper()
@@ -96,6 +123,22 @@ def load_instruments(force_reload: bool = False) -> list[dict]:
         if item.get("symbol") and item.get("token") and item.get("exchange") == "NSE"
     ]
     _set_cache(instruments)
+
+    # Ingest fallback list or loaded lists to database
+    if instruments and not _is_fallback_active(instruments):
+        session = None
+        try:
+            session = _get_db_session()
+            from backend.db.repositories.instrument_repository import InstrumentRepository
+            repo = InstrumentRepository()
+            repo.bulk_upsert(session, instruments)
+            logger.info("Ingested %s instruments into database via load_instruments", len(instruments))
+        except Exception as e:
+            logger.warning("Failed to ingest instruments to database in load_instruments: %s", e)
+        finally:
+            if session:
+                session.close()
+
     return _CACHE or []
 
 
@@ -114,6 +157,21 @@ def load_from_master(instruments: list[dict]) -> int:
 
     _set_cache(normalized)
     logger.info("Registry loaded %s instruments", len(normalized))
+
+    # Ingest into database
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        repo.bulk_upsert(session, normalized)
+        logger.info("Ingested %s instruments into database via load_from_master", len(normalized))
+    except Exception as e:
+        logger.warning("Failed to ingest instruments to database in load_from_master: %s", e)
+    finally:
+        if session:
+            session.close()
+
     return len(normalized)
 
 
@@ -127,6 +185,24 @@ def set_master_source(source: str) -> None:
 
 
 def registry_status() -> dict:
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        db_count = repo.count(session)
+        if db_count > 0:
+            return {
+                "loaded": db_count,
+                "source": "database",
+                "fallback_active": False,
+            }
+    except Exception as e:
+        logger.warning("Database query failed in registry_status: %s", e)
+    finally:
+        if session:
+            session.close()
+
     instruments = load_instruments()
     return {
         "loaded": len(instruments),
@@ -141,12 +217,40 @@ def get_token(symbol: str, exchange: str = "NSE") -> Optional[str]:
 
 
 def get_symbol(token: str) -> Optional[str]:
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        inst = repo.get_by_token(session, token)
+        if inst:
+            return inst.symbol
+    except Exception as e:
+        logger.warning("Database query failed in get_symbol, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     instrument = _BY_TOKEN.get(str(token)) or _find_by_token(str(token))
     return instrument.get("symbol") if instrument else None
 
 
 def get_instrument(symbol: str, exchange: str = "NSE") -> Optional[dict]:
     load_instruments()
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        inst = repo.get_by_symbol(session, symbol)
+        if inst and normalize_symbol(inst.exch_seg) == normalize_symbol(exchange):
+            return _instrument_to_dict(inst)
+    except Exception as e:
+        logger.warning("Database query failed in get_instrument, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     normalized = normalize_symbol(symbol)
     exchange_filter = normalize_symbol(exchange)
     candidates = {normalized}
@@ -162,12 +266,32 @@ def get_instrument(symbol: str, exchange: str = "NSE") -> Optional[dict]:
     return None
 
 
-def search_symbols(query: str, limit: int = 50, exchange: str = "NSE") -> list[dict]:
+def search_symbols(query: str, limit: int = 25, exchange: str = "NSE") -> list[dict]:
+    safe_limit = min(max(limit, 1), 100)
     normalized_query = normalize_symbol(query)
     if not normalized_query:
         return []
 
     exchange_filter = normalize_symbol(exchange)
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        db_results = repo.search(session, query, limit=safe_limit)
+        filtered = [
+            _instrument_to_dict(r)
+            for r in db_results
+            if normalize_symbol(r.exch_seg) == exchange_filter
+        ]
+        if filtered:
+            return filtered
+    except Exception as e:
+        logger.warning("Database query failed in search_symbols, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     results = []
     for instrument in load_instruments():
         if normalize_symbol(instrument.get("exchange")) != exchange_filter:
@@ -183,31 +307,97 @@ def search_symbols(query: str, limit: int = 50, exchange: str = "NSE") -> list[d
             or normalized_query in sector
         ):
             results.append(instrument.copy())
-        if len(results) >= limit:
+        if len(results) >= safe_limit:
             break
     return results
 
 
-def search(query: str, limit: int = 50, exchange: str = "NSE") -> list[dict]:
+def search(query: str, limit: int = 25, exchange: str = "NSE") -> list[dict]:
     return search_symbols(query=query, limit=limit, exchange=exchange)
 
 
 def list_market_watch(limit: int = 100) -> list[dict]:
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        db_results, _ = repo.list_paginated(session, page=1, page_size=limit)
+        if db_results:
+            return [_instrument_to_dict(r) for r in db_results]
+    except Exception as e:
+        logger.warning("Database query failed in list_market_watch, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     return [instrument.copy() for instrument in load_instruments()[:limit]]
 
 
 def get_by_sector(sector: str) -> list[dict]:
     load_instruments()
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        db_results = repo.get_by_sector(session, sector)
+        if db_results:
+            return [_instrument_to_dict(r) for r in db_results]
+    except Exception as e:
+        logger.warning("Database query failed in get_by_sector, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     key = normalize_symbol(sector)
     return [item.copy() for item in sorted(_BY_SECTOR.get(key, []), key=lambda row: row.get("symbol") or "")]
 
 
 def get_sectors() -> list[str]:
     load_instruments()
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        sectors = repo.get_sectors(session)
+        if sectors:
+            return sectors
+    except Exception as e:
+        logger.warning("Database query failed in get_sectors, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     return sorted(sector for sector in _BY_SECTOR if sector)
 
 
 def list_paginated(page: int = 1, page_size: int = 50) -> dict:
+    session = None
+    try:
+        session = _get_db_session()
+        from backend.db.repositories.instrument_repository import InstrumentRepository
+        repo = InstrumentRepository()
+        total = repo.count(session)
+        if total > 0:
+            safe_page = max(int(page or 1), 1)
+            safe_page_size = min(max(int(page_size or 50), 1), 200)
+            db_results, total = repo.list_paginated(session, page=safe_page, page_size=safe_page_size)
+            total_pages = max(math.ceil(total / safe_page_size), 1)
+            return {
+                "instruments": [_instrument_to_dict(r) for r in db_results],
+                "page": safe_page,
+                "page_size": safe_page_size,
+                "total": total,
+                "total_pages": total_pages,
+            }
+    except Exception as e:
+        logger.warning("Database query failed in list_paginated, falling back: %s", e)
+    finally:
+        if session:
+            session.close()
+
     instruments = [item.copy() for item in load_instruments()]
     return _paginate(instruments, page=page, page_size=page_size)
 
