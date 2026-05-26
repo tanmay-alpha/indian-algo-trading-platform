@@ -251,7 +251,9 @@ export const OPERATOR_COMPONENTS = [
 // ----- Build env -----
 export const BUILD_ENV =
   (process.env.NEXT_PUBLIC_BUILD_ENV as 'LOCAL' | 'CLOUD' | 'PREVIEW') ||
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  (typeof process !== 'undefined' && process.env.NODE_ENV === 'development'
+    ? 'LOCAL'
+    : typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'LOCAL'
     : 'CLOUD')
 

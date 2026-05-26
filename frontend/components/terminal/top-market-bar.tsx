@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { LockKeyhole } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { BUILD_ENV, INDEX_TILES } from '@/lib/constants'
@@ -11,15 +12,23 @@ import { OperatorStatusStrip } from './operator-status-strip'
 import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 
 export function TopMarketBar() {
+  const [mounted, setMounted] = useState(false)
   const indices = useTerminalStore((s) => s.indices)
   const mode = useTerminalStore((s) => s.executionMode)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const istTime = useIstClock()
-  const session = getNseMarketSession()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const session = mounted ? getNseMarketSession() : 'CLOSED'
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
-  for (const index of indices) indexBySymbol[index.symbol] = index
+  if (indices) {
+    for (const index of indices) indexBySymbol[index.symbol] = index
+  }
 
   return (
     <header className="flex h-topbar shrink-0 items-center border-b border-border bg-bg">

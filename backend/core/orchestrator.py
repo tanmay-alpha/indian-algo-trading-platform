@@ -429,7 +429,7 @@ class SystemOrchestrator:
                 )
             )
 
-        await self.load_instrument_master_best_effort()
+        asyncio.create_task(self.load_instrument_master_best_effort())
 
         # ---- OMS Startup Recovery ----
         try:

@@ -61,6 +61,40 @@ def test_python_fallback_vwap_basic():
     assert result == pytest.approx([9.0, 10.0])
 
 
+def test_python_fallback_vwap_day_reset():
+    # Day 1: 1716714000 (May 26 2024 09:15:00 UTC)
+    # Day 2: 1716800400 (May 27 2024 09:15:00 UTC)
+    candles = [
+        {"open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 10.0, "time": 1716714000},
+        {"open": 200.0, "high": 200.0, "low": 200.0, "close": 200.0, "volume": 10.0, "time": 1716714060},
+        # Day 2 starts here - should reset.
+        {"open": 150.0, "high": 150.0, "low": 150.0, "close": 150.0, "volume": 10.0, "time": 1716800400},
+    ]
+    result = python_fallback.vwap(candles)
+    # Without reset, VWAP would be: (100*10 + 200*10 + 150*10)/30 = 150.0
+    # With reset, Day 2 VWAP should be: (150*10)/10 = 150.0. Wait, that's the same! Let's choose different values to distinguish.
+    # Day 1: 100 * 10 + 100 * 10 = 2000. Sum volume = 20. VWAP = 100.0
+    # Day 2: 300 * 10 = 3000.
+    # If NO reset: (2000 + 3000)/30 = 166.67
+    # If reset: 3000 / 10 = 300.0
+    candles = [
+        {"open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 10.0, "time": 1716714000},
+        {"open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 10.0, "time": 1716714060},
+        {"open": 300.0, "high": 300.0, "low": 300.0, "close": 300.0, "volume": 10.0, "time": 1716800400},
+    ]
+    result = python_fallback.vwap(candles)
+    assert result[2] == pytest.approx(300.0)
+
+    # Test ISO strings
+    candles_iso = [
+        {"open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 10.0, "time": "2026-05-26T09:15:00Z"},
+        {"open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 10.0, "time": "2026-05-26T09:16:00Z"},
+        {"open": 300.0, "high": 300.0, "low": 300.0, "close": 300.0, "volume": 10.0, "time": "2026-05-27T09:15:00Z"},
+    ]
+    result_iso = python_fallback.vwap(candles_iso)
+    assert result_iso[2] == pytest.approx(300.0)
+
+
 def test_python_fallback_bollinger_shape():
     result = python_fallback.bollinger_bands([1, 2, 3, 4, 5], 3)
     assert len(result["middle"]) == 5

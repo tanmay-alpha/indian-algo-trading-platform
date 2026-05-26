@@ -11,6 +11,7 @@ struct Candle {
     double low;
     double close;
     double volume;
+    long long time = 0;
 };
 
 struct MacdResult {

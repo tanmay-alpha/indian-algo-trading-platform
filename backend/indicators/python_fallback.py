@@ -158,16 +158,47 @@ def atr(candles: list[CandleInput], period: int = 14) -> list[float]:
 
 
 def vwap(candles: list[CandleInput]) -> list[float]:
+    from datetime import datetime
     if not candles:
         return []
     output = _nan_list(len(candles))
     cumulative_price_volume = 0.0
     cumulative_volume = 0.0
+    last_day = None
     for i, candle in enumerate(candles):
         high = float(candle["high"])
         low = float(candle["low"])
         close = float(candle["close"])
         volume = float(candle["volume"])
+        
+        current_day = None
+        if "time" in candle:
+            t = candle["time"]
+            if isinstance(t, str):
+                try:
+                    if t.isdigit():
+                        ts = float(t)
+                        if ts > 5000000000:
+                            ts /= 1000.0
+                        current_day = int((ts + 19800) // 86400)
+                    else:
+                        dt = datetime.fromisoformat(t.replace("Z", "+00:00"))
+                        current_day = dt.date().isoformat()
+                except Exception:
+                    pass
+            elif isinstance(t, (int, float)):
+                ts = float(t)
+                if ts > 5000000000:
+                    ts /= 1000.0
+                current_day = int((ts + 19800) // 86400)
+            
+        if current_day is not None and last_day is not None and current_day != last_day:
+            cumulative_price_volume = 0.0
+            cumulative_volume = 0.0
+            
+        if current_day is not None:
+            last_day = current_day
+
         typical_price = (high + low + close) / 3.0
         cumulative_price_volume += typical_price * volume
         cumulative_volume += volume

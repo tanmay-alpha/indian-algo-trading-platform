@@ -18,12 +18,17 @@ maet::Candle dict_to_candle(const py::dict& item) {
             throw std::invalid_argument(std::string("candle missing required key: ") + key);
         }
     }
+    long long t_val = 0;
+    if (item.contains("time")) {
+        t_val = item["time"].cast<long long>();
+    }
     return maet::Candle{
         item["open"].cast<double>(),
         item["high"].cast<double>(),
         item["low"].cast<double>(),
         item["close"].cast<double>(),
         item["volume"].cast<double>(),
+        t_val
     };
 }
 

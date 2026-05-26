@@ -260,8 +260,21 @@ std::vector<double> vwap(const std::vector<Candle>& candles) {
     auto output = make_nan_vector(candles.size());
     double cumulative_price_volume = 0.0;
     double cumulative_volume = 0.0;
-
+    long long last_day = -1;
     for (std::size_t i = 0; i < candles.size(); ++i) {
+        if (candles[i].time > 0) {
+            long long ts = candles[i].time;
+            if (ts > 5000000000LL) {
+                ts /= 1000LL;
+            }
+            long long current_day = (ts + 19800) / 86400;
+            if (last_day != -1 && current_day != last_day) {
+                cumulative_price_volume = 0.0;
+                cumulative_volume = 0.0;
+            }
+            last_day = current_day;
+        }
+
         const double typical_price = (candles[i].high + candles[i].low + candles[i].close) / 3.0;
         cumulative_price_volume += typical_price * candles[i].volume;
         cumulative_volume += candles[i].volume;

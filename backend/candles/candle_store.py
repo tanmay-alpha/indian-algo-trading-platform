@@ -21,6 +21,7 @@ class CandleStore:
         self._live_candle: dict[str, dict[str, Optional[dict]]] = defaultdict(
             lambda: {timeframe: None for timeframe in self.MAX_CANDLES}
         )
+        self._last_cumulative_volume: dict[str, int] = defaultdict(int)
 
     async def on_tick_event(self, event: TickEvent) -> None:
         if not event.symbol or event.ltp is None:
@@ -35,13 +36,27 @@ class CandleStore:
         price_value = float(price)
         volume_value = int(volume or 0)
 
+        # Compute incremental tick volume from cumulative session volume
+        last_cum = self._last_cumulative_volume[normalized_symbol]
+        if last_cum == 0:
+            # Baseline subscription start: record but set initial tick increment to 0
+            self._last_cumulative_volume[normalized_symbol] = volume_value
+            tick_increment = 0
+        elif volume_value < last_cum:
+            # Day rollover or broker session reset
+            self._last_cumulative_volume[normalized_symbol] = volume_value
+            tick_increment = volume_value
+        else:
+            tick_increment = volume_value - last_cum
+            self._last_cumulative_volume[normalized_symbol] = volume_value
+
         for timeframe in self.MAX_CANDLES:
             bucket = self._bucket_start(received_at, timeframe)
             live = self._live_candle[normalized_symbol][timeframe]
 
             if live is None:
                 self._live_candle[normalized_symbol][timeframe] = self._new_candle(
-                    bucket, price_value, volume_value
+                    bucket, price_value, tick_increment
                 )
                 continue
 
@@ -49,14 +64,13 @@ class CandleStore:
                 live["high"] = max(live["high"], price_value)
                 live["low"] = min(live["low"], price_value)
                 live["close"] = price_value
-                # TODO: compute per-candle volume once previous cumulative volume is tracked.
-                live["volume"] = volume_value
+                live["volume"] += tick_increment
                 continue
 
             if live["time"] < bucket:
                 self._candles[normalized_symbol][timeframe].append(live.copy())
                 self._live_candle[normalized_symbol][timeframe] = self._new_candle(
-                    bucket, price_value, volume_value
+                    bucket, price_value, tick_increment
                 )
 
     def load_historical(self, symbol: str, timeframe: str, candles: list[dict]) -> int:

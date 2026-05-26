@@ -121,7 +121,10 @@ def test_get_candles_deduplicates_live_candle():
 
     # Update a live candle with the exact same timestamp
     dt = datetime.fromtimestamp(1020, tz=timezone.utc)
-    store._update_live_candle("SBIN", 752.0, 1500, dt)
+    # Establish baseline cumulative volume as 1000 (tick increment is 0)
+    store._update_live_candle("SBIN", 752.0, 1000, dt)
+    # Next tick brings cumulative volume to 2500 (tick increment is 1500)
+    store._update_live_candle("SBIN", 752.0, 2500, dt)
 
     candles = store.get_candles("SBIN", "1m")
     # Verify we get exactly 1 candle, and it contains the live update

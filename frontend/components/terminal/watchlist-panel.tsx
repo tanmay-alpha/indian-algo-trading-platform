@@ -33,6 +33,11 @@ export function WatchlistPanel() {
 
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     fetchPersistentWatchlist()
@@ -55,7 +60,7 @@ export function WatchlistPanel() {
       ? terminalStatus.gateway.subscribed_symbols.map((item) => normalizeWatchSymbol(String(item)))
       : []
   )
-  const session = getNseMarketSession()
+  const session = mounted ? getNseMarketSession() : 'CLOSED'
   const sessionMeta = marketSessionMeta(session)
 
   return (
@@ -186,7 +191,7 @@ export function WatchlistPanel() {
               ? `${row.exchange} EQ`
               : last
               ? fmtAge(age)
-              : marketSessionLabel() === 'LIVE'
+              : (mounted && marketSessionLabel() === 'LIVE')
               ? 'Awaiting tick'
               : 'Market closed'
 

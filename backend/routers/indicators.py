@@ -215,14 +215,17 @@ def _normalize_symbol(symbol: str) -> str:
     return str(symbol or "").strip().upper()
 
 
-def _candle_for_indicator(candle: dict[str, Any]) -> dict[str, float]:
+def _candle_for_indicator(candle: dict[str, Any]) -> dict[str, Any]:
     try:
-        return {
+        res = {
             "open": float(candle["open"]),
             "high": float(candle["high"]),
             "low": float(candle["low"]),
             "close": float(candle["close"]),
             "volume": float(candle.get("volume") or 0),
         }
+        if "time" in candle:
+            res["time"] = int(candle["time"])
+        return res
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail="Malformed candle input") from exc
