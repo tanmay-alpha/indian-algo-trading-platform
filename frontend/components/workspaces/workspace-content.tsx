@@ -381,6 +381,7 @@ function PremiumChartPanel() {
   const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
   const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
   const toggleIndicatorSubpanel = useTerminalStore((s) => s.toggleIndicatorSubpanel)
+  const layoutMode = useTerminalStore((s) => s.chartLayoutMode)
   const chartKey = selected ? indicatorKey(selected, timeframe) : null
   const indicatorResults = chartKey ? indicatorResultsByKey[chartKey] : undefined
   const candles = chartKey ? chartCandlesByKey[chartKey] || [] : []
@@ -422,84 +423,24 @@ function PremiumChartPanel() {
         {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
         {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
       </div>
-      <IndicatorOverlayControls
-        overlays={chartOverlays}
-        subpanels={indicatorSubpanels}
-        status={indicatorStatus}
-        loading={indicatorLoading}
-        noCandles={Boolean(noCandles)}
-        error={indicatorError}
-        onToggleOverlay={toggleChartOverlay}
-        onToggleSubpanel={toggleIndicatorSubpanel}
-      />
-      <IndicatorSummaryPanel
-        result={indicatorResults}
-        status={indicatorStatus?.selected_engine ?? null}
-        marketState={marketSessionLabel()}
-        selected={selected ?? tick?.symbol ?? null}
-        timeframe={timeframe}
-      />
-      <div className="absolute left-4 right-16 bottom-0 h-9 flex items-center justify-between border-t border-border bg-bg-2/85 px-3 text-[10px] font-mono text-text-faint">
-        <span>Event timeline</span>
-        <span>Signals, candle loads, and feed changes will appear here</span>
-      </div>
-    </div>
-  )
-}
-
-function IndicatorSummaryPanel({
-  result,
-  status,
-  marketState,
-  selected,
-  timeframe,
-}: {
-  result?: IndicatorResultsResponse
-  status: string | null
-  marketState: string
-  selected: string | null
-  timeframe: Timeframe
-}) {
-  const bb = result?.results.bollinger_bands
-  return (
-    <div className="absolute right-16 top-20 z-20 w-[280px] rounded-md border border-border bg-bg-2/90 backdrop-blur-sm shadow-panel">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div>
-          <div className="text-xs font-semibold text-text">Indicator Summary</div>
-          <div className="text-[9px] font-mono text-text-faint">
-            {selected ?? 'No symbol'} / {timeframe}
-          </div>
+      {layoutMode === 'ANALYSIS' && (
+        <IndicatorOverlayControls
+          overlays={chartOverlays}
+          subpanels={indicatorSubpanels}
+          status={indicatorStatus}
+          loading={indicatorLoading}
+          noCandles={Boolean(noCandles)}
+          error={indicatorError}
+          onToggleOverlay={toggleChartOverlay}
+          onToggleSubpanel={toggleIndicatorSubpanel}
+        />
+      )}
+      {layoutMode === 'ANALYSIS' && (
+        <div className="absolute left-4 right-16 bottom-0 h-9 flex items-center justify-between border-t border-border bg-bg-2/85 px-3 text-[10px] font-mono text-text-faint">
+          <span>Event timeline</span>
+          <span>Signals, candle loads, and feed changes will appear here</span>
         </div>
-        <span className="rounded border border-info/30 bg-info-dim px-2 py-0.5 text-[10px] font-mono uppercase text-info">
-          {result?.engine ?? status ?? 'python'}
-        </span>
-      </div>
-      <div className="space-y-2 p-3 text-[10px] font-mono">
-        {result?.available ? (
-          <>
-            <IndicatorRow label="EMA latest" value={formatIndicatorValue(latestNonNull(result.results.ema))} />
-            <IndicatorRow label="RSI latest" value={formatIndicatorValue(latestNonNull(result.results.rsi))} />
-            <IndicatorRow label="MACD hist" value={formatIndicatorValue(latestNonNull(result.results.macd?.histogram))} />
-            <IndicatorRow label="VWAP latest" value={formatIndicatorValue(latestNonNull(result.results.vwap))} />
-            <IndicatorRow label="BB upper" value={formatIndicatorValue(latestNonNull(bb?.upper))} />
-            <IndicatorRow label="BB lower" value={formatIndicatorValue(latestNonNull(bb?.lower))} />
-            <IndicatorRow label="Market" value={marketState} />
-          </>
-        ) : (
-          <div className="rounded-sm border border-border bg-panel/60 px-2 py-1.5 text-text-faint">
-            Indicator engine ready - candle data required.
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function IndicatorRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-sm border border-border/60 bg-panel/50 px-2 py-1">
-      <span className="text-text-faint">{label}</span>
-      <span className="text-text">{value}</span>
+      )}
     </div>
   )
 }

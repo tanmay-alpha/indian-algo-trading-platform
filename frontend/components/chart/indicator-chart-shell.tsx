@@ -37,6 +37,14 @@ import {
   Database,
   AlertTriangle,
 } from 'lucide-react'
+import { useTerminalStore } from '@/store/terminal-store'
+const PATTERN_ABBREVIATIONS: Record<string, string> = {
+  'Doji': 'D',
+  'Hammer': 'H',
+  'Shooting Star': 'SS',
+  'Bullish Engulfing': 'BE',
+  'Bearish Engulfing': 'BE',
+}
 
 export function IndicatorChartShell({
   symbol,
@@ -61,6 +69,7 @@ export function IndicatorChartShell({
   isFetching?: boolean
   onFetchCandles?: () => void
 }) {
+  const layoutMode = useTerminalStore((s) => s.chartLayoutMode)
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const [patterns, setPatterns] = useState<PatternMarker[]>([])
@@ -308,7 +317,8 @@ export function IndicatorChartShell({
           position: p.direction === 'bullish' ? 'belowBar' : 'aboveBar',
           shape: p.direction === 'bullish' ? 'arrowUp' : (p.direction === 'bearish' ? 'arrowDown' : 'circle'),
           color: p.direction === 'bullish' ? '#10b981' : (p.direction === 'bearish' ? '#ef4444' : '#94a3b8'),
-          text: p.pattern,
+          text: PATTERN_ABBREVIATIONS[p.pattern] || p.pattern,
+          fullName: p.pattern,
           description: p.description,
           confidence: p.confidence,
           isPattern: true,
@@ -375,7 +385,7 @@ export function IndicatorChartShell({
         high: candle.high,
         low: candle.low,
         close: candle.close,
-        pattern: marker?.isPattern || marker?.text ? marker.text : undefined,
+        pattern: marker?.isPattern ? (marker.fullName || marker.text) : (marker?.text || undefined),
         patternDesc: marker?.description,
         signal: marker?.isSignal ? marker.text : undefined,
         signalDesc: marker?.description,
@@ -389,7 +399,7 @@ export function IndicatorChartShell({
         setTooltip({
           x: param.point.x,
           y: param.point.y,
-          title: marker.text,
+          title: marker.isPattern ? (marker.fullName || marker.text) : marker.text,
           description: displayDesc,
           color: marker.color,
         })
@@ -470,8 +480,10 @@ export function IndicatorChartShell({
     : 'NO CANDLES'
 
   // Toolbar Builder
-  const renderToolbar = () => (
-    <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-bg-2/50 px-4 py-2 gap-2 z-10 select-none">
+  const renderToolbar = () => {
+    if (layoutMode === 'FOCUS') return null
+    return (
+      <div className="flex flex-wrap items-center justify-between border-b border-border/60 bg-bg-2/50 px-4 py-2 gap-2 z-10 select-none">
       {/* Left side: quote details & status */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
@@ -607,6 +619,7 @@ export function IndicatorChartShell({
       </div>
     </div>
   )
+}
 
   // Empty state handling
   if (candles.length === 0) {
@@ -718,37 +731,39 @@ export function IndicatorChartShell({
       {renderToolbar()}
 
       {/* 2. Legend & Summary Row */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-[10px] font-mono text-text-dim select-none z-10">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="text-text-faint font-semibold uppercase tracking-wider text-[9px]">Markers:</span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Bullish / BUY</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-rose-500" />
-            <span>Bearish / SELL</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-slate-400" />
-            <span>Neutral / Info</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          {showPatterns && (
-            <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[9px] font-semibold">
-              <Sparkles size={10} />
-              <span>Patterns: {patterns.length}</span>
+      {layoutMode === 'ANALYSIS' && (
+        <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-[10px] font-mono text-text-dim select-none z-10">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="text-text-faint font-semibold uppercase tracking-wider text-[9px]">Markers:</span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Bullish / BUY</span>
             </span>
-          )}
-          {!isVolumeAvailable && (
-            <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[9px]">
-              Volume Unavailable
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-rose-500" />
+              <span>Bearish / SELL</span>
             </span>
-          )}
-          <span className="text-text-faint text-[9px]">Chart Engine: Lightweight Charts v5</span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-slate-400" />
+              <span>Neutral / Info</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {showPatterns && (
+              <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[9px] font-semibold">
+                <Sparkles size={10} />
+                <span>Patterns: {patterns.length}</span>
+              </span>
+            )}
+            {!isVolumeAvailable && (
+              <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[9px]">
+                Volume Unavailable
+              </span>
+            )}
+            <span className="text-text-faint text-[9px]">Chart Engine: Lightweight Charts v5</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. Main Chart Canvas Area */}
       <div className="relative flex-1 bg-[#070b12]">

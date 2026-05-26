@@ -195,8 +195,8 @@ export function WatchlistPanel() {
                 key={symbol}
                 onClick={() => setSelected(symbol)}
                 className={cn(
-                  'wl-row group relative flex h-[30px] cursor-pointer select-none items-center border-b border-border/50 px-2',
-                  isSelected && 'selected'
+                  'wl-row group relative flex h-[26px] cursor-pointer select-none items-center border-b border-border/50 px-2',
+                  isSelected && 'selected bg-info/[0.04]'
                 )}
               >
                 <div
@@ -221,42 +221,38 @@ export function WatchlistPanel() {
 
                 <div className="ml-1 flex shrink-0 items-baseline gap-2">
                   <span className={cn(
-                    'w-[68px] text-right font-mono text-[12px] font-medium tabular-nums',
-                    displayChgPct != null && displayChgPct > 0
+                    'w-[68px] text-right font-mono text-[11px] font-medium tabular-nums',
+                    displayLtp == null
+                      ? 'text-text-faint/70 text-[9px]'
+                      : displayChgPct != null && displayChgPct > 0
                       ? 'text-up'
                       : displayChgPct != null && displayChgPct < 0
                       ? 'text-down'
                       : 'text-text-2'
                   )}>
-                    {formatLtp(displayLtp)}
+                    {displayLtp != null ? formatLtp(displayLtp) : 'No tick'}
                   </span>
                   <span className={cn(
                     'w-[48px] text-right font-mono text-[10px] tabular-nums',
-                    displayChgPct != null && displayChgPct > 0
+                    displayLtp == null
+                      ? 'text-text-faint/45'
+                      : displayChgPct != null && displayChgPct > 0
                       ? 'text-up'
                       : displayChgPct != null && displayChgPct < 0
                       ? 'text-down'
                       : 'text-text-faint'
                   )}>
-                    {formatChange(displayChgPct)}
+                    {displayLtp != null ? formatChange(displayChgPct) : '—'}
                   </span>
-                  <span className="w-[36px] text-right font-mono text-[10px] text-text-faint">
-                    {displayVolume != null ? fmtVolume(displayVolume) : '—'}
+                  <span className={cn(
+                    'w-[36px] text-right font-mono text-[10px] tabular-nums',
+                    displayLtp == null
+                      ? 'text-text-faint/45'
+                      : 'text-text-faint'
+                  )}>
+                    {displayLtp != null && displayVolume != null ? fmtVolume(displayVolume) : '—'}
                   </span>
                 </div>
-
-                {!isLive && (
-                  <div className={cn(
-                    'ml-1.5 shrink-0 rounded px-1 py-0.5 font-mono text-[9px] tracking-wide',
-                    isWaiting
-                      ? 'bg-warn/10 text-warn/70'
-                      : !subscribed
-                      ? 'bg-panel-3 text-text-faint'
-                      : 'bg-panel-3 text-text-faint'
-                  )}>
-                    {statusLabel}
-                  </div>
-                )}
 
                 <button
                   onClick={(event) => {
@@ -264,7 +260,7 @@ export function WatchlistPanel() {
                     removeSymbolFromBackend(symbol)
                   }}
                   aria-label={`Remove ${symbol}`}
-                  className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 rounded p-0.5 text-text-dim hover:text-down hover:bg-down-dim"
+                  className="absolute right-1 top-0.5 opacity-0 group-hover:opacity-100 rounded p-0.5 text-text-dim hover:text-down hover:bg-down-dim transition-opacity"
                 >
                   <X className="w-3 h-3" />
                 </button>

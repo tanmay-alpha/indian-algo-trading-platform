@@ -181,6 +181,9 @@ export interface TerminalState {
   omsDataState: OmsDataState
   omsLastUpdatedAt: number | null
 
+  chartLayoutMode: 'CLEAN' | 'ANALYSIS' | 'FOCUS'
+  showPatternLabels: boolean
+
   // Persistent watchlist (Phase 19E)
   persistentWatchlistId: number | null
   persistentWatchlistItems: PersistentWatchlistItem[]
@@ -274,6 +277,9 @@ export interface TerminalActions {
   fetchPersistentWatchlist: () => Promise<void>
   addSymbolToBackend: (symbol: string, exchange?: string) => Promise<void>
   removeSymbolFromBackend: (symbol: string) => Promise<void>
+
+  setChartLayoutMode: (mode: 'CLEAN' | 'ANALYSIS' | 'FOCUS') => void
+  setShowPatternLabels: (show: boolean) => void
 }
 
 export type TerminalStore = TerminalState & TerminalActions
@@ -405,6 +411,8 @@ const initialState: TerminalState = {
   watchlistError: null,
   watchlistAdminRequired: false,
   watchlistLastUpdatedAt: null,
+  chartLayoutMode: 'CLEAN',
+  showPatternLabels: false,
 }
 
 const MAX_EVENTS = 200
@@ -425,6 +433,8 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setRightPanelTab: (t) => set({ rightPanelTab: t }),
   setBottomDockTab: (t) => set({ bottomDockTab: t }),
+  setChartLayoutMode: (mode) => set({ chartLayoutMode: mode }),
+  setShowPatternLabels: (show) => set({ showPatternLabels: show }),
   setChartTimeframe: (t) => {
     set((state) => ({
       chartTimeframe: t,

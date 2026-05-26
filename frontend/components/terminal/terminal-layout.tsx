@@ -57,6 +57,9 @@ export function TerminalLayout() {
     return () => window.removeEventListener('keydown', onKey)
   }, [setWorkspace, toggleCommandPalette, toggleShortcuts])
 
+  const layoutMode = useTerminalStore((s) => s.chartLayoutMode)
+  const isFocusMode = layoutMode === 'FOCUS'
+
   return (
     <div className="h-screen min-w-[1100px] flex flex-col bg-bg text-text overflow-hidden">
       <div className="flex flex-1 min-h-0">
@@ -65,12 +68,12 @@ export function TerminalLayout() {
           <DemoBanner />
           <TopMarketBar />
           <div className="flex-1 min-h-0 flex">
-            <WatchlistPanel />
+            {!isFocusMode && <WatchlistPanel />}
             <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-bg term-grid">
               <WorkspaceContent />
-              <BottomDock />
+              {!isFocusMode && <BottomDock />}
             </main>
-            <RightTradePanel />
+            {!isFocusMode && <RightTradePanel />}
           </div>
           <StatusBar />
         </div>

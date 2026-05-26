@@ -6,6 +6,7 @@ import { BUILD_ENV, INDEX_TILES } from '@/lib/constants'
 import { cn, getNseMarketSession } from '@/lib/utils'
 import { useIstClock } from '@/lib/use-ist-clock'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
+import { ChartLayoutSelector } from './chart-layout-selector'
 import { OperatorStatusStrip } from './operator-status-strip'
 import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 
@@ -62,6 +63,7 @@ export function TopMarketBar() {
       </div>
 
       <div className="flex h-full shrink-0 items-center gap-2 px-3">
+        <ChartLayoutSelector />
         <WorkspacePresetSelector />
         <div className="font-mono text-[11px] tabular-nums text-text">
           {istTime || '--:--:--'} IST
