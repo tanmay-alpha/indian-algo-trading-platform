@@ -70,42 +70,30 @@ export function WatchlistPanel() {
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-text">Market Watch</span>
-              {watchlistSource === 'db' && (
-                <span className="rounded bg-up/10 px-1 py-0.5 text-[8px] font-semibold text-up uppercase tracking-wider">
-                  DB
-                </span>
-              )}
-              {watchlistSource === 'fallback' && (
-                <span className="rounded bg-warn/10 px-1 py-0.5 text-[8px] font-semibold text-warn uppercase tracking-wider animate-pulse-soft">
-                  Local
-                </span>
-              )}
-            </div>
-            <div className="text-[10px] text-text-faint">NSE watchlists and live tick quality</div>
-            <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono text-text-faint">
-              <span className={cn('h-1.5 w-1.5 rounded-full', sessionMeta.dotClass)} />
-              <span>{sessionMeta.label}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-text uppercase tracking-wider">Market Watch</span>
+            {watchlistSource === 'db' ? (
+              <span className="text-[9px] text-up font-mono">●</span>
+            ) : (
+              <span className="text-[9px] text-warn font-mono animate-pulse">●</span>
+            )}
           </div>
-          <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-dim">
-            {watchlistLoading ? '...' : symbols.length}
+          <span className="text-[10px] font-mono text-text-faint">
+            {watchlistLoading ? '...' : `${symbols.length} items`}
           </span>
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
-          <div ref={groupRef} className="relative w-32">
+        <div className="mt-2 flex items-center gap-1.5">
+          <div ref={groupRef} className="relative">
             <button
               onClick={() => setGroupOpen((open) => !open)}
-              className="w-full h-7 px-2 flex items-center justify-between rounded-md border border-border bg-bg text-xs font-mono text-text hover:border-border-strong"
+              className="h-7 px-2 flex items-center gap-1 rounded-sm border border-border bg-bg text-[10px] font-mono text-text-2 hover:text-text transition-colors"
             >
-              <span className="truncate">{activeGroup?.name ?? '\u2014'}</span>
-              <ChevronDown className="w-3 h-3 text-text-dim" />
+              <span className="max-w-[60px] truncate">{activeGroup?.name ?? '\u2014'}</span>
+              <ChevronDown className="w-2.5 h-3 text-text-faint" />
             </button>
             {groupOpen && (
-              <div className="absolute z-20 left-0 right-0 mt-1 bg-panel-2 border border-border-strong rounded-md shadow-modal py-1">
+              <div className="absolute z-20 left-0 mt-1 w-40 bg-panel-2 border border-border-strong rounded-sm shadow-modal py-1">
                 {groups.map((group) => (
                   <button
                     key={group.id}
@@ -114,12 +102,12 @@ export function WatchlistPanel() {
                       setGroupOpen(false)
                     }}
                     className={cn(
-                      'w-full px-2.5 h-7 flex items-center justify-between text-xs font-mono hover:bg-white/[0.04]',
-                      group.id === groupId && 'bg-info/[0.06] text-info'
+                      'w-full px-2.5 h-7 flex items-center justify-between text-[11px] font-mono hover:bg-white/[0.04]',
+                      group.id === groupId ? 'text-info bg-info/5' : 'text-text-dim'
                     )}
                   >
                     <span className="truncate">{group.name}</span>
-                    <span className="text-text-faint tnum">{group.symbols.length}</span>
+                    <span className="text-[9px] opacity-40">{group.symbols.length}</span>
                   </button>
                 ))}
               </div>
@@ -127,7 +115,7 @@ export function WatchlistPanel() {
           </div>
           <InstrumentSearch
             onPick={(instrument) => addSymbolToBackend(instrument.symbol)}
-            placeholder="Search NSE instruments"
+            placeholder="Find instrument..."
             className="flex-1"
           />
         </div>

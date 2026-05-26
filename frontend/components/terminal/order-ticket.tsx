@@ -21,84 +21,55 @@ export function OrderTicket() {
       />
 
       <div className="space-y-3 p-3">
-        {/* Keep all safety warnings visible */}
-        <div className="border border-warn/25 bg-warn-dim p-3">
-          <div className="flex items-center gap-2 text-warn">
-            <LockKeyhole className="h-4 w-4" />
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider">EXECUTION LOCKED</span>
-          </div>
-          <p className="mt-1 font-mono text-[10px] leading-relaxed text-warn/90">
-            Paper mode only. No real orders.
-          </p>
+        {/* Compact safety warning */}
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm border border-warn/30 bg-warn/5 text-warn">
+          <LockKeyhole className="h-3 w-3" />
+          <span className="font-mono text-[10px] font-bold uppercase tracking-tight">Paper Mode Only</span>
         </div>
 
-        {/* Compact locked message */}
+        {/* Action Toggle */}
         {!showDetails && (
-          <div className="rounded border border-border bg-panel/30 p-2.5 text-center">
-            <p className="font-mono text-[10px] text-text-faint leading-normal">
-              Order input fields are collapsed by default because execution is disabled. Toggle below to review schema.
+          <div className="space-y-3 pt-1">
+            <div className="grid grid-cols-2 gap-2">
+              <button disabled className="h-9 rounded-sm border border-up/20 bg-up/5 text-up/40 font-bold uppercase text-[11px] cursor-not-allowed">Buy</button>
+              <button disabled className="h-9 rounded-sm border border-down/20 bg-down/5 text-down/40 font-bold uppercase text-[11px] cursor-not-allowed">Sell</button>
+            </div>
+            <p className="text-[10px] text-text-faint text-center italic font-mono leading-tight px-2">
+              Order inputs are locked. Real trading is disabled in this build.
             </p>
           </div>
         )}
 
-        {/* Toggle button */}
         <button
           type="button"
           onClick={() => setShowDetails(!showDetails)}
-          className="w-full h-7 border border-border/80 hover:bg-panel rounded flex items-center justify-center gap-1 text-[10px] font-mono text-text-dim hover:text-text transition-colors"
+          className="w-full py-1 text-[9px] font-mono uppercase tracking-widest text-text-faint hover:text-text-dim transition-colors flex items-center justify-center gap-1.5"
         >
-          {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          <span>{showDetails ? 'Hide ticket details' : 'Show ticket details'}</span>
+          <div className="h-px flex-1 bg-border/40" />
+          {showDetails ? 'Hide Schema' : 'Review Schema'}
+          <div className="h-px flex-1 bg-border/40" />
         </button>
 
         {/* Detailed fields collapsed by default */}
         {showDetails && (
-          <div className="space-y-3 pt-1">
-            <div className="grid grid-cols-2 gap-1 border border-border bg-bg p-1">
-              <button
-                disabled
-                title="Execution disabled in this build"
-                className="h-8 cursor-not-allowed border border-up/20 bg-up/10 font-mono text-[11px] font-semibold text-up/50"
-              >
-                Buy
-              </button>
-              <button
-                disabled
-                title="Execution disabled in this build"
-                className="h-8 cursor-not-allowed border border-down/20 bg-down/10 font-mono text-[11px] font-semibold text-down/50"
-              >
-                Sell
-              </button>
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="grid grid-cols-2 gap-px bg-border border border-border rounded-sm overflow-hidden">
+              <Field label="Symbol" value={symbol ?? '—'} flush />
+              <Field label="Type" value="Market" flush />
+              <Field label="Qty" value="---" flush />
+              <Field label="Est. Prc" value={fmtPrice(tick?.ltp ?? tick?.price)} flush />
             </div>
 
-            <Field label="Symbol" value={symbol ?? '—'} />
-            <div className="grid grid-cols-2 border border-border">
-              <Field label="Quantity" value="—" disabled flush />
-              <Field label="Order Type" value="Market" disabled flush />
-              <Field label="Price" value={fmtPrice(tick?.ltp ?? tick?.price)} disabled flush />
-              <Field label="Est. Notional" value="—" disabled flush />
-            </div>
-
-            <div className="border border-border bg-panel/50 p-3">
-              <div className="flex items-center gap-2 text-text">
-                <ShieldCheck className="h-4 w-4 text-info" />
-                <span className="text-[11px] font-semibold">Risk preview</span>
+            <div className="border border-border bg-panel/30 p-2.5 rounded-sm">
+              <div className="flex items-center gap-1.5 text-text-dim mb-2">
+                <ShieldCheck className="h-3 w-3 text-info" />
+                <span className="text-[10px] font-bold uppercase tracking-tight">Risk Gate</span>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <MiniMetric label="Mode" value={mode} />
-                <MiniMetric label="LTP" value={fmtPrice(tick?.ltp ?? tick?.price)} />
-                <MiniMetric label="Volume" value={fmtVolume(tick?.volume)} />
-                <MiniMetric label="Stale Rule" value="Active" />
+              <div className="grid grid-cols-2 gap-y-2">
+                <MiniMetric label="Exposure" value="0.00" />
+                <MiniMetric label="Stale Data" value="ENFORCED" />
               </div>
             </div>
-
-            <button
-              disabled
-              title="Execution disabled in this build"
-              className="h-9 w-full cursor-not-allowed border border-border bg-panel font-mono text-[11px] font-semibold text-text-dim"
-            >
-              Order disabled by safety lock
-            </button>
           </div>
         )}
       </div>

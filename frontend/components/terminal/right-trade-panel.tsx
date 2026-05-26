@@ -12,26 +12,29 @@ import { JournalNotesPanel } from './journal-notes-panel'
 export function RightTradePanel() {
   const tab = useTerminalStore((s) => s.rightPanelTab)
   const setTab = useTerminalStore((s) => s.setRightPanelTab)
+  const selected = useTerminalStore((s) => s.selectedSymbol)
 
   return (
     <aside
       aria-label="Symbol intelligence drawer"
       className="w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col shadow-panel"
     >
-      <div className="px-3 py-2 border-b border-border bg-panel/40">
-        <div className="text-xs font-semibold text-text">Symbol Command</div>
-        <div className="text-[10px] text-text-faint">Order, risk, signals, and notes</div>
+      <div className="px-3 py-2 border-b border-border bg-panel/30">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold text-text uppercase tracking-wider">Intelligence</span>
+          <span className="text-[10px] font-mono font-medium text-info">{selected ?? '---'}</span>
+        </div>
       </div>
-      <div className="flex border-b border-border bg-bg">
+      <div className="flex border-b border-border bg-bg h-8 shrink-0">
         {RIGHT_TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              'flex-1 h-8 text-2xs font-medium transition-colors border-b-2',
+              'flex-1 text-[10px] font-mono uppercase tracking-tight transition-colors border-b-2',
               tab === t.id
-                ? 'text-info border-info bg-info/[0.06]'
-                : 'text-text-dim border-transparent hover:text-text hover:bg-white/[0.03]'
+                ? 'text-info border-info bg-info/5'
+                : 'text-text-faint border-transparent hover:text-text hover:bg-white/[0.03]'
             )}
           >
             {t.label}

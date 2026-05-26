@@ -43,8 +43,17 @@ export function WorkspaceContent() {
 function TradeWorkspace() {
   const tick = useTerminalStore((s) => s.currentTick)
   const selected = useTerminalStore((s) => s.selectedSymbol)
+  const market = useTerminalStore((s) => s.marketWatch)
   const timeframe = useTerminalStore((s) => s.chartTimeframe)
   const setTimeframe = useTerminalStore((s) => s.setChartTimeframe)
+
+  const indicatorStatus = useTerminalStore((s) => s.indicatorStatus)
+  const lastTickAt = useTerminalStore((s) => s.lastTickAt)
+  
+  const ltp = tick?.ltp ?? tick?.price
+  const row = selected ? market[selected] : null
+  const chg = row?.change_pct ?? null
+  const candleStatus = indicatorStatus?.available ? 'READY' : 'WAITING'
 
   return (
     <div className="h-full flex flex-col">
@@ -68,14 +77,25 @@ function TradeWorkspace() {
             ))}
           </div>
           <div className="w-px h-3 bg-border mx-1" />
-          <div className="text-[11px] font-mono font-medium text-text">
-            {selected ?? tick?.symbol ?? 'SELECT SYMBOL'}
+          <div className="flex items-baseline gap-2">
+            <div className="text-[11px] font-mono font-bold text-text tracking-wide">
+              {selected ?? tick?.symbol ?? 'SELECT SYMBOL'}
+            </div>
+            {ltp != null && (
+              <div className={cn(
+                "text-[10px] font-mono font-medium",
+                chg != null && chg > 0 ? "text-up" : chg != null && chg < 0 ? "text-down" : "text-text-2"
+              )}>
+                {fmtPrice(ltp)}
+                {chg != null && <span className="ml-1 opacity-80">({chg > 0 ? '+' : ''}{chg.toFixed(2)}%)</span>}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-4 font-mono text-[10px]">
-          <Metric label="LTP" value={fmtPrice(tick?.ltp ?? tick?.price)} />
+        <div className="flex items-center gap-2 font-mono">
           <Metric label="VWAP" value={fmtPrice(tick?.vwap)} />
           <Metric label="VOL" value={fmtVolume(tick?.volume)} />
+          <Metric label="CDL" value={candleStatus} />
         </div>
       </div>
       <div className="flex-1 min-h-0">
