@@ -1,20 +1,19 @@
+import { useEffect, useRef, useState } from 'react'
+import { createChart, LineStyle, ColorType, CandlestickSeries, LineSeries, createSeriesMarkers } from 'lightweight-charts'
 import type {
   BollingerPoint,
   Candle,
   ChartSignalMarker,
   ChartOverlayState,
   IndicatorResultsResponse,
+  PatternMarker,
 } from '@/lib/types'
 import {
   mapBollingerSeries,
   mapLineSeries,
 } from '@/lib/indicator-series'
 import { cn, marketSessionLabel } from '@/lib/utils'
-
-const WIDTH = 1000
-const HEIGHT = 360
-const PAD_X = 36
-const PAD_Y = 22
+import { getPatternsForSymbol } from '@/lib/api'
 
 export function IndicatorChartShell({
   symbol,
@@ -39,6 +38,300 @@ export function IndicatorChartShell({
   isFetching?: boolean
   onFetchCandles?: () => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [patterns, setPatterns] = useState<PatternMarker[]>([])
+  const [patternsLoading, setPatternsLoading] = useState(false)
+  const [hoveredData, setHoveredData] = useState<{
+    time: number
+    open: number
+    high: number
+    low: number
+    close: number
+    pattern?: string
+    patternDesc?: string
+    signal?: string
+    signalDesc?: string
+  } | null>(null)
+  const [tooltip, setTooltip] = useState<{
+    x: number
+    y: number
+    title: string
+    description: string
+    color: string
+  } | null>(null)
+
+  // Fetch pattern markers when candles/symbol/timeframe change
+  useEffect(() => {
+    if (!symbol || candles.length === 0) {
+      setPatterns([])
+      return
+    }
+
+    let active = true
+    setPatternsLoading(true)
+    getPatternsForSymbol(symbol, timeframe)
+      .then((res) => {
+        if (active && res.available) {
+          setPatterns(res.markers)
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching pattern markers:', err)
+      })
+      .finally(() => {
+        if (active) setPatternsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [symbol, timeframe, candles.length])
+
+  // Initialize and update Lightweight Chart
+  useEffect(() => {
+    if (candles.length === 0 || !containerRef.current) return
+
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
+      height: 360,
+      layout: {
+        background: { type: ColorType.Solid, color: '#070b12' },
+        textColor: '#94a3b8',
+      },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.06)' },
+      },
+      crosshair: {
+        mode: 1, // Normal
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    })
+
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#16c784',
+      downColor: '#ea3943',
+      borderDownColor: '#ea3943',
+      borderUpColor: '#16c784',
+      wickDownColor: '#ea3943',
+      wickUpColor: '#16c784',
+    })
+
+    const chartData = candles.map((c) => {
+      let t = typeof c.time === 'number' ? c.time : Number(c.time)
+      if (isNaN(t)) {
+        t = Math.floor(Date.parse(c.time as string) / 1000)
+      } else if (t > 100_000_000_000) {
+        t = Math.floor(t / 1000)
+      }
+      return {
+        time: t,
+        open: Number(c.open),
+        high: Number(c.high),
+        low: Number(c.low),
+        close: Number(c.close),
+      }
+    })
+
+    chartData.sort((a, b) => (a.time as number) - (b.time as number))
+    candlestickSeries.setData(chartData as any)
+
+    // Fit content
+    chart.timeScale().fitContent()
+
+    // Add EMA
+    if (overlays.ema) {
+      const emaSeries = chart.addSeries(LineSeries, {
+        color: '#54c1ec',
+        lineWidth: 2,
+      })
+      const emaPoints = mapLineSeries(candles, result?.results.ema)
+      const emaData = emaPoints.map((point, index) => {
+        const candle = candles[index]
+        const t = getEpochSeconds(candle.time)
+        return t !== null ? { time: t, value: point.value } : null
+      }).filter((p): p is { time: number; value: number } => p !== null && p.value !== null && p.value !== undefined)
+      
+      emaSeries.setData(emaData as any)
+    }
+
+    // Add VWAP
+    if (overlays.vwap) {
+      const vwapSeries = chart.addSeries(LineSeries, {
+        color: '#f0a928',
+        lineWidth: 2,
+      })
+      const vwapPoints = mapLineSeries(candles, result?.results.vwap)
+      const vwapData = vwapPoints.map((point, index) => {
+        const candle = candles[index]
+        const t = getEpochSeconds(candle.time)
+        return t !== null ? { time: t, value: point.value } : null
+      }).filter((p): p is { time: number; value: number } => p !== null && p.value !== null && p.value !== undefined)
+      
+      vwapSeries.setData(vwapData as any)
+    }
+
+    // Add Bollinger Bands
+    if (overlays.bollinger_bands) {
+      const upperSeries = chart.addSeries(LineSeries, {
+        color: '#64748b',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+      })
+      const middleSeries = chart.addSeries(LineSeries, {
+        color: '#475569',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+      })
+      const lowerSeries = chart.addSeries(LineSeries, {
+        color: '#64748b',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+      })
+
+      const bandPoints = mapBollingerSeries(candles, result?.results.bollinger_bands)
+      const upperData: any[] = []
+      const middleData: any[] = []
+      const lowerData: any[] = []
+
+      bandPoints.forEach((point, index) => {
+        const candle = candles[index]
+        const t = getEpochSeconds(candle.time)
+        if (t === null) return
+
+        if (point.upper !== null && point.upper !== undefined) {
+          upperData.push({ time: t, value: point.upper })
+        }
+        if (point.middle !== null && point.middle !== undefined) {
+          middleData.push({ time: t, value: point.middle })
+        }
+        if (point.lower !== null && point.lower !== undefined) {
+          lowerData.push({ time: t, value: point.lower })
+        }
+      })
+
+      upperSeries.setData(upperData as any)
+      middleSeries.setData(middleData as any)
+      lowerSeries.setData(lowerData as any)
+    }
+
+    // Construct Markers
+    const candleSecondsList = chartData.map((d) => d.time as number)
+    const merged: Record<number, any> = {}
+
+    patterns.forEach((p) => {
+      const pTime = getEpochSeconds(p.time)
+      if (pTime === null) return
+      const candleTime = mapTimeToCandleSec(pTime, candleSecondsList)
+      if (candleTime === null) return
+
+      merged[candleTime] = {
+        time: candleTime,
+        position: p.direction === 'bullish' ? 'belowBar' : 'aboveBar',
+        shape: p.direction === 'bullish' ? 'arrowUp' : (p.direction === 'bearish' ? 'arrowDown' : 'circle'),
+        color: p.direction === 'bullish' ? '#10b981' : (p.direction === 'bearish' ? '#ef4444' : '#94a3b8'),
+        text: p.pattern,
+        description: p.description,
+        isPattern: true,
+      }
+    })
+
+    signalMarkers.forEach((s) => {
+      const sTime = getEpochSeconds(s.time)
+      if (sTime === null) return
+      const candleTime = mapTimeToCandleSec(sTime, candleSecondsList)
+      if (candleTime === null) return
+
+      const existing = merged[candleTime]
+      const isBuy = s.action === 'BUY'
+
+      if (existing) {
+        merged[candleTime] = {
+          ...existing,
+          position: isBuy ? 'belowBar' : 'aboveBar',
+          shape: isBuy ? 'arrowUp' : 'arrowDown',
+          color: isBuy ? '#16c784' : '#f0a928',
+          text: `${s.action} (${existing.text})`,
+          description: `${s.action}: ${s.reason || 'Backtest signal'} | ${existing.description}`,
+          isSignal: true,
+        }
+      } else {
+        merged[candleTime] = {
+          time: candleTime,
+          position: isBuy ? 'belowBar' : 'aboveBar',
+          shape: isBuy ? 'arrowUp' : 'arrowDown',
+          color: isBuy ? '#16c784' : '#f0a928',
+          text: s.action,
+          description: `${s.action}: ${s.reason || 'Backtest signal'}`,
+          isSignal: true,
+        }
+      }
+    })
+
+    const finalMarkersList = Object.values(merged).sort((a, b) => a.time - b.time)
+    createSeriesMarkers(candlestickSeries, finalMarkersList as any)
+
+    // Subscribe to crosshair moves
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.point) {
+        setHoveredData(null)
+        setTooltip(null)
+        return
+      }
+
+      const timeVal = param.time as number
+      const candle = chartData.find((c) => c.time === timeVal)
+      if (!candle) {
+        setHoveredData(null)
+        setTooltip(null)
+        return
+      }
+
+      const marker = finalMarkersList.find((m) => m.time === timeVal)
+
+      setHoveredData({
+        time: timeVal,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        pattern: marker?.isPattern || marker?.text ? marker.text : undefined,
+        patternDesc: marker?.description,
+        signal: marker?.isSignal ? marker.text : undefined,
+        signalDesc: marker?.description,
+      })
+
+      if (marker) {
+        setTooltip({
+          x: param.point.x,
+          y: param.point.y,
+          title: marker.text,
+          description: marker.description,
+          color: marker.color,
+        })
+      } else {
+        setTooltip(null)
+      }
+    })
+
+    // Resize Observer
+    const handleResize = () => {
+      if (containerRef.current && chart) {
+        chart.resize(containerRef.current.clientWidth, 360)
+      }
+    }
+    const resizeObserver = new ResizeObserver(handleResize)
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+      chart.remove()
+    }
+  }, [candles, result, overlays, signalMarkers, patterns])
+
   if (candles.length === 0) {
     const empty = chartEmptyCopy(apiStatus, backendWakeState)
     return (
@@ -89,15 +382,23 @@ export function IndicatorChartShell({
     )
   }
 
-  const ema = mapLineSeries(candles, result?.results.ema)
-  const vwap = mapLineSeries(candles, result?.results.vwap)
-  const bands = mapBollingerSeries(candles, result?.results.bollinger_bands)
-  const range = priceRange(candles, overlays, ema, vwap, bands)
+  // Bounding box checks for tooltip positioning inside the container
+  const tooltipX = tooltip
+    ? tooltip.x > (containerRef.current?.clientWidth || 0) - 220
+      ? tooltip.x - 215
+      : tooltip.x + 15
+    : 0
+
+  const tooltipY = tooltip
+    ? tooltip.y > 360 - 100
+      ? tooltip.y - 85
+      : tooltip.y + 15
+    : 0
 
   return (
     <div className="relative flex-1 min-h-[360px] overflow-hidden bg-[#070b12]">
-      <div className="absolute inset-0 opacity-70 chart-grid" />
-      <div className="absolute left-4 right-16 top-4 h-12 rounded-md border border-border bg-bg-2/85 backdrop-blur-sm flex items-center justify-between px-3">
+      {/* Absolute Header Overlay */}
+      <div className="absolute left-4 right-16 top-4 h-12 rounded-md border border-border bg-bg-2/85 backdrop-blur-sm flex items-center justify-between px-3 z-10 pointer-events-none">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-text">{symbol ?? 'Select a symbol'}</span>
@@ -106,242 +407,62 @@ export function IndicatorChartShell({
             </span>
           </div>
           <div className="mt-0.5 text-[10px] text-text-faint">
-            Candles: {candles.length} / Overlays from IndicatorEngine
+            Candles: {candles.length} / Overlays from IndicatorEngine {patternsLoading && '(Recalculating Patterns...)'}
           </div>
         </div>
       </div>
 
-      <svg
-        className="absolute inset-x-0 top-16 bottom-0 h-[calc(100%-4rem)] w-full"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="MAET candle chart with indicator overlays"
-      >
-        <ChartGrid />
-        {candles.map((candle, index) => (
-          <CandleGlyph
-            key={`${candle.time}-${index}`}
-            candle={candle}
-            index={index}
-            count={candles.length}
-            range={range}
-          />
-        ))}
-        {overlays.bollinger_bands && (
-          <>
-            <LineSegments points={bands} range={range} color="#64748b" valueOf={(p) => p.upper} dash />
-            <LineSegments points={bands} range={range} color="#475569" valueOf={(p) => p.middle} dash />
-            <LineSegments points={bands} range={range} color="#64748b" valueOf={(p) => p.lower} dash />
-          </>
-        )}
-        {overlays.ema && <LineSegments points={ema} range={range} color="#54c1ec" valueOf={(p) => p.value} />}
-        {overlays.vwap && <LineSegments points={vwap} range={range} color="#f0a928" valueOf={(p) => p.value} />}
-        <SignalMarkers markers={signalMarkers} candles={candles} range={range} />
-      </svg>
+      {/* Interactive OHLC and Pattern/Signal Legend Overlay */}
+      {hoveredData && (
+        <div className="absolute right-4 top-4 z-20 rounded-md border border-border bg-bg-2/90 backdrop-blur-sm px-3 py-1.5 text-[11px] flex items-center gap-3 font-mono">
+          <span className="text-text-faint">O:</span><span className="text-text">{hoveredData.open.toFixed(2)}</span>
+          <span className="text-text-faint">H:</span><span className="text-text">{hoveredData.high.toFixed(2)}</span>
+          <span className="text-text-faint">L:</span><span className="text-text">{hoveredData.low.toFixed(2)}</span>
+          <span className="text-text-faint">C:</span><span className="text-text-emerald">{hoveredData.close.toFixed(2)}</span>
+          {(hoveredData.pattern || hoveredData.signal) && (
+            <div className="flex items-center gap-1.5 border-l border-border pl-3">
+              {hoveredData.signal && (
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded text-[10px] font-bold",
+                  hoveredData.signal.includes("BUY") ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                )}>
+                  {hoveredData.signal}
+                </span>
+              )}
+              {hoveredData.pattern && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  {hoveredData.pattern}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pattern/Signal Floating Tooltip */}
+      {tooltip && (
+        <div
+          className="absolute pointer-events-none z-30 rounded-md border border-border bg-bg-2/95 shadow-xl px-3 py-2 text-[11px] max-w-[200px]"
+          style={{
+            left: `${tooltipX}px`,
+            top: `${tooltipY}px`,
+            borderColor: tooltip.color,
+            borderWidth: '1px',
+          }}
+        >
+          <div className="font-bold mb-1" style={{ color: tooltip.color }}>
+            {tooltip.title}
+          </div>
+          <div className="text-text-dim text-[10px] leading-snug">
+            {tooltip.description}
+          </div>
+        </div>
+      )}
+
+      {/* Chart container */}
+      <div ref={containerRef} className="w-full h-[360px]" />
     </div>
   )
-}
-
-function ChartGrid() {
-  return (
-    <>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <line
-          key={`h-${i}`}
-          x1={PAD_X}
-          x2={WIDTH - PAD_X}
-          y1={PAD_Y + (i * (HEIGHT - PAD_Y * 2)) / 4}
-          y2={PAD_Y + (i * (HEIGHT - PAD_Y * 2)) / 4}
-          stroke="rgba(255,255,255,0.06)"
-        />
-      ))}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <line
-          key={`v-${i}`}
-          y1={PAD_Y}
-          y2={HEIGHT - PAD_Y}
-          x1={PAD_X + (i * (WIDTH - PAD_X * 2)) / 5}
-          x2={PAD_X + (i * (WIDTH - PAD_X * 2)) / 5}
-          stroke="rgba(255,255,255,0.04)"
-        />
-      ))}
-    </>
-  )
-}
-
-function CandleGlyph({
-  candle,
-  index,
-  count,
-  range,
-}: {
-  candle: Candle
-  index: number
-  count: number
-  range: PriceRange
-}) {
-  const x = xAt(index, count)
-  const openY = yAt(candle.open, range)
-  const closeY = yAt(candle.close, range)
-  const highY = yAt(candle.high, range)
-  const lowY = yAt(candle.low, range)
-  const up = candle.close >= candle.open
-  const color = up ? '#16c784' : '#ea3943'
-  const bodyTop = Math.min(openY, closeY)
-  const bodyHeight = Math.max(Math.abs(closeY - openY), 1.2)
-  const width = Math.max(Math.min((WIDTH - PAD_X * 2) / Math.max(count, 1) * 0.52, 8), 2)
-
-  return (
-    <g opacity={0.9}>
-      <line x1={x} x2={x} y1={highY} y2={lowY} stroke={color} strokeWidth={1.4} />
-      <rect
-        x={x - width / 2}
-        y={bodyTop}
-        width={width}
-        height={bodyHeight}
-        fill={up ? 'rgba(22,199,132,0.28)' : 'rgba(234,57,67,0.28)'}
-        stroke={color}
-        strokeWidth={1}
-      />
-    </g>
-  )
-}
-
-function LineSegments<T>({
-  points,
-  range,
-  color,
-  valueOf,
-  dash = false,
-}: {
-  points: T[]
-  range: PriceRange
-  color: string
-  valueOf: (point: T) => number | null
-  dash?: boolean
-}) {
-  const segments = buildSegments(points, range, valueOf)
-  return (
-    <>
-      {segments.map((segment, index) => (
-        <polyline
-          key={`${color}-${index}`}
-          points={segment}
-          fill="none"
-          stroke={color}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={dash ? '6 5' : undefined}
-        />
-      ))}
-    </>
-  )
-}
-
-function SignalMarkers({
-  markers,
-  candles,
-  range,
-}: {
-  markers: ChartSignalMarker[]
-  candles: Candle[]
-  range: PriceRange
-}) {
-  return (
-    <>
-      {markers.map((marker, index) => {
-        const candleIndex = markerIndex(candles, marker.time)
-        if (candleIndex < 0) return null
-        const candle = candles[candleIndex]
-        const isBuy = marker.action === 'BUY'
-        const price = marker.price ?? candle.close
-        const x = xAt(candleIndex, candles.length)
-        const y = yAt(price, range) + (isBuy ? 16 : -16)
-        const color = isBuy ? '#16c784' : '#f0a928'
-        const label = isBuy ? 'BUY' : 'EXIT'
-        const points = isBuy
-          ? `${x},${y - 7} ${x - 6},${y + 5} ${x + 6},${y + 5}`
-          : `${x},${y + 7} ${x - 6},${y - 5} ${x + 6},${y - 5}`
-
-        return (
-          <g key={`${marker.time}-${marker.action}-${index}`} opacity={0.95}>
-            <polygon points={points} fill={color} stroke="rgba(7,11,18,0.9)" strokeWidth={1.5} />
-            <text
-              x={x + 9}
-              y={y + (isBuy ? 4 : -7)}
-              fill={color}
-              fontSize="11"
-              fontFamily="monospace"
-              fontWeight="700"
-            >
-              {label}
-            </text>
-          </g>
-        )
-      })}
-    </>
-  )
-}
-
-interface PriceRange {
-  min: number
-  max: number
-}
-
-function priceRange(
-  candles: Candle[],
-  overlays: ChartOverlayState,
-  ema: Array<{ value: number | null }>,
-  vwap: Array<{ value: number | null }>,
-  bands: BollingerPoint[]
-): PriceRange {
-  const values: number[] = []
-  for (const candle of candles) values.push(candle.high, candle.low)
-  if (overlays.ema) values.push(...ema.map((point) => point.value).filter(isFiniteNumber))
-  if (overlays.vwap) values.push(...vwap.map((point) => point.value).filter(isFiniteNumber))
-  if (overlays.bollinger_bands) {
-    values.push(...bands.flatMap((point) => [point.upper, point.middle, point.lower]).filter(isFiniteNumber))
-  }
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const pad = Math.max((max - min) * 0.08, 0.01)
-  return { min: min - pad, max: max + pad }
-}
-
-function buildSegments<T>(
-  points: T[],
-  range: PriceRange,
-  valueOf: (point: T) => number | null
-): string[] {
-  const segments: string[] = []
-  let current: string[] = []
-  points.forEach((point, index) => {
-    const value = valueOf(point)
-    if (value == null || !Number.isFinite(value)) {
-      if (current.length > 1) segments.push(current.join(' '))
-      current = []
-      return
-    }
-    current.push(`${xAt(index, points.length)},${yAt(value, range)}`)
-  })
-  if (current.length > 1) segments.push(current.join(' '))
-  return segments
-}
-
-function xAt(index: number, count: number): number {
-  if (count <= 1) return WIDTH / 2
-  return PAD_X + (index * (WIDTH - PAD_X * 2)) / (count - 1)
-}
-
-function yAt(value: number, range: PriceRange): number {
-  if (range.max === range.min) return HEIGHT / 2
-  return HEIGHT - PAD_Y - ((value - range.min) / (range.max - range.min)) * (HEIGHT - PAD_Y * 2)
-}
-
-function isFiniteNumber(value: number | null): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
 }
 
 function chartEmptyCopy(apiStatus: string, backendWakeState: string): { title: string; hint: string } {
@@ -370,32 +491,34 @@ function chartEmptyCopy(apiStatus: string, backendWakeState: string): { title: s
   }
 }
 
-function markerIndex(candles: Candle[], time: string | number): number {
-  const direct = candles.findIndex((candle) => String(candle.time) === String(time))
-  if (direct >= 0) return direct
-  const target = timeToMillis(time)
-  if (target == null) return -1
-
-  let bestIndex = -1
-  let bestDistance = Number.POSITIVE_INFINITY
-  candles.forEach((candle, index) => {
-    const candleTs = timeToMillis(candle.time)
-    if (candleTs == null) return
-    const distance = Math.abs(candleTs - target)
-    if (distance < bestDistance) {
-      bestIndex = index
-      bestDistance = distance
-    }
-  })
-  return bestIndex
+// Helpers
+function getEpochSeconds(time: string | number): number | null {
+  if (typeof time === 'number') {
+    return time > 100_000_000_000 ? Math.floor(time / 1000) : time
+  }
+  const parsed = Number(time)
+  if (Number.isFinite(parsed)) {
+    return parsed > 100_000_000_000 ? Math.floor(parsed / 1000) : parsed
+  }
+  const dateVal = Date.parse(time)
+  if (Number.isFinite(dateVal)) {
+    return Math.floor(dateVal / 1000)
+  }
+  return null
 }
 
-function timeToMillis(value: string | number): number | null {
-  if (typeof value === 'number') return value > 10_000_000_000 ? value : value * 1000
-  const parsedNumber = Number(value)
-  if (Number.isFinite(parsedNumber)) {
-    return parsedNumber > 10_000_000_000 ? parsedNumber : parsedNumber * 1000
+function mapTimeToCandleSec(time: string | number, candleTimes: number[]): number | null {
+  const tSec = getEpochSeconds(time)
+  if (tSec === null || candleTimes.length === 0) return null
+
+  let bestTime = candleTimes[0]
+  let minDiff = Math.abs(bestTime - tSec)
+  for (let i = 1; i < candleTimes.length; i++) {
+    const diff = Math.abs(candleTimes[i] - tSec)
+    if (diff < minDiff) {
+      minDiff = diff
+      bestTime = candleTimes[i]
+    }
   }
-  const parsedDate = Date.parse(value)
-  return Number.isFinite(parsedDate) ? parsedDate : null
+  return bestTime
 }

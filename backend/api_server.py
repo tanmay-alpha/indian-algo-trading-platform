@@ -25,6 +25,7 @@ from backend.routers import discovery as discovery_router
 from backend.routers import observability as observability_router
 from backend.routers import oms as oms_router
 from backend.routers import watchlists as watchlists_router
+from backend.routers import patterns as patterns_router
 from backend.services.watchlist_service import WatchlistService
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
@@ -95,6 +96,7 @@ app.include_router(observability_router.router)
 app.include_router(observability_router.prometheus_router)
 app.include_router(oms_router.router)
 app.include_router(watchlists_router.router)
+app.include_router(patterns_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()

@@ -522,6 +522,24 @@ export interface ChartSignalMarker {
   reason: string
 }
 
+export interface PatternMarker {
+  time: string | number
+  pattern: string
+  direction: 'bullish' | 'bearish' | 'neutral'
+  confidence: number
+  candle_index: number
+  description: string
+}
+
+export interface PatternResponse {
+  symbol: string
+  timeframe: string
+  available: boolean
+  reason?: string
+  markers: PatternMarker[]
+  count: number
+}
+
 // ----- Market Discovery -----
 export interface MarketMover {
   symbol: string

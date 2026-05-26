@@ -5,6 +5,8 @@ import type {
   TerminalStatus,
   IndexSnapshot,
   Candle,
+  PatternMarker,
+  PatternResponse,
   MarketWatchRow,
   PortfolioSummary,
   PortfolioPosition,
@@ -185,6 +187,36 @@ export async function getIndicatorsForSymbol(
     )
   } catch {
     return unavailableIndicators(symbol, timeframe, 'BACKEND_UNAVAILABLE')
+  }
+}
+
+export async function getPatternsForSymbol(
+  symbol: string,
+  timeframe: string
+): Promise<PatternResponse> {
+  if (!symbol) {
+    return {
+      symbol,
+      timeframe,
+      available: false,
+      reason: 'NO_SYMBOL',
+      markers: [],
+      count: 0,
+    }
+  }
+  try {
+    return await request<PatternResponse>(
+      `/patterns/${encodeURIComponent(symbol)}?timeframe=${timeframe}`
+    )
+  } catch {
+    return {
+      symbol,
+      timeframe,
+      available: false,
+      reason: 'BACKEND_UNAVAILABLE',
+      markers: [],
+      count: 0,
+    }
   }
 }
 
