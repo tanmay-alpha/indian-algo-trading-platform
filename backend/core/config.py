@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_dir: str = "logs"
     db_path: str = "data/trades.db"
+    database_url: Optional[str] = None
+    database_echo: bool = False
+    database_pool_size: int = 5
+    database_backend: Optional[str] = None
     max_order_qty: int = 500
     max_order_notional: float = 500000.0
     max_daily_loss: float = -25000.0
@@ -41,6 +45,18 @@ class Settings(BaseSettings):
     public_backend_url: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
+    @property
+    def inferred_database_backend(self) -> str:
+        if self.database_backend:
+            val = self.database_backend.lower()
+            if "postgres" in val:
+                return "postgres"
+            return "sqlite"
+        if self.database_url:
+            if "postgres" in self.database_url.lower():
+                return "postgres"
+        return "sqlite"
 
     @property
     def allowed_origin_list(self) -> list[str]:
