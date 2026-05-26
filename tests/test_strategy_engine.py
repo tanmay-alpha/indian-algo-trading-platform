@@ -100,7 +100,8 @@ async def test_orchestrator_survives_malformed_tick(monkeypatch):
     mock_tick_bus = AsyncMock()
     mock_strategy = MagicMock()
     mock_market_watch = MagicMock()
-    mock_event_bus = AsyncMock()
+    mock_event_bus = MagicMock()
+    mock_event_bus.publish = AsyncMock()
     
     # Mock good tick
     good_tick = {"event_type": "tick", "symbol": "SBIN", "ltp": 100.0, "token": "123"}

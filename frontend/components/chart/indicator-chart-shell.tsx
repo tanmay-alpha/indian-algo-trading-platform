@@ -145,7 +145,7 @@ export function IndicatorChartShell({
     return () => {
       active = false
     }
-  }, [symbol, timeframe, candles.length, patterns.length])
+  }, [symbol, timeframe, candles.length])
 
   // Initialize and update Lightweight Chart
   useEffect(() => {
@@ -256,9 +256,9 @@ export function IndicatorChartShell({
         color: '#54c1ec',
         lineWidth: 2,
       })
-      const emaPoints = mapLineSeries(candles, result?.results.ema)
+      const emaPoints = mapLineSeries(resolvedCandles, result?.results.ema)
       const emaData = emaPoints.map((point, index) => {
-        const candle = candles[index]
+        const candle = resolvedCandles[index]
         const t = getEpochSeconds(candle.time)
         return t !== null ? { time: t, value: point.value } : null
       }).filter((p): p is { time: number; value: number } => p !== null && p.value !== null && p.value !== undefined)
@@ -272,9 +272,9 @@ export function IndicatorChartShell({
         color: '#f0a928',
         lineWidth: 2,
       })
-      const vwapPoints = mapLineSeries(candles, result?.results.vwap)
+      const vwapPoints = mapLineSeries(resolvedCandles, result?.results.vwap)
       const vwapData = vwapPoints.map((point, index) => {
-        const candle = candles[index]
+        const candle = resolvedCandles[index]
         const t = getEpochSeconds(candle.time)
         return t !== null ? { time: t, value: point.value } : null
       }).filter((p): p is { time: number; value: number } => p !== null && p.value !== null && p.value !== undefined)
@@ -300,13 +300,13 @@ export function IndicatorChartShell({
         lineStyle: LineStyle.Dashed,
       })
 
-      const bandPoints = mapBollingerSeries(candles, result?.results.bollinger_bands)
+      const bandPoints = mapBollingerSeries(resolvedCandles, result?.results.bollinger_bands)
       const upperData: any[] = []
       const middleData: any[] = []
       const lowerData: any[] = []
 
       bandPoints.forEach((point, index) => {
-        const candle = candles[index]
+        const candle = resolvedCandles[index]
         const t = getEpochSeconds(candle.time)
         if (t === null) return
 
