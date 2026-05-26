@@ -95,15 +95,38 @@ export function IndicatorChartShell({
     color: string
   } | null>(null)
 
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
+
+  // Guard ref access for tooltip positioning
+  useEffect(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    setContainerSize({ w: rect.width, h: rect.height })
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          w: entry.contentRect.width,
+          h: entry.contentRect.height,
+        })
+      }
+    })
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
   // Fetch pattern markers when candles/symbol/timeframe change
   useEffect(() => {
     if (!symbol || candles.length === 0) {
-      setPatterns([])
+      if (patterns.length > 0) {
+        // Use microtask to avoid synchronous setState in effect warning
+        Promise.resolve().then(() => setPatterns([]))
+      }
       return
     }
 
     let active = true
-    setPatternsLoading(true)
+    Promise.resolve().then(() => setPatternsLoading(true))
     getPatternsForSymbol(symbol, timeframe)
       .then((res) => {
         if (active && res.available) {
@@ -114,13 +137,15 @@ export function IndicatorChartShell({
         console.error('Error fetching pattern markers:', err)
       })
       .finally(() => {
-        if (active) setPatternsLoading(false)
+        if (active) {
+          Promise.resolve().then(() => setPatternsLoading(false))
+        }
       })
 
     return () => {
       active = false
     }
-  }, [symbol, timeframe, candles.length])
+  }, [symbol, timeframe, candles.length, patterns.length])
 
   // Initialize and update Lightweight Chart
   useEffect(() => {
@@ -143,7 +168,7 @@ export function IndicatorChartShell({
       }
     }
     uniqueCandles.reverse()
-    candles = uniqueCandles
+    const resolvedCandles = uniqueCandles
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
@@ -175,7 +200,7 @@ export function IndicatorChartShell({
       wickUpColor: '#16c784',
     })
 
-    const chartData = candles.map((c) => {
+    const chartData = resolvedCandles.map((c) => {
       let t = typeof c.time === 'number' ? c.time : Number(c.time)
       if (isNaN(t)) {
         t = Math.floor(Date.parse(c.time as string) / 1000)
@@ -198,7 +223,7 @@ export function IndicatorChartShell({
     chart.timeScale().fitContent()
 
     // Add Volume Series if enabled
-    const totalVolume = candles.reduce((acc, c) => acc + Number(c.volume || 0), 0)
+    const totalVolume = resolvedCandles.reduce((acc, c) => acc + Number(c.volume || 0), 0)
     const isVolumeAvailable = totalVolume > 0
     if (showVolume && isVolumeAvailable) {
       const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -211,7 +236,7 @@ export function IndicatorChartShell({
         scaleMargins: { top: 0.8, bottom: 0 },
       })
 
-      const volumeData = candles.map((c) => {
+      const volumeData = resolvedCandles.map((c) => {
         const t = getEpochSeconds(c.time)
         const isUp = Number(c.close) >= Number(c.open)
         return t !== null ? {
@@ -718,7 +743,7 @@ export function IndicatorChartShell({
 
   // Positioning calculations for tooltip
   const tooltipX = tooltip
-    ? tooltip.x > (containerRef.current?.clientWidth || 0) - 220
+    ? tooltip.x > (containerSize.w || 0) - 220
       ? tooltip.x - 215
       : tooltip.x + 15
     : 0

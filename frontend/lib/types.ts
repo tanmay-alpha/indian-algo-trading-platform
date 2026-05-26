@@ -73,7 +73,7 @@ export type WsConnectionStatus = 'CONNECTED' | 'CONNECTING' | 'RECONNECTING' | '
 export type StatusSource = 'WS' | 'REST' | 'REST_FALLBACK' | 'NONE'
 export type ApiStatus = 'UNKNOWN' | 'WAKING' | 'ONLINE' | 'OFFLINE'
 export type BackendWakeState = 'IDLE' | 'WAKING' | 'ONLINE' | 'UNAVAILABLE'
-export type NseMarketSession = 'PRE_MARKET' | 'OPEN' | 'POST_MARKET' | 'WEEKEND'
+export type NseMarketSession = 'PRE_MARKET' | 'OPEN' | 'LIVE' | 'POST_MARKET' | 'CLOSED' | 'WEEKEND'
 
 export interface ConnectivityDiagnostics {
   apiTarget: string

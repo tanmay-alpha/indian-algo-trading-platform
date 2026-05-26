@@ -349,40 +349,64 @@ class SystemOrchestrator:
             logger.warning("Instrument master load failed: %s; using fallback symbols", e.__class__.__name__)
 
     async def consume_tick_bus(self):
+        consecutive_errors = 0
         while True:
-            event = await self.tick_bus.get()
-            if event.get("event_type") != "tick":
-                continue
+            try:
+                # Wait for next tick with timeout to allow clean shutdown/idle checks
+                tick = await asyncio.wait_for(self.tick_bus.get(), timeout=5.0)
+                consecutive_errors = 0  # Reset on successful retrieval
+                
+                if tick.get("event_type") != "tick":
+                    continue
 
-            self.market_watch.update_tick(event)
+                try:
+                    self.market_watch.update_tick(tick)
 
-            tick_event = TickEvent(
-                symbol=event.get("symbol") or "",
-                token=event.get("token"),
-                exchange=event.get("exchange") or "NSE",
-                ltp=event.get("ltp"),
-                best_bid=event.get("best_bid"),
-                best_ask=event.get("best_ask"),
-                bid_qty=event.get("bid_qty"),
-                ask_qty=event.get("ask_qty"),
-                spread=event.get("spread"),
-                vwap=event.get("vwap"),
-                volume=event.get("volume"),
-                ltq=event.get("ltq"),
-                exchange_timestamp=event.get("exchange_timestamp") or event.get("timestamp"),
-                received_at=parse_event_datetime(event.get("received_at")),
-            )
-            await self.event_bus.publish(tick_event)
+                    tick_event = TickEvent(
+                        symbol=tick.get("symbol") or "",
+                        token=tick.get("token"),
+                        exchange=tick.get("exchange") or "NSE",
+                        ltp=tick.get("ltp"),
+                        best_bid=tick.get("best_bid"),
+                        best_ask=tick.get("best_ask"),
+                        bid_qty=tick.get("bid_qty"),
+                        ask_qty=tick.get("ask_qty"),
+                        spread=tick.get("spread"),
+                        vwap=tick.get("vwap"),
+                        volume=tick.get("volume"),
+                        ltq=tick.get("ltq"),
+                        exchange_timestamp=tick.get("exchange_timestamp") or tick.get("timestamp"),
+                        received_at=parse_event_datetime(tick.get("received_at")),
+                    )
+                    await self.event_bus.publish(tick_event)
 
-            symbol = event.get("symbol")
-            ltp = event.get("ltp")
-            if not symbol or ltp is None:
-                continue
+                    symbol = tick.get("symbol")
+                    ltp = tick.get("ltp")
+                    if not symbol or ltp is None:
+                        continue
 
-            strategy_tick = event.copy()
-            strategy_tick["price"] = ltp
-            strategy_tick["event_id"] = tick_event.event_id
-            await self.process_tick(strategy_tick)
+                    strategy_tick = tick.copy()
+                    strategy_tick["price"] = ltp
+                    strategy_tick["event_id"] = tick_event.event_id
+                    await self.process_tick(strategy_tick)
+                except Exception as e:
+                    # Log type only to avoid sensitive data leak from str(e)
+                    logger.error(
+                        "Tick processing error: %s — tick dropped, pipeline continues",
+                        type(e).__name__
+                    )
+            except asyncio.TimeoutError:
+                continue  # No tick available, loop again
+            except asyncio.CancelledError:
+                logger.info("TickBus consumer shutting down")
+                break
+            except Exception as e:
+                consecutive_errors += 1
+                logger.error("TickBus error #%d: %s", consecutive_errors, type(e).__name__)
+                if consecutive_errors > 50:
+                    logger.critical("50 consecutive TickBus errors — investigate immediately")
+                    consecutive_errors = 0  # Reset counter, keep running
+                await asyncio.sleep(0.1)  # Brief pause on repeated errors
 
     async def process_tick(self, tick: dict):
         """Processes a live market tick: Updates strategy, risk, and portfolio."""

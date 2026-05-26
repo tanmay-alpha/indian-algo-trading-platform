@@ -122,16 +122,21 @@ function IndexTile({
 
 function SessionBadge({ session }: { session: NseMarketSession }) {
   const label =
-    session === 'OPEN'
+    session === 'OPEN' || session === 'LIVE'
       ? 'MARKET OPEN'
       : session === 'PRE_MARKET'
       ? 'PRE-MARKET'
+      : session === 'POST_MARKET'
+      ? 'POST-MARKET'
+      : session === 'WEEKEND'
+      ? 'WEEKEND'
       : 'CLOSED'
+
   return (
     <div
       className={cn(
         'rounded border px-2 py-0.5 text-[9px] font-mono font-semibold tracking-widest',
-        session === 'OPEN'
+        session === 'OPEN' || session === 'LIVE'
           ? 'border-up/20 bg-up/15 text-up'
           : 'border-border bg-panel-3 text-text-faint'
       )}
