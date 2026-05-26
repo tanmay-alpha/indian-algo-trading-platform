@@ -48,6 +48,8 @@ import type {
   OrderAuditBundle,
   OmsReconciliationStatus,
   OmsDataState,
+  PersistentWatchlistItem,
+  PersistentWatchlist,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -72,6 +74,9 @@ import {
   getRecentOmsFills,
   getOrderAudit,
   getOmsReconciliationStatus,
+  getDefaultWatchlistItems,
+  addWatchlistItem,
+  removeWatchlistItem,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -175,6 +180,15 @@ export interface TerminalState {
   omsAdminRequired: boolean
   omsDataState: OmsDataState
   omsLastUpdatedAt: number | null
+
+  // Persistent watchlist (Phase 19E)
+  persistentWatchlistId: number | null
+  persistentWatchlistItems: PersistentWatchlistItem[]
+  watchlistSource: 'db' | 'fallback' | null
+  watchlistLoading: boolean
+  watchlistError: string | null
+  watchlistAdminRequired: boolean
+  watchlistLastUpdatedAt: number | null
 }
 
 export interface TerminalActions {
@@ -255,6 +269,11 @@ export interface TerminalActions {
   clearOrderAudit: () => void
   fetchOmsReconciliationStatus: () => Promise<void>
   refreshOmsDashboard: () => Promise<void>
+
+  // Persistent watchlist actions (Phase 19E)
+  fetchPersistentWatchlist: () => Promise<void>
+  addSymbolToBackend: (symbol: string, exchange?: string) => Promise<void>
+  removeSymbolFromBackend: (symbol: string) => Promise<void>
 }
 
 export type TerminalStore = TerminalState & TerminalActions
@@ -377,6 +396,15 @@ const initialState: TerminalState = {
   omsAdminRequired: false,
   omsDataState: 'LOADING',
   omsLastUpdatedAt: null,
+
+  // Persistent watchlist initial state
+  persistentWatchlistId: null,
+  persistentWatchlistItems: [],
+  watchlistSource: null,
+  watchlistLoading: false,
+  watchlistError: null,
+  watchlistAdminRequired: false,
+  watchlistLastUpdatedAt: null,
 }
 
 const MAX_EVENTS = 200
@@ -1112,7 +1140,99 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     ])
     set({ omsLoading: false, omsLastUpdatedAt: Date.now() })
   },
+
+  // ---- Persistent Watchlist (Phase 19E) ----
+
+  fetchPersistentWatchlist: async () => {
+    set({ watchlistLoading: true, watchlistError: null })
+    try {
+      const data = await getDefaultWatchlistItems()
+      const dbSymbols: string[] = (data.symbols || []).filter(Boolean)
+      const items: PersistentWatchlistItem[] = data.items || []
+
+      // Merge DB symbols into the active local group (union, deduplicated).
+      // This populates the watchlist UI from backend on page load
+      // without losing any locally added symbols.
+      set((state) => {
+        const { watchlistGroupId, watchlistGroups } = state
+        const activeGroup = watchlistGroups.find((g) => g.id === watchlistGroupId)
+        if (!activeGroup || dbSymbols.length === 0) {
+          return {
+            persistentWatchlistId: data.watchlist_id ?? null,
+            persistentWatchlistItems: items,
+            watchlistSource: 'db',
+            watchlistLoading: false,
+            watchlistLastUpdatedAt: Date.now(),
+          }
+        }
+        const merged = Array.from(new Set([...activeGroup.symbols, ...dbSymbols]))
+        return {
+          persistentWatchlistId: data.watchlist_id ?? null,
+          persistentWatchlistItems: items,
+          watchlistSource: 'db',
+          watchlistLoading: false,
+          watchlistLastUpdatedAt: Date.now(),
+          watchlistGroups: watchlistGroups.map((g) =>
+            g.id === watchlistGroupId ? { ...g, symbols: merged } : g
+          ),
+        }
+      })
+    } catch {
+      set({
+        watchlistLoading: false,
+        watchlistError: 'Backend unavailable — using local watchlist fallback.',
+        watchlistSource: 'fallback',
+      })
+    }
+  },
+
+  addSymbolToBackend: async (symbol, exchange = 'NSE') => {
+    // Always update local state immediately (existing behavior preserved)
+    get().addToWatchlist(symbol)
+
+    // Fire-and-forget backend persist — never block local UI
+    const { persistentWatchlistId } = get()
+    if (persistentWatchlistId == null) return
+
+    try {
+      const result = await addWatchlistItem(persistentWatchlistId, symbol, exchange)
+      if (!result.ok && 'adminRequired' in result && result.adminRequired) {
+        set({ watchlistAdminRequired: true })
+      } else if (!result.ok && 'backendUnavailable' in result) {
+        set({ watchlistError: 'Backend unavailable — symbol saved locally only.' })
+      } else if (!result.ok) {
+        set({ watchlistError: `Could not persist symbol: ${'error' in result ? result.error : 'unknown'}` })
+      } else {
+        set({ watchlistError: null, watchlistAdminRequired: false })
+      }
+    } catch {
+      set({ watchlistError: 'Backend unavailable — symbol saved locally only.' })
+    }
+  },
+
+  removeSymbolFromBackend: async (symbol) => {
+    // Always update local state immediately (existing behavior preserved)
+    get().removeFromWatchlist(symbol)
+
+    // Fire-and-forget backend removal — never block local UI
+    const { persistentWatchlistId } = get()
+    if (persistentWatchlistId == null) return
+
+    try {
+      const result = await removeWatchlistItem(persistentWatchlistId, symbol)
+      if (!result.ok && 'adminRequired' in result && result.adminRequired) {
+        set({ watchlistAdminRequired: true })
+      } else if (!result.ok && 'backendUnavailable' in result) {
+        set({ watchlistError: 'Backend unavailable — symbol removed locally only.' })
+      } else {
+        set({ watchlistError: null, watchlistAdminRequired: false })
+      }
+    } catch {
+      set({ watchlistError: 'Backend unavailable — symbol removed locally only.' })
+    }
+  },
 }))
+
 
 // ---------- helpers ----------
 function sysEvent(

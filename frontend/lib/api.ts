@@ -845,3 +845,200 @@ export async function getOmsReconciliationStatus(
     return { ok: false, error: String(err) }
   }
 }
+
+// =====================================================
+// Watchlist API Client (Phase 19E)
+// Connects frontend to persistent DB-backed watchlists.
+// Mutations (add/remove) are fire-and-forget — local state
+// is always the authoritative UI source.
+// Admin token is NOT required when ADMIN_TOKEN env var is unset.
+// Never log or store the token in localStorage.
+// =====================================================
+
+export interface PersistentWatchlistItem {
+  id?: number
+  watchlist_id?: number
+  symbol: string
+  exchange: string
+  token?: string | null
+  created_at?: string | null
+  /** Optional source field returned by Phase 19D /watchlists/default/items */
+  source?: 'db' | 'fallback'
+  ltp?: number | null
+  stale?: boolean
+}
+
+export interface PersistentWatchlist {
+  id: number
+  name: string
+  user_id?: string
+  item_count: number
+  created_at?: string | null
+}
+
+export interface DefaultWatchlistItemsResponse {
+  watchlist_id?: number
+  watchlist_name?: string
+  symbols: string[]
+  items: PersistentWatchlistItem[]
+}
+
+export interface WatchlistsListResponse {
+  watchlists: PersistentWatchlist[]
+  count: number
+}
+
+/** GET /watchlists/default/items — public read. Returns persistent watchlist items with tick state. */
+export async function getDefaultWatchlistItems(): Promise<DefaultWatchlistItemsResponse> {
+  try {
+    return await request<DefaultWatchlistItemsResponse>('/watchlists/default/items')
+  } catch {
+    return { symbols: [], items: [] }
+  }
+}
+
+/** GET /watchlists — public read. Returns list of all watchlists. */
+export async function getWatchlists(): Promise<WatchlistsListResponse> {
+  try {
+    return await request<WatchlistsListResponse>('/watchlists')
+  } catch {
+    return { watchlists: [], count: 0 }
+  }
+}
+
+/** GET /watchlists/{id} — public read. Returns a specific watchlist with items. */
+export async function getWatchlist(id: number): Promise<OmsResult<PersistentWatchlist & { items: PersistentWatchlistItem[] }>> {
+  try {
+    const data = await request<PersistentWatchlist & { items: PersistentWatchlistItem[] }>(`/watchlists/${id}`)
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/**
+ * POST /watchlists/{id}/items — Add a symbol to a watchlist.
+ * Admin-token required only when ADMIN_TOKEN env var is set on backend.
+ * If adminToken is null and server requires it, returns adminRequired.
+ * SUBSCRIPTION BOUNDARY: This persists only — does NOT subscribe all instruments.
+ */
+export async function addWatchlistItem(
+  watchlistId: number,
+  symbol: string,
+  exchange = 'NSE',
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; symbol: string }>> {
+  try {
+    const data = await request<{ status: string; symbol: string }>(
+      `/watchlists/${watchlistId}/items`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ symbol, exchange }),
+        headers: adminHeaders(adminToken),
+      }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 404) return { ok: false, error: 'Symbol not found in instrument registry' }
+      if (err.status === 400) return { ok: false, error: 'Watchlist cap reached (100 items)' }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/**
+ * DELETE /watchlists/{id}/items/{symbol} — Remove a symbol from a watchlist.
+ * Admin-token required only when ADMIN_TOKEN env var is set on backend.
+ */
+export async function removeWatchlistItem(
+  watchlistId: number,
+  symbol: string,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; symbol: string }>> {
+  try {
+    const data = await request<{ status: string; symbol: string }>(
+      `/watchlists/${watchlistId}/items/${encodeURIComponent(symbol)}`,
+      {
+        method: 'DELETE',
+        headers: adminHeaders(adminToken),
+      }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /watchlists — Create a named watchlist. Admin-token required when env var is set. */
+export async function createWatchlist(
+  name: string,
+  adminToken?: string | null
+): Promise<OmsResult<PersistentWatchlist>> {
+  try {
+    const data = await request<PersistentWatchlist>('/watchlists', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** PATCH /watchlists/{id} — Rename a watchlist. Admin-token required when env var is set. */
+export async function renameWatchlist(
+  id: number,
+  name: string,
+  adminToken?: string | null
+): Promise<OmsResult<PersistentWatchlist>> {
+  try {
+    const data = await request<PersistentWatchlist>(`/watchlists/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** DELETE /watchlists/{id} — Delete a watchlist. Admin-token required when env var is set. */
+export async function deleteWatchlist(
+  id: number,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string }>> {
+  try {
+    const data = await request<{ status: string }>(`/watchlists/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+

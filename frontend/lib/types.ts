@@ -118,7 +118,30 @@ export interface MarketWatchRow {
   last_update?: string | null
   stale?: boolean
   quality?: DataQuality
+  source?: 'db' | 'fallback'
 }
+
+// ----- Persistent Watchlist types (Phase 19E) -----
+export interface PersistentWatchlistItem {
+  id?: number
+  watchlist_id?: number
+  symbol: string
+  exchange: string
+  token?: string | null
+  created_at?: string | null
+  source?: 'db' | 'fallback'
+  ltp?: number | null
+  stale?: boolean
+}
+
+export interface PersistentWatchlist {
+  id: number
+  name: string
+  user_id?: string
+  item_count: number
+  created_at?: string | null
+}
+
 
 export interface IndexSnapshot {
   symbol: string

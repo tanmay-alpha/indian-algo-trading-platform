@@ -17,14 +17,26 @@ export function WatchlistPanel() {
   const lastBy = useTerminalStore((s) => s.lastTickBySymbol)
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const setSelected = useTerminalStore((s) => s.setSelectedSymbol)
-  const addToWatchlist = useTerminalStore((s) => s.addToWatchlist)
-  const removeFromWatchlist = useTerminalStore((s) => s.removeFromWatchlist)
+  
+  // Use persistent store actions
+  const addSymbolToBackend = useTerminalStore((s) => s.addSymbolToBackend)
+  const removeSymbolFromBackend = useTerminalStore((s) => s.removeSymbolFromBackend)
+  const fetchPersistentWatchlist = useTerminalStore((s) => s.fetchPersistentWatchlist)
+  const watchlistSource = useTerminalStore((s) => s.watchlistSource)
+  const watchlistError = useTerminalStore((s) => s.watchlistError)
+  const watchlistAdminRequired = useTerminalStore((s) => s.watchlistAdminRequired)
+  const watchlistLoading = useTerminalStore((s) => s.watchlistLoading)
+
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const terminalStatus = useTerminalStore((s) => s.terminalStatus)
   const now = useNow()
 
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetchPersistentWatchlist()
+  }, [fetchPersistentWatchlist])
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -54,7 +66,19 @@ export function WatchlistPanel() {
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-semibold text-text">Market Watch</div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-text">Market Watch</span>
+              {watchlistSource === 'db' && (
+                <span className="rounded bg-up/10 px-1 py-0.5 text-[8px] font-semibold text-up uppercase tracking-wider">
+                  DB
+                </span>
+              )}
+              {watchlistSource === 'fallback' && (
+                <span className="rounded bg-warn/10 px-1 py-0.5 text-[8px] font-semibold text-warn uppercase tracking-wider animate-pulse-soft">
+                  Local
+                </span>
+              )}
+            </div>
             <div className="text-[10px] text-text-faint">NSE watchlists and live tick quality</div>
             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono text-text-faint">
               <span className={cn('h-1.5 w-1.5 rounded-full', sessionMeta.dotClass)} />
@@ -62,7 +86,7 @@ export function WatchlistPanel() {
             </div>
           </div>
           <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-dim">
-            {symbols.length}
+            {watchlistLoading ? '...' : symbols.length}
           </span>
         </div>
 
@@ -97,14 +121,25 @@ export function WatchlistPanel() {
             )}
           </div>
           <InstrumentSearch
-            onPick={(instrument) => addToWatchlist(instrument.symbol)}
+            onPick={(instrument) => addSymbolToBackend(instrument.symbol)}
             placeholder="Search NSE instruments"
             className="flex-1"
           />
         </div>
       </div>
 
-      <div className="flex h-6 items-center border-b border-border bg-panel/50 px-2">
+      {watchlistAdminRequired && (
+        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-[10px] text-warn leading-tight">
+          Admin token required to write to DB. Changes are local-only.
+        </div>
+      )}
+      {watchlistError && !watchlistAdminRequired && (
+        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-[10px] text-warn leading-tight">
+          {watchlistError}
+        </div>
+      )}
+
+      <div className="flex h-6 items-center border-b border-border bg-panel/50 px-2 mt-1">
         <div className="flex-1 font-mono text-[9px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
         <div className="w-[68px] text-right font-mono text-[9px] tracking-wide text-text-faint">LTP</div>
         <div className="w-[48px] text-right font-mono text-[9px] tracking-wide text-text-faint">CHG%</div>
@@ -226,7 +261,7 @@ export function WatchlistPanel() {
                 <button
                   onClick={(event) => {
                     event.stopPropagation()
-                    removeFromWatchlist(symbol)
+                    removeSymbolFromBackend(symbol)
                   }}
                   aria-label={`Remove ${symbol}`}
                   className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 rounded p-0.5 text-text-dim hover:text-down hover:bg-down-dim"
