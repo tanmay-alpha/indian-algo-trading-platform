@@ -2,7 +2,6 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from backend.engine.strategy_engine import StrategyEngine
-from backend.core.orchestrator import SystemOrchestrator
 
 def test_strategy_engine_warmup():
     engine = StrategyEngine(window_size=10)
@@ -94,8 +93,9 @@ def test_strategy_engine_vwap_none_guard():
     assert engine._get_vwap("SBIN") == 0.0, "vwap=0.0 was dropped (falsy bug)"
 
 @pytest.mark.asyncio
-async def test_orchestrator_survives_malformed_tick(monkeypatch):
+async def test_orchestrator_survives_malformed_tick():
     """BUG FIX: Malformed tick must not kill the consume loop."""
+    from backend.core.orchestrator import SystemOrchestrator
     # Create a minimal orchestrator with mocks
     mock_tick_bus = AsyncMock()
     mock_strategy = MagicMock()
@@ -107,7 +107,6 @@ async def test_orchestrator_survives_malformed_tick(monkeypatch):
     good_tick = {"event_type": "tick", "symbol": "SBIN", "ltp": 100.0, "token": "123"}
     
     # Mock tick_bus.get to return one bad tick then one good tick then raise CancelledError
-    # We want to test EXCEPTION handling in tick processing
     mock_tick_bus.get.side_effect = [good_tick, good_tick, asyncio.CancelledError()]
     
     orchestrator = SystemOrchestrator(
@@ -141,5 +140,4 @@ async def test_orchestrator_survives_malformed_tick(monkeypatch):
         pass
         
     # Verify that it attempted to process both ticks
-    # If we reached here, the loop didn't die after the first ValueError
     assert mock_market_watch.update_tick.call_count == 2
