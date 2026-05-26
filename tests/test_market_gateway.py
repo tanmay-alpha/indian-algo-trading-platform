@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -155,15 +155,17 @@ async def test_status_returns_correct_state():
 
 
 @pytest.mark.asyncio
-async def test_error_logs_type_only(caplog):
+async def test_error_logs_type_only():
     gateway = make_gateway(asyncio.get_running_loop())
 
-    with caplog.at_level(logging.ERROR):
+    with patch.object(mg.logger, "error") as mock_error:
         gateway._on_error(None, RuntimeError("VERY_SECRET_TOKEN_VALUE"))
-    await drain_loop()
+        await drain_loop()
 
-    assert "RuntimeError" in caplog.text
-    assert "VERY_SECRET_TOKEN_VALUE" not in caplog.text
+        assert mock_error.called
+        log_msg = mock_error.call_args[0][0]
+        assert "RuntimeError" in log_msg
+        assert "VERY_SECRET_TOKEN_VALUE" not in log_msg
 
 
 def test_no_strategy_or_execution_called_from_on_data(monkeypatch):
