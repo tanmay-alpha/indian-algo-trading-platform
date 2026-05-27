@@ -403,10 +403,10 @@ export function OmsDashboard() {
   const refreshOmsDashboard = useTerminalStore((s) => s.refreshOmsDashboard)
   const fetchOmsHealth = useTerminalStore((s) => s.fetchOmsHealth)
 
-  // Bootstrap: check health on mount (public endpoint, no token)
+  // Bootstrap: check health and refresh dashboard on mount
   useEffect(() => {
-    void fetchOmsHealth()
-  }, [fetchOmsHealth])
+    void refreshOmsDashboard()
+  }, [refreshOmsDashboard])
 
   const handleTokenSubmit = useCallback((token: string) => {
     setOmsAdminToken(token)
