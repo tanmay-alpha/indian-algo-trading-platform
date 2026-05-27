@@ -1,6 +1,6 @@
 # backend/db/models.py
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
 
@@ -115,6 +115,15 @@ class StrategyConfigModel(Base):
     parameters = Column(String, nullable=False)  # JSON-serialized params dict
     mode = Column(String, nullable=False, default="PAPER")  # PAPER | REVIEW_ONLY
     status = Column(String, nullable=False, default="STOPPED")  # STOPPED | RUNNING | PAUSED | ERROR
+    
+    # Scheduler & Autopilot fields (PAPER-only autopilot)
+    auto_paper_enabled = Column(Boolean, nullable=False, default=False)
+    evaluation_interval_seconds = Column(Integer, nullable=False, default=60)
+    last_evaluated_at = Column(String, nullable=True)
+    next_evaluation_at = Column(String, nullable=True)
+    max_signals_per_day = Column(Integer, nullable=False, default=10)
+    cooldown_seconds = Column(Integer, nullable=False, default=300)
+    
     created_at = Column(String, nullable=False)
     updated_at = Column(String, nullable=False)
 

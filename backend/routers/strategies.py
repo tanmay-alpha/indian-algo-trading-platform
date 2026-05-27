@@ -65,6 +65,12 @@ class CreateStrategyConfigRequest(BaseModel):
     timeframe: str = Field(default="1m")
     parameters: dict[str, Any] = Field(default_factory=dict)
     mode: str = Field(default="PAPER")
+    
+    # Scheduler & Autopilot fields
+    auto_paper_enabled: Optional[bool] = Field(default=False)
+    evaluation_interval_seconds: Optional[int] = Field(default=60)
+    max_signals_per_day: Optional[int] = Field(default=10)
+    cooldown_seconds: Optional[int] = Field(default=300)
 
 
 class UpdateStrategyConfigRequest(BaseModel):
@@ -73,6 +79,12 @@ class UpdateStrategyConfigRequest(BaseModel):
     timeframe: Optional[str] = Field(None)
     parameters: Optional[dict[str, Any]] = Field(None)
     mode: Optional[str] = Field(None)
+    
+    # Scheduler & Autopilot fields
+    auto_paper_enabled: Optional[bool] = Field(None)
+    evaluation_interval_seconds: Optional[int] = Field(None)
+    max_signals_per_day: Optional[int] = Field(None)
+    cooldown_seconds: Optional[int] = Field(None)
 
 
 def _config_to_dict(config) -> dict:
@@ -95,6 +107,12 @@ def _config_to_dict(config) -> dict:
         "parameters": params_dict,
         "status": config.status,
         "mode": config.mode,
+        "auto_paper_enabled": config.auto_paper_enabled,
+        "evaluation_interval_seconds": config.evaluation_interval_seconds,
+        "last_evaluated_at": config.last_evaluated_at,
+        "next_evaluation_at": config.next_evaluation_at,
+        "max_signals_per_day": config.max_signals_per_day,
+        "cooldown_seconds": config.cooldown_seconds,
         "created_at": config.created_at.isoformat() if hasattr(config.created_at, "isoformat") else config.created_at,
         "updated_at": config.updated_at.isoformat() if hasattr(config.updated_at, "isoformat") else config.updated_at,
     }
@@ -287,6 +305,10 @@ def create_strategy_config(payload: CreateStrategyConfigRequest):
             timeframe=payload.timeframe,
             parameters=payload.parameters,
             mode=payload.mode,
+            auto_paper_enabled=payload.auto_paper_enabled if payload.auto_paper_enabled is not None else False,
+            evaluation_interval_seconds=payload.evaluation_interval_seconds if payload.evaluation_interval_seconds is not None else 60,
+            max_signals_per_day=payload.max_signals_per_day if payload.max_signals_per_day is not None else 10,
+            cooldown_seconds=payload.cooldown_seconds if payload.cooldown_seconds is not None else 300,
         )
         return sanitize_response(_config_to_dict(config))
     except Exception as exc:
@@ -822,3 +844,46 @@ def _record_backtest_history(request: Request, config: StrategyConfig, result) -
         "metrics": metrics if isinstance(metrics, dict) else {},
         "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     })
+
+
+@router.get("/scheduler/status", dependencies=[Depends(require_admin_token)])
+def get_scheduler_status(request: Request):
+    scheduler = getattr(request.app.state, "strategy_scheduler", None)
+    if not scheduler:
+        return sanitize_response({
+            "is_running": False,
+            "enabled": False,
+            "active_tasks_count": 0,
+            "last_tick_time": None,
+            "next_tick_time": None,
+            "running_strategy_ids": []
+        })
+    status = scheduler.get_status()
+    last_tick = status.get("last_tick_time")
+    next_tick = status.get("next_tick_time")
+    return sanitize_response({
+        "is_running": status.get("is_running", False),
+        "enabled": status.get("enabled", False),
+        "active_tasks_count": status.get("active_tasks_count", 0),
+        "last_tick_time": last_tick.isoformat() if hasattr(last_tick, "isoformat") else last_tick,
+        "next_tick_time": next_tick.isoformat() if hasattr(next_tick, "isoformat") else next_tick,
+        "running_strategy_ids": status.get("running_strategy_ids", [])
+    })
+
+
+@router.post("/scheduler/start", dependencies=[Depends(require_admin_token)])
+async def start_scheduler(request: Request):
+    scheduler = getattr(request.app.state, "strategy_scheduler", None)
+    if not scheduler:
+        raise HTTPException(status_code=500, detail="Strategy scheduler not initialized")
+    await scheduler.start()
+    return sanitize_response({"status": "SUCCESS", "message": "Scheduler started"})
+
+
+@router.post("/scheduler/stop", dependencies=[Depends(require_admin_token)])
+async def stop_scheduler(request: Request):
+    scheduler = getattr(request.app.state, "strategy_scheduler", None)
+    if not scheduler:
+        raise HTTPException(status_code=500, detail="Strategy scheduler not initialized")
+    await scheduler.stop()
+    return sanitize_response({"status": "SUCCESS", "message": "Scheduler stopped"})

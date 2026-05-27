@@ -24,6 +24,10 @@ class StrategyRepository:
         timeframe: str,
         parameters: dict[str, Any],
         mode: str = "PAPER",
+        auto_paper_enabled: bool = False,
+        evaluation_interval_seconds: int = 60,
+        max_signals_per_day: int = 10,
+        cooldown_seconds: int = 300,
     ) -> StrategyConfigModel:
         now = _utc_now()
         config = StrategyConfigModel(
@@ -34,6 +38,10 @@ class StrategyRepository:
             parameters=json.dumps(parameters),
             mode=mode,
             status="STOPPED",
+            auto_paper_enabled=auto_paper_enabled,
+            evaluation_interval_seconds=evaluation_interval_seconds,
+            max_signals_per_day=max_signals_per_day,
+            cooldown_seconds=cooldown_seconds,
             created_at=now,
             updated_at=now,
         )

@@ -150,6 +150,12 @@ class SystemOrchestrator:
             backtest_engine=self.backtest_engine,
         )
 
+        from backend.strategy.scheduler import StrategyScheduler
+        self.strategy_scheduler = StrategyScheduler(
+            session_factory=self.session_factory,
+            runtime_manager=self.strategy_runtime_manager,
+        )
+
         self._setup_event_subscriptions()
 
     def _update_state(self, name: str, value: Any):
@@ -214,17 +220,42 @@ class SystemOrchestrator:
         )
 
     async def on_signal_event(self, event: SignalEvent):
-        """Handles auto-pilot routing of signals."""
-        if not self.auto_pilot:
+        """Handles routing of signals (both manual and auto-pilot)."""
+        is_manual = False
+        allowed = self.auto_pilot
+        
+        signal_id = getattr(event, "signal_id", None)
+        if signal_id is not None:
+            from backend.db.models import StrategySignalModel
+            session = self.session_factory()
+            try:
+                sig = session.query(StrategySignalModel).filter(StrategySignalModel.id == signal_id).first()
+                if sig:
+                    if sig.status == "APPROVED":
+                        is_manual = True
+                        allowed = True
+                    elif sig.status in ("APPROVED_PAPER", "PAPER_EXECUTED"):
+                        allowed = True
+                    elif sig.strategy and sig.strategy.auto_paper_enabled:
+                        allowed = True
+            except Exception as e:
+                logger.error(f"Error checking signal routing allowance: {e}")
+            finally:
+                session.close()
+
+        if not allowed:
             return
-        # Check cooldown
+
+        # Check global trade cooldown ONLY for automated (non-manual) signals
         now = asyncio.get_event_loop().time()
-        if now - self.last_trade_time <= self.trade_cooldown:
-            logger.debug(f"AUTOPILOT: Cooldown active, skipping signal for {event.symbol}")
-            return
+        if not is_manual:
+            if now - self.last_trade_time <= self.trade_cooldown:
+                logger.debug(f"AUTOPILOT: Global cooldown active, skipping signal for {event.symbol}")
+                return
+
         # Route via SignalValidator
         order_request = await self.signal_validator.validate_and_route(event, trading_mode=self.execution_mode)
-        if order_request:
+        if order_request and not is_manual:
             self._update_state("last_trade_time", now)
 
     async def on_order_request_event(self, event: OrderRequestEvent):
@@ -501,12 +532,18 @@ class SystemOrchestrator:
         if self.strategy_runtime_manager:
             await self.strategy_runtime_manager.start_background_loop()
 
+        # Start strategy scheduler background loop if enabled
+        if self.strategy_scheduler and settings.strategy_scheduler_enabled:
+            await self.strategy_scheduler.start()
+
         if settings.demo_mode:
             logger.info("DEMO MODE enabled")
 
         logger.info(f"TERMINAL: Backend operational in {self.execution_mode} mode")
 
     async def shutdown(self):
+        if self.strategy_scheduler:
+            await self.strategy_scheduler.stop()
         if self.strategy_runtime_manager:
             await self.strategy_runtime_manager.stop_background_loop()
         if self.sampler_task and not self.sampler_task.done():

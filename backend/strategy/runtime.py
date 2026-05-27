@@ -230,6 +230,8 @@ class StrategyRuntimeManager:
                 if not strategy_config:
                     logger.warning("Attempted to evaluate symbol %s on non-existent strategy config ID %s", symbol, strategy_id)
                     return None
+            else:
+                strategy_id = strategy_config.id
 
             symbol_upper = symbol.strip().upper()
             if candles is None:
@@ -245,6 +247,63 @@ class StrategyRuntimeManager:
                     symbol_upper,
                 )
                 return None
+
+            last_candle_timestamp = str(candles[-1].get("time") or candles[-1].get("timestamp") or "")
+
+            # 1. Candle duplicate check: Prevent duplicate signal generation if a signal for the same strategy_id, symbol, and source_candle_time exists
+            dup_signal = session.query(StrategySignalModel).filter(
+                StrategySignalModel.strategy_id == strategy_id,
+                StrategySignalModel.symbol == symbol_upper,
+                StrategySignalModel.source_candle_time == last_candle_timestamp
+            ).first()
+            if dup_signal:
+                logger.debug(
+                    "Signal for strategy %s, symbol %s, candle %s already recorded.",
+                    strategy_id,
+                    symbol_upper,
+                    last_candle_timestamp
+                )
+                return None
+
+            # 2. Cooldown check: Check now - last_signal.created_at < cooldown_seconds. If so, skip.
+            if strategy_config.cooldown_seconds and strategy_config.cooldown_seconds > 0:
+                last_sig = session.query(StrategySignalModel).filter(
+                    StrategySignalModel.strategy_id == strategy_id
+                ).order_by(StrategySignalModel.id.desc()).first()
+                if last_sig and last_sig.created_at:
+                    try:
+                        cleaned_ts = last_sig.created_at.replace("Z", "+00:00")
+                        last_created = datetime.fromisoformat(cleaned_ts)
+                        if last_created.tzinfo is None:
+                            last_created = last_created.replace(tzinfo=timezone.utc)
+                        now_utc = datetime.now(timezone.utc)
+                        elapsed = (now_utc - last_created).total_seconds()
+                        if elapsed < strategy_config.cooldown_seconds:
+                            logger.info(
+                                "Skipping strategy ID %s evaluation: in cooldown. Elapsed: %s s, Cooldown: %s s",
+                                strategy_id,
+                                elapsed,
+                                strategy_config.cooldown_seconds
+                            )
+                            return None
+                    except Exception as e:
+                        logger.error("Error checking cooldown for strategy ID %s: %s", strategy_id, e)
+
+            # 3. Daily limit check: Count signals for the strategy where created_at starts with the current UTC date.
+            if strategy_config.max_signals_per_day and strategy_config.max_signals_per_day > 0:
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                daily_count = session.query(StrategySignalModel).filter(
+                    StrategySignalModel.strategy_id == strategy_id,
+                    StrategySignalModel.created_at.like(f"{today_str}%")
+                ).count()
+                if daily_count >= strategy_config.max_signals_per_day:
+                    logger.warning(
+                        "Skipping strategy ID %s: daily limit of %s reached (current: %s)",
+                        strategy_id,
+                        strategy_config.max_signals_per_day,
+                        daily_count
+                    )
+                    return None
 
             # Parse parameters
             try:
@@ -282,7 +341,6 @@ class StrategyRuntimeManager:
             
             # We only want to generate signals that match the latest candles in our series
             # to ensure they are live/current trading signals.
-            last_candle_timestamp = str(candles[-1].get("time") or candles[-1].get("timestamp") or "")
             signal_timestamp = str(latest_signal.timestamp)
 
             if signal_timestamp != last_candle_timestamp:
@@ -294,7 +352,7 @@ class StrategyRuntimeManager:
                 )
                 return None
 
-            # Deduplication: query the database for the last signal recorded for this strategy and symbol
+            # Deduplication: double check the last recorded signal for this strategy and symbol
             last_recorded = self.repo.list_strategy_signals(session, strategy_id=strategy_config.id, limit=1)
             if last_recorded:
                 last_sig = last_recorded[0]
@@ -309,6 +367,10 @@ class StrategyRuntimeManager:
                     )
                     return None
 
+            # Autopilot logic: determine initial status and flow
+            is_auto = bool(strategy_config.auto_paper_enabled)
+            status_init = "APPROVED_PAPER" if is_auto else "GENERATED"
+
             # Record new signal
             signal_model = self.repo.record_strategy_signal(
                 session=session,
@@ -320,11 +382,15 @@ class StrategyRuntimeManager:
                 price=latest_signal.price,
                 timeframe=strategy_config.timeframe,
                 source_candle_time=signal_timestamp,
-                status="GENERATED",
+                status=status_init,
             )
 
-            # If in PAPER mode, auto-publish the event to EventBus
-            if strategy_config.mode == "PAPER":
+            # Route execution if autopilot is enabled
+            if is_auto:
+                await self._publish_signal_event(signal_model, override_mode="PAPER")
+                signal_model = self.repo.update_signal_status(session, signal_model.id, "PAPER_EXECUTED")
+            elif strategy_config.mode == "PAPER":
+                # For compatibility with older tests where mode is PAPER and auto_paper_enabled defaults to False
                 await self._publish_signal_event(signal_model)
                 signal_model = self.repo.update_signal_status(session, signal_model.id, "PAPER_EXECUTED")
 

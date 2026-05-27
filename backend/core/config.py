@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000"
     environment: str = "LOCAL"
     public_backend_url: Optional[str] = None
+    strategy_scheduler_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
