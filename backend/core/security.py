@@ -13,7 +13,7 @@ from backend.db.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 SENSITIVE_KEY_PARTS = (
     "token",
