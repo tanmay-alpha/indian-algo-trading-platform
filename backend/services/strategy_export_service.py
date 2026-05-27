@@ -150,6 +150,7 @@ def build_strategy_results_workbook(
     strategy_id: Optional[int] = None,
     order_store=None,
     db_session=None,
+    reconciliation_report: Optional[dict] = None,
 ) -> bytes:
     """Build an in-memory Excel workbook from persisted trading data.
 
@@ -297,6 +298,55 @@ def build_strategy_results_workbook(
     ws_equity.append(equity_headers)
     ws_equity.append([_NO_DATA, "", ""])
     ws_summary.append(["EquityCurve", "Not yet available — future portfolio engine hook"])
+
+    # ------------------------------------------------------------------
+    # Sheet 7: BrokerTradeReconciliation
+    # ------------------------------------------------------------------
+    if reconciliation_report is not None:
+        ws_recon = wb.create_sheet("BrokerTradeReconciliation")
+        ws_recon.append(["Summary Field", "Value"])
+        ws_recon.append(["Checked At", reconciliation_report.get("checked_at", "")])
+        ws_recon.append(["Broker Trade Count", reconciliation_report.get("broker_trade_count", 0)])
+        ws_recon.append(["Local Fill Count", reconciliation_report.get("local_fill_count", 0)])
+        ws_recon.append(["Matched Count", reconciliation_report.get("matched_count", 0)])
+        ws_recon.append(["Mismatch Count", reconciliation_report.get("mismatch_count", 0)])
+        ws_recon.append([])  # Spacer
+
+        mismatch_headers = [
+            "Severity", "Mismatch Type", "Symbol", "Side",
+            "Broker Trade ID", "Fill ID", "Broker Order ID", "Request ID",
+            "Broker Qty", "Local Qty", "Broker Price", "Local Price", "Detail"
+        ]
+        ws_recon.append(mismatch_headers)
+
+        mismatches = reconciliation_report.get("mismatches", [])
+        if not mismatches:
+            ws_recon.append(["NO_MISMATCHES"] + [""] * (len(mismatch_headers) - 1))
+        else:
+            for m in mismatches:
+                def get_val(key):
+                    if isinstance(m, dict):
+                        return m.get(key)
+                    return getattr(m, key, None)
+
+                ws_recon.append([
+                    _safe_str(get_val("severity")),
+                    _safe_str(get_val("mismatch_type")),
+                    _safe_str(get_val("symbol")),
+                    _safe_str(get_val("side")),
+                    _safe_str(get_val("broker_trade_id")),
+                    _safe_str(get_val("fill_id")),
+                    _safe_str(get_val("broker_order_id")),
+                    _safe_str(get_val("request_id")),
+                    _safe_str(get_val("broker_qty")),
+                    _safe_str(get_val("local_qty")),
+                    _safe_str(get_val("broker_price")),
+                    _safe_str(get_val("local_price")),
+                    _safe_str(get_val("detail")),
+                ])
+        ws_summary.append(["BrokerTradeReconciliation", f"Included — {reconciliation_report.get('mismatch_count', 0)} mismatches"])
+    else:
+        ws_summary.append(["BrokerTradeReconciliation", "Not requested/available"])
 
     # ------------------------------------------------------------------
     # Serialize to bytes

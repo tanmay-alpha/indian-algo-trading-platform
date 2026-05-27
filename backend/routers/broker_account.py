@@ -17,6 +17,9 @@ from fastapi import APIRouter, Depends, Request
 
 from backend.core.security import require_admin_token, sanitize_response
 from backend.services.broker_account_sync import BrokerAccountSyncService
+from backend.services.broker_trade_reconciliation import BrokerTradeReconciliationService
+import dataclasses
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -112,3 +115,68 @@ def sync_broker_account_readonly(request: Request):
     svc = _get_sync_service(request)
     result = svc.sync_all_read_only()
     return sanitize_response(result)
+
+
+_last_reconciliation_report: Optional[dict] = None
+
+
+@router.get("/trade-reconciliation/status", dependencies=[Depends(require_admin_token)])
+def get_trade_reconciliation_status(request: Request):
+    """Return status of trade reconciliation, session availability, and last run report."""
+    sm = getattr(request.app.state, "session_manager", None)
+    is_valid = sm.is_valid if sm else False
+    return sanitize_response({
+        "status": "OK",
+        "is_valid": is_valid,
+        "last_run": _last_reconciliation_report
+    })
+
+
+@router.post("/trade-reconciliation/run", dependencies=[Depends(require_admin_token)])
+def run_trade_reconciliation(request: Request):
+    """Run trade book reconciliation against internal fill ledger."""
+    global _last_reconciliation_report
+
+    sm = getattr(request.app.state, "session_manager", None)
+    if sm is None or not sm.is_valid:
+        return sanitize_response({
+            "status": "BROKER_SESSION_UNAVAILABLE",
+            "report": None
+        })
+
+    svc = _get_sync_service(request)
+    recon_service = BrokerTradeReconciliationService(order_store=getattr(request.app.state, "order_store", None))
+
+    try:
+        # Run reconciliation
+        report = recon_service.reconcile_from_broker(
+            broker_sync_service=svc,
+            time_tolerance_seconds=60
+        )
+
+        # Convert report to dict to serialize
+        report_dict = dataclasses.asdict(report)
+        _last_reconciliation_report = report_dict
+
+        return sanitize_response({
+            "status": "OK",
+            "report": report_dict
+        })
+    except ValueError as val_err:
+        if str(val_err) == "BROKER_SESSION_UNAVAILABLE":
+            return sanitize_response({
+                "status": "BROKER_SESSION_UNAVAILABLE",
+                "report": None
+            })
+        logger.error(f"Value error during trade reconciliation run: {val_err}", exc_info=True)
+        return sanitize_response({
+            "status": "ERROR",
+            "detail": str(val_err)
+        })
+    except Exception as exc:
+        logger.error(f"Error running trade reconciliation: {exc}", exc_info=True)
+        return sanitize_response({
+            "status": "ERROR",
+            "detail": f"Reconciliation error: {exc}"
+        })
+

@@ -609,7 +609,7 @@ def dismiss_strategy_signal(signal_id: int, reason: Optional[str] = None):
 
 
 @router.get("/export.xlsx", dependencies=[Depends(require_admin_token)])
-def export_all_strategies_xlsx(request: Request):
+def export_all_strategies_xlsx(request: Request, include_reconcile: bool = False):
     """Download an Excel workbook with all strategy results.
 
     Sheets: Summary, Signals, Orders, Fills, PnL, EquityCurve.
@@ -617,14 +617,26 @@ def export_all_strategies_xlsx(request: Request):
     PAPER-only platform.
     """
     from backend.services.strategy_export_service import build_strategy_results_workbook
+    from backend.routers.broker_account import _last_reconciliation_report
     session = None
     try:
         session = _get_session()
         order_store = getattr(request.app.state, "order_store", None)
+        
+        recon_report = None
+        if include_reconcile:
+            from backend.routers.trade_reconciliation import _get_all_reports
+            reports = _get_all_reports()
+            if reports:
+                recon_report = reports[0]
+        if recon_report is None and _last_reconciliation_report is not None:
+            recon_report = _last_reconciliation_report
+
         xlsx_bytes = build_strategy_results_workbook(
             strategy_id=None,
             order_store=order_store,
             db_session=session,
+            reconciliation_report=recon_report,
         )
         return Response(
             content=xlsx_bytes,
@@ -642,13 +654,14 @@ def export_all_strategies_xlsx(request: Request):
 
 
 @router.get("/{strategy_id}/export.xlsx", dependencies=[Depends(require_admin_token)])
-def export_strategy_xlsx(strategy_id: int, request: Request):
+def export_strategy_xlsx(strategy_id: int, request: Request, include_reconcile: bool = False):
     """Download an Excel workbook for a specific strategy.
 
     Signals sheet is filtered to the given strategy_id.
     Orders/Fills are unfiltered (shared OMS).
     """
     from backend.services.strategy_export_service import build_strategy_results_workbook
+    from backend.routers.broker_account import _last_reconciliation_report
     session = None
     try:
         session = _get_session()
@@ -656,10 +669,21 @@ def export_strategy_xlsx(strategy_id: int, request: Request):
         if config is None:
             raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
         order_store = getattr(request.app.state, "order_store", None)
+
+        recon_report = None
+        if include_reconcile:
+            from backend.routers.trade_reconciliation import _get_all_reports
+            reports = _get_all_reports()
+            if reports:
+                recon_report = reports[0]
+        if recon_report is None and _last_reconciliation_report is not None:
+            recon_report = _last_reconciliation_report
+
         xlsx_bytes = build_strategy_results_workbook(
             strategy_id=strategy_id,
             order_store=order_store,
             db_session=session,
+            reconciliation_report=recon_report,
         )
         filename = f"maet_strategy_{strategy_id}_results.xlsx"
         return Response(
