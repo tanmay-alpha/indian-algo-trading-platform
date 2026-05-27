@@ -1,0 +1,13 @@
+{
+  "reconciliation_id": "acc_recon_36e9cd00",
+  "generated_at": "2026-05-27T18:57:53.977530Z",
+  "broker_session_available": true,
+  "holdings_checked": true,
+  "positions_checked": true,
+  "funds_checked": true,
+  "matched_count": 1,
+  "mismatch_count": 0,
+  "affected_symbols": [],
+  "anomalies": [],
+  "overall_status": "OK"
+}

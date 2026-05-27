@@ -1,0 +1,32 @@
+{
+  "reconciliation_id": "acc_recon_f1d571be",
+  "generated_at": "2026-05-27T18:57:30.338547Z",
+  "broker_session_available": true,
+  "holdings_checked": true,
+  "positions_checked": true,
+  "funds_checked": true,
+  "matched_count": 0,
+  "mismatch_count": 2,
+  "affected_symbols": [],
+  "anomalies": [
+    {
+      "severity": "CRITICAL",
+      "mismatch_type": "NEGATIVE_OR_INVALID_BROKER_VALUE",
+      "section": "FUNDS",
+      "symbol": null,
+      "broker_value": -500.0,
+      "local_value": null,
+      "detail": "Broker available cash is negative."
+    },
+    {
+      "severity": "WARNING",
+      "mismatch_type": "FUNDS_AVAILABLE_MISMATCH",
+      "section": "FUNDS",
+      "symbol": null,
+      "broker_value": -500.0,
+      "local_value": 1000.0,
+      "detail": "Available funds mismatch: broker -500.0 != local 1000.0"
+    }
+  ],
+  "overall_status": "CRITICAL_MISMATCHES"
+}

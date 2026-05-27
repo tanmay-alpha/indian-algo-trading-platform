@@ -1,0 +1,25 @@
+{
+  "reconciliation_id": "acc_recon_12c40216",
+  "generated_at": "2026-05-27T18:57:46.838751Z",
+  "broker_session_available": true,
+  "holdings_checked": true,
+  "positions_checked": true,
+  "funds_checked": true,
+  "matched_count": 0,
+  "mismatch_count": 1,
+  "affected_symbols": [
+    "SBIN-EQ"
+  ],
+  "anomalies": [
+    {
+      "severity": "CRITICAL",
+      "mismatch_type": "QUANTITY_MISMATCH",
+      "section": "HOLDINGS",
+      "symbol": "SBIN-EQ",
+      "broker_value": 100.0,
+      "local_value": 50.0,
+      "detail": "Holding qty mismatch: broker 100.0 != local 50.0"
+    }
+  ],
+  "overall_status": "CRITICAL_MISMATCHES"
+}
