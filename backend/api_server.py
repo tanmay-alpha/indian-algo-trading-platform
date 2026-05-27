@@ -35,9 +35,7 @@ from backend.gateway.instrument_loader import InstrumentLoader
 from backend.gateway.market_watch import MarketWatch
 from backend.gateway.instrument_registry import search_symbols, get_instrument
 from backend.execution.execution_router import ExecutionRouter
-from backend.portfolio.portfolio_manager import PortfolioManager
 from backend.portfolio.portfolio_engine import PortfolioEngine
-from backend.risk.risk_manager import RiskManager
 from backend.engine.strategy_engine import StrategyEngine
 from backend.core.broadcaster import WebSocketBroadcaster
 from backend.observability.metrics_store import MetricsStore
@@ -106,8 +104,46 @@ indicator_engine = IndicatorEngine()
 backtest_engine = BacktestEngine(indicator_engine=indicator_engine)
 candle_fetcher = None
 market_watch = MarketWatch(default_symbols=settings.symbols)
-portfolio = PortfolioManager(initial_capital=50000)
-risk = RiskManager(initial_capital=50000)
+class DummyRiskManager:
+    def open_position(self, symbol, side, quantity, price):
+        pass
+
+class CompatiblePortfolioEngine(PortfolioEngine):
+    def open_position(self, symbol, side, quantity, entry_price):
+        pass
+
+    def update_unrealized(self, symbol, price):
+        if price is not None:
+            self.positions.update_unrealized(symbol, price)
+
+    def get_performance(self):
+        summary = self.get_summary()
+        return {
+            "initial_capital": self.initial_capital,
+            "current_capital": summary["equity"],
+            "realized_pnl": summary["realized_pnl"],
+            "unrealized_pnl": summary["unrealized_pnl"],
+            "total_trades": len(self.positions.fill_history),
+            "win_rate": 0.0,
+            "max_drawdown": summary["max_drawdown"],
+        }
+
+    @property
+    def daily_pnl(self) -> float:
+        return self.get_summary().get("net_pnl", 0.0)
+
+    @property
+    def current_daily_pnl(self) -> float:
+        return self.get_summary().get("net_pnl", 0.0)
+
+    @property
+    def realized_pnl(self) -> float:
+        return self.get_summary().get("realized_pnl", 0.0)
+
+    @property
+    def open_positions(self) -> list[dict]:
+        return self.get_positions()
+
 strategy = StrategyEngine()
 
 auto_pilot = False
@@ -115,7 +151,10 @@ last_trade_time = 0.0
 trade_cooldown = 60.0
 
 execution_mode = "PAPER"
-portfolio_engine = PortfolioEngine(initial_capital=50000, event_bus=event_bus, trading_mode=execution_mode)
+portfolio_engine = CompatiblePortfolioEngine(initial_capital=50000, event_bus=event_bus, trading_mode=execution_mode)
+portfolio = portfolio_engine
+risk = DummyRiskManager()
+
 router = ExecutionRouter(
     mode=execution_mode,
     event_bus=event_bus,
@@ -272,7 +311,7 @@ def health_check():
         "status": "online",
         "mode": execution_mode,
         "broker": get_broker_status(),
-        "portfolio": portfolio.get_performance(),
+        "portfolio": portfolio_engine.get_summary(),
         "portfolio_engine": portfolio_engine.get_summary(),
     })
 
@@ -466,16 +505,9 @@ async def place_order(side: str, qty: int, symbol: str = "SBIN-EQ"):
         trading_mode=execution_mode,
         source="MANUAL",
     )
-    if False:
-        return {"status": "REJECTED", "reason": "Risk limits exceeded"}
 
     # Execute
     res_event = await router.route(order_request, latest_market={"ltp": price, "received_at": datetime.now(timezone.utc)})
-    
-    if False:  # deprecated synchronous update
-        portfolio.open_position(symbol, side, qty, price)
-        risk.open_position(symbol, side, qty, price)
-        logger.info(f"ORDER: {side} executed for {qty} {symbol} @ {price}")
 
     return {
         "status": res_event.status,
