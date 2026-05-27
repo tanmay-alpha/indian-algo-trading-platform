@@ -21,6 +21,9 @@ import { IndicatorOverlayControls } from '@/components/chart/indicator-overlay-c
 import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
 import { StrategyLab } from '@/components/strategy/strategy-lab'
+import { StrategyControlPanel } from '@/components/strategy/strategy-control-panel'
+import { SignalApprovalQueue } from '@/components/strategy/signal-approval-queue'
+import { BrokerAccountPanel } from '@/components/portfolio/broker-account-panel'
 import { MarketsWorkspace } from './markets-workspace'
 import { JournalWorkspace as ObservabilityJournalWorkspace } from './journal-workspace'
 import { OmsDashboard } from '@/components/oms/oms-dashboard'
@@ -227,6 +230,11 @@ function PortfolioWorkspace() {
             </div>
           </PortfolioPanel>
         </div>
+
+        {/* Broker Account Real-Time Sync (Phase 22A) */}
+        <div className="rounded-sm border border-border bg-panel/60 overflow-hidden" style={{ minHeight: '22rem' }}>
+          <BrokerAccountPanel />
+        </div>
       </div>
   )
 }
@@ -298,7 +306,29 @@ function PortfolioTable({
 }
 
 function StrategyWorkspace() {
-  return <StrategyLab />
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      {/* Top: full strategy lab (backtest runner + templates) */}
+      <div className="flex-1 min-h-0 overflow-hidden border-b border-border">
+        <StrategyLab />
+      </div>
+
+      {/* Bottom split: Control Panel + Signal Queue */}
+      <div className="h-80 min-h-[18rem] flex overflow-hidden shrink-0">
+        <div className="w-1/2 border-r border-border min-h-0 overflow-hidden">
+          <div className="h-8 px-3 flex items-center border-b border-border bg-panel/60">
+            <span className="text-[10px] font-mono font-semibold text-text uppercase tracking-wider">Control Panel</span>
+          </div>
+          <div className="h-[calc(100%-2rem)] overflow-auto">
+            <StrategyControlPanel />
+          </div>
+        </div>
+        <div className="w-1/2 min-h-0 overflow-hidden">
+          <SignalApprovalQueue />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function JournalWorkspace() {

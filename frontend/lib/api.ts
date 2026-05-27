@@ -42,6 +42,17 @@ import type {
   OmsFill,
   OrderAuditBundle,
   OmsReconciliationStatus,
+  StrategyConfigRuntime,
+  StrategySchedulerStatus,
+  PendingSignal,
+  SignalHistoryItem,
+  BrokerSessionStatus,
+  BrokerAccountSnapshot,
+  BrokerHolding,
+  BrokerPosition,
+  BrokerFunds,
+  BrokerOrderRow,
+  BrokerTradeRow,
 } from './types'
 
 export class APIError extends Error {
@@ -1073,4 +1084,381 @@ export async function deleteWatchlist(
     return { ok: false, error: String(err) }
   }
 }
+// =====================================================
+// Strategy Runtime API Client (Phase 21E)
+// PAPER mode only. No live order APIs.
+// =====================================================
 
+/** GET /strategies/configs — list all strategy configs. */
+export async function getStrategyConfigs(): Promise<StrategyConfigRuntime[]> {
+  try {
+    const data = await request<StrategyConfigRuntime[]>('/strategies/configs')
+    return data || []
+  } catch {
+    return []
+  }
+}
+
+/** POST /strategies/configs/{id}/start — start a strategy (admin). */
+export async function startStrategy(
+  id: number,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; id: number }>> {
+  try {
+    const data = await request<{ status: string; id: number }>(
+      `/strategies/configs/${id}/start`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/configs/{id}/stop — stop a strategy (admin). */
+export async function stopStrategy(
+  id: number,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; id: number }>> {
+  try {
+    const data = await request<{ status: string; id: number }>(
+      `/strategies/configs/${id}/stop`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/configs/{id}/pause — pause a strategy (admin). */
+export async function pauseStrategy(
+  id: number,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; id: number }>> {
+  try {
+    const data = await request<{ status: string; id: number }>(
+      `/strategies/configs/${id}/pause`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/configs/{id}/evaluate — trigger manual eval (admin). */
+export async function evaluateStrategy(
+  id: number,
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; evaluation_triggered: boolean }>> {
+  try {
+    const data = await request<{ status: string; evaluation_triggered: boolean }>(
+      `/strategies/configs/${id}/evaluate`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+// ----- Scheduler -----
+
+/** GET /strategies/scheduler/status */
+export async function getSchedulerStatus(): Promise<StrategySchedulerStatus> {
+  try {
+    return await request<StrategySchedulerStatus>('/strategies/scheduler/status')
+  } catch {
+    return { running: false, strategies_tracked: 0, last_tick_at: null, tick_interval_seconds: 60, strategy_ids: [] }
+  }
+}
+
+/** POST /strategies/scheduler/start — start scheduler (admin). */
+export async function startScheduler(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; running: boolean }>> {
+  try {
+    const data = await request<{ status: string; running: boolean }>(
+      '/strategies/scheduler/start',
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/scheduler/stop — stop scheduler (admin). */
+export async function stopScheduler(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; running: boolean }>> {
+  try {
+    const data = await request<{ status: string; running: boolean }>(
+      '/strategies/scheduler/stop',
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+// ----- Signals -----
+
+/** GET /strategies/signals/pending — admin-protected. */
+export async function getPendingSignals(
+  adminToken?: string | null
+): Promise<OmsResult<{ pending_count: number; signals: PendingSignal[] }>> {
+  try {
+    const data = await request<{ pending_count: number; signals: PendingSignal[] }>(
+      '/strategies/signals/pending',
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /strategies/signals/history — admin-protected. */
+export async function getSignalHistory(
+  adminToken?: string | null,
+  strategyId?: number,
+  limit = 100
+): Promise<OmsResult<{ total: number; signals: SignalHistoryItem[] }>> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (strategyId != null) params.set('strategy_id', String(strategyId))
+  try {
+    const data = await request<{ total: number; strategy_id_filter: number | null; signals: SignalHistoryItem[] }>(
+      `/strategies/signals/history?${params.toString()}`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/signals/{id}/approve-paper — approve signal for paper execution (admin). */
+export async function approveSignalForPaper(
+  signalId: number,
+  adminToken?: string | null
+): Promise<OmsResult<PendingSignal>> {
+  try {
+    const data = await request<PendingSignal>(
+      `/strategies/signals/${signalId}/approve-paper`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /strategies/signals/{id}/dismiss — dismiss a signal (admin). */
+export async function dismissSignal(
+  signalId: number,
+  adminToken?: string | null,
+  reason?: string
+): Promise<OmsResult<{ status: string; signal: PendingSignal }>> {
+  const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
+  try {
+    const data = await request<{ status: string; signal: PendingSignal }>(
+      `/strategies/signals/${signalId}/dismiss${params}`,
+      { method: 'POST', headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+// =====================================================
+// Broker Account Read-Only API Client (Phase 22A)
+// No order placement. Safe read-only. Sanitized.
+// =====================================================
+
+/** GET /broker/account/status — public (no admin token). */
+export async function getBrokerAccountStatus(): Promise<BrokerSessionStatus> {
+  try {
+    return await request<BrokerSessionStatus>('/broker/account/status')
+  } catch {
+    return {
+      status: 'BROKER_SESSION_UNAVAILABLE',
+      is_valid: false,
+      auth_token_available: false,
+      feed_token_available: false,
+    }
+  }
+}
+
+/** GET /broker/account/snapshot — admin-protected, read-only. */
+export async function getBrokerAccountSnapshot(
+  adminToken?: string | null
+): Promise<OmsResult<BrokerAccountSnapshot>> {
+  try {
+    const data = await request<BrokerAccountSnapshot>('/broker/account/snapshot', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /broker/account/holdings — admin-protected, read-only. */
+export async function getBrokerHoldings(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; holdings: BrokerHolding[] }>> {
+  try {
+    const data = await request<{ status: string; holdings: BrokerHolding[] }>('/broker/account/holdings', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /broker/account/positions — admin-protected, read-only. */
+export async function getBrokerPositions(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; positions: BrokerPosition[] }>> {
+  try {
+    const data = await request<{ status: string; positions: BrokerPosition[] }>('/broker/account/positions', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /broker/account/funds — admin-protected, read-only. */
+export async function getBrokerFunds(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; funds: BrokerFunds }>> {
+  try {
+    const data = await request<{ status: string; funds: BrokerFunds }>('/broker/account/funds', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /broker/account/orders — admin-protected, read-only order book. */
+export async function getBrokerOrderBook(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; orders: BrokerOrderRow[] }>> {
+  try {
+    const data = await request<{ status: string; orders: BrokerOrderRow[] }>('/broker/account/orders', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /broker/account/trades — admin-protected, read-only trade book. */
+export async function getBrokerTradeBook(
+  adminToken?: string | null
+): Promise<OmsResult<{ status: string; trades: BrokerTradeRow[] }>> {
+  try {
+    const data = await request<{ status: string; trades: BrokerTradeRow[] }>('/broker/account/trades', {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/**
+ * POST /broker/account/sync-readonly — trigger a full read-only sync.
+ * SAFE: reads only, never places orders.
+ */
+export async function syncBrokerAccountReadOnly(
+  adminToken?: string | null
+): Promise<OmsResult<BrokerAccountSnapshot>> {
+  try {
+    const data = await request<BrokerAccountSnapshot>('/broker/account/sync-readonly', {
+      method: 'POST',
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}

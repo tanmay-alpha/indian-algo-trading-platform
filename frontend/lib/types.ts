@@ -874,3 +874,138 @@ export interface OmsReconciliationStatus {
 /** Structured OMS data-availability states */
 export type OmsDataState = 'LOADING' | 'ONLINE' | 'ADMIN_REQUIRED' | 'BACKEND_UNAVAILABLE' | 'ERROR'
 
+// =====================================================
+// Strategy Runtime & Scheduler Types (Phase 21D/E)
+// =====================================================
+
+export type StrategyRunStatus = 'STOPPED' | 'RUNNING' | 'PAUSED' | 'ERROR'
+
+export interface StrategyConfigRuntime {
+  id: number
+  name: string
+  template_id: string
+  symbols: string[]
+  timeframe: string
+  parameters: Record<string, unknown>
+  status: StrategyRunStatus
+  mode: 'PAPER' | 'REVIEW_ONLY'
+  auto_paper_enabled: boolean
+  evaluation_interval_seconds: number
+  last_evaluated_at: string | null
+  next_evaluation_at: string | null
+  max_signals_per_day: number
+  cooldown_seconds: number
+  created_at: string
+  updated_at: string
+}
+
+export interface StrategySchedulerStatus {
+  running: boolean
+  strategies_tracked: number
+  last_tick_at: string | null
+  tick_interval_seconds: number
+  strategy_ids: number[]
+}
+
+export type SignalStatus = 'GENERATED' | 'VALIDATED' | 'APPROVED_PAPER' | 'PAPER_EXECUTED' | 'REJECTED' | 'DISMISSED' | 'ERROR'
+
+export interface PendingSignal {
+  id: number
+  strategy_id: number
+  symbol: string
+  side: 'BUY' | 'SELL' | string
+  confidence: number | null
+  reason: string | null
+  price: number | null
+  timeframe: string | null
+  source_candle_time: string | null
+  status: SignalStatus
+  dismiss_reason: string | null
+  created_at: string
+}
+
+export interface SignalHistoryItem extends PendingSignal {
+  // same as PendingSignal, all statuses included
+}
+
+// =====================================================
+// Broker Account Read-Only Types (Phase 22A)
+// =====================================================
+
+export type BrokerAccountStatus = 'OK' | 'BROKER_SESSION_UNAVAILABLE' | 'BROKER_ERROR'
+
+export interface BrokerSessionStatus {
+  status: BrokerAccountStatus
+  is_valid: boolean
+  auth_token_available: boolean
+  feed_token_available: boolean
+  last_error?: string | null
+  last_refresh?: string | null
+}
+
+export interface BrokerHolding {
+  symbol: string
+  isin: string | null
+  quantity: number | null
+  avg_price: number | null
+  ltp: number | null
+  realised_quantity: number | null
+  product: string
+  exchange: string
+}
+
+export interface BrokerPosition {
+  symbol: string
+  product: string
+  exchange: string
+  net_qty: number | null
+  avg_price: number | null
+  ltp: number | null
+  unrealised_pnl: number | null
+  realised_pnl: number | null
+}
+
+export interface BrokerFunds {
+  available_cash: number | null
+  net: number | null
+  used_margin: number | null
+  available_intraday_payin: number | null
+  collateral: number | null
+  m2mrealized: number | null
+  m2munrealized: number | null
+}
+
+export interface BrokerOrderRow {
+  order_id_masked: string
+  symbol: string
+  side: string
+  quantity: number | null
+  price: number | null
+  status: string
+  product: string
+  exchange: string
+  order_type: string
+  order_time: string
+}
+
+export interface BrokerTradeRow {
+  trade_id_masked: string
+  symbol: string
+  side: string
+  quantity: number | null
+  price: number | null
+  product: string
+  exchange: string
+  trade_time: string
+}
+
+export interface BrokerAccountSnapshot {
+  status: BrokerAccountStatus
+  holdings: BrokerHolding[]
+  positions: BrokerPosition[]
+  funds: BrokerFunds
+  orders: BrokerOrderRow[]
+  trades: BrokerTradeRow[]
+  synced_at: string
+  source: string
+}
