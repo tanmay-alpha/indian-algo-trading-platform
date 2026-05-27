@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
 
 from backend.db.models import Watchlist, WatchlistItem
 

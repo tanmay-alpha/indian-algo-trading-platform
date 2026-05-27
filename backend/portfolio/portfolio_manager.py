@@ -1,6 +1,9 @@
 # backend/portfolio/portfolio_manager.py
 
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class PortfolioManager:
@@ -31,7 +34,7 @@ class PortfolioManager:
             "timestamp": datetime.now()
         }
 
-        print(f"PORTFOLIO: Position Opened -> {symbol} {side} {quantity} @ {entry_price}")
+        logger.info("PORTFOLIO: Position Opened -> %s %s %s @ %s", symbol, side, quantity, entry_price)
 
     # ==========================================
     # CLOSE POSITION
@@ -73,8 +76,8 @@ class PortfolioManager:
 
         self.update_drawdown()
 
-        print(f"PORTFOLIO: Trade Closed -> PnL: {pnl:.2f}")
-        print(f"PORTFOLIO: Current Capital: {self.current_capital:.2f}")
+        logger.info("PORTFOLIO: Trade Closed -> PnL: %.2f", pnl)
+        logger.debug("PORTFOLIO: Current Capital: %.2f", self.current_capital)
 
         return pnl
 

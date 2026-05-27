@@ -3,18 +3,16 @@
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from backend.candles.candle_fetcher import CandleFetcher
 from backend.candles.candle_store import CandleStore
 from backend.core.config import settings
 from backend.core.event_bus import EventBus
-from backend.core.events import EventType, TickEvent, event_to_dict, SignalEvent, OrderRequestEvent, OrderStateEvent
+from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.core.rate_limit import limiter, register_rate_limiter
 from backend.core.security import require_admin_token, sanitize_response
 from backend.routers import candles as candles_router
@@ -34,8 +32,6 @@ from backend.discovery.market_board import MarketBoard
 from backend.discovery.screener_engine import ScreenerEngine
 from backend.gateway import instrument_registry
 from backend.gateway.instrument_loader import InstrumentLoader
-from backend.gateway.market_gateway import MarketDataGateway
-from backend.gateway.tick_bus import TickBus
 from backend.gateway.market_watch import MarketWatch
 from backend.gateway.instrument_registry import search_symbols, get_instrument
 from backend.execution.execution_router import ExecutionRouter
@@ -44,8 +40,7 @@ from backend.portfolio.portfolio_engine import PortfolioEngine
 from backend.risk.risk_manager import RiskManager
 from backend.engine.strategy_engine import StrategyEngine
 from backend.core.broadcaster import WebSocketBroadcaster
-from backend.core.session_manager import SessionManager
-from backend.observability.metrics_store import MetricsStore, start_sampler
+from backend.observability.metrics_store import MetricsStore
 from backend.observability.event_log import ObservabilityEventLog
 from backend.observability.health_timeline import HealthTimeline
 from backend.core.orchestrator import SystemOrchestrator
@@ -152,7 +147,6 @@ obs_event_log = ObservabilityEventLog()
 obs_timeline = HealthTimeline()
 
 # Create SystemOrchestrator to encapsulate lifecycle/loops
-from backend.core.orchestrator import SystemOrchestrator
 
 def sync_orchestrator_state(name: str, value):
     """Callback to synchronize orchestrator internal states back to module globals & app state."""

@@ -1,7 +1,7 @@
 # backend/routers/patterns.py
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Request
 from backend.candles.candle_store import CandleStore
 from backend.indicators.candle_patterns import detect_patterns
 from backend.gateway.instrument_registry import get_instrument

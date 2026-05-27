@@ -1,8 +1,11 @@
 # backend/risk/risk_manager.py
 
 import csv
+import logging
 import os
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class RiskManager:
@@ -70,19 +73,19 @@ class RiskManager:
     def can_take_trade(self, symbol):
 
         if self.kill_switch:
-            print("RISK: Kill switch active")
+            logger.warning("RISK: Kill switch active")
             return False
 
         if self.trades_today >= self.max_trades_per_day:
-            print("RISK: Max trades reached today")
+            logger.warning("RISK: Max trades reached today")
             return False
 
         if len(self.positions) >= self.max_open_positions:
-            print("RISK: Max open positions reached")
+            logger.warning("RISK: Max open positions reached")
             return False
 
         if self.daily_loss >= self.initial_capital * self.max_daily_loss_pct:
-            print("RISK: Daily loss limit hit")
+            logger.warning("RISK: Daily loss limit hit")
             self.kill_switch = True
             self._record_breach("DAILY_LOSS", "Daily loss limit hit")
             return False
@@ -118,7 +121,7 @@ class RiskManager:
             "timestamp": datetime.now()
         }
 
-        print(f"RISK: Position Opened: {symbol}")
+        logger.info("RISK: Position Opened: %s", symbol)
 
     # ============================================
     # CHECK EXIT CONDITIONS
@@ -174,7 +177,7 @@ class RiskManager:
             self.daily_loss += abs(pnl)
 
         if self.daily_loss >= self.initial_capital * self.max_daily_loss_pct:
-            print("RISK: Daily loss limit reached -> Activating Kill Switch")
+            logger.warning("RISK: Daily loss limit reached -> Activating Kill Switch")
             self.kill_switch = True
             self._record_breach("DAILY_LOSS", "Daily loss limit reached")
 
@@ -185,7 +188,7 @@ class RiskManager:
 
         self._log_trade(symbol, side, entry, exit_price, qty, pnl)
 
-        print(f"RISK: Trade Closed | PnL: {pnl:.2f} | Equity: {self.equity:.2f}")
+        logger.info("RISK: Trade Closed | PnL: %.2f | Equity: %.2f", pnl, self.equity)
 
     # ============================================
     # LOG TRADE TO CSV
@@ -209,7 +212,7 @@ class RiskManager:
     # RESET DAILY LIMITS (CALL AT MARKET OPEN)
     # ============================================
     def reset_daily(self):
-        print("RISK: Resetting daily risk controls")
+        logger.info("RISK: Resetting daily risk controls")
         self.daily_loss = 0
         self.trades_today = 0
         self.kill_switch = False

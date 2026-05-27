@@ -1,6 +1,5 @@
 # backend/core/database.py
 
-import os
 from pathlib import Path
 from typing import Optional
 from sqlalchemy import create_engine

@@ -25,3 +25,22 @@ cpp/build/
 
 # AI workspace local backups
 .ai-workspace-backup/
+
+# Generated data files
+data/*.json
+ci_test.db
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Stale file endings
+*.orig
+*.bak
+
+# Dev server logs (pm2 / local)
+maet-frontend-dev.*.log
+
+# Pyflakes / mypy caches
+.mypy_cache/
+.ruff_cache/

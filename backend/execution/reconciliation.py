@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, Any, List
@@ -6,7 +5,7 @@ from typing import Optional, Any, List
 from loguru import logger
 
 from backend.core.events import SystemHealthEvent
-from backend.execution.order_store import is_terminal_order_status, TERMINAL_ORDER_STATUSES
+from backend.execution.order_store import is_terminal_order_status
 
 
 @dataclass

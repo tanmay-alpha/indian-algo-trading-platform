@@ -1,6 +1,6 @@
 # backend/indicators/candle_patterns.py
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 def detect_patterns(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
