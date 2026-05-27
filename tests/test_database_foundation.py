@@ -181,3 +181,99 @@ def test_order_store_still_works():
         assert order is not None
         assert order["status"] == "OPEN"
         assert order["symbol"] == "SBIN"
+
+
+def test_postgres_url_conversion():
+    from unittest.mock import patch
+    from backend.core.config import settings
+    orig_url = settings.database_url
+    try:
+        settings.database_url = "postgres://username:secret_pass@host:5432/dbname"
+        assert get_database_url() == "postgresql://username:secret_pass@host:5432/dbname"
+    finally:
+        settings.database_url = orig_url
+
+
+def test_redact_db_url():
+    from backend.core.database import redact_db_url
+    # Test typical postgres URL with username/password
+    url1 = "postgresql://scott:tiger_password@localhost:5432/mydatabase"
+    assert redact_db_url(url1) == "postgresql://scott:***@localhost:5432/mydatabase"
+    
+    # Test sqlite URL with no password
+    url2 = "sqlite:///data/trades.db"
+    assert redact_db_url(url2) == "sqlite:///data/trades.db"
+    
+    # Test invalid inputs and exceptions
+    assert redact_db_url(None) == ""
+    assert redact_db_url("") == ""
+
+
+def test_sanitize_db_error():
+    from backend.core.database import sanitize_db_error
+    raw_url = "postgresql://scott:tiger_password@localhost:5432/mydatabase"
+    
+    # Error message contains raw url
+    msg1 = f"connection to {raw_url} failed"
+    sanitized1 = sanitize_db_error(msg1, raw_url)
+    assert "tiger_password" not in sanitized1
+    assert "scott:***" in sanitized1
+    
+    # Error message contains password explicitly
+    msg2 = "FATAL: password authentication failed for tiger_password"
+    sanitized2 = sanitize_db_error(msg2, raw_url)
+    assert "tiger_password" not in sanitized2
+    
+    # Generic sensitive terms redaction
+    msg3 = "An error occurred with API_KEY in database"
+    sanitized3 = sanitize_db_error(msg3)
+    assert sanitized3 == "Database connection error (credentials/sensitive info redacted)"
+
+
+def test_create_engine_poolclass_nullpool():
+    from sqlalchemy.pool import NullPool
+    # When NullPool is passed, pool_size should not be set (which would raise TypeError)
+    engine = create_engine_safe("sqlite:///:memory:", poolclass=NullPool)
+    assert isinstance(engine.pool, NullPool)
+
+
+def test_check_db_health_success_and_failure():
+    from unittest.mock import MagicMock
+    from backend.core.database import check_db_health
+    
+    # Mock successful connection
+    mock_engine = MagicMock()
+    conn_mock = MagicMock()
+    mock_engine.connect.return_value.__enter__.return_value = conn_mock
+    
+    ok, err = check_db_health(mock_engine)
+    assert ok is True
+    assert err is None
+    
+    # Mock failed connection with sensitive info
+    mock_engine.connect.side_effect = Exception("failed to connect with password=secret123")
+    mock_engine.url = "postgresql://scott:secret123@localhost:5432/mydatabase"
+    
+    ok, err = check_db_health(mock_engine)
+    assert ok is False
+    assert "secret123" not in err
+    assert "redacted" in err.lower() or "scott:***" in err
+
+
+def test_sanitize_response_redacts_db_url():
+    from backend.core.security import sanitize_response
+    data = {
+        "database_url": "postgresql://scott:tiger_password@localhost:5432/mydatabase",
+        "nested": {
+            "conn_str": "postgresql://admin:secret@host:5432/db",
+            "url_in_value": "postgresql://user:pass@host/db",
+            "other_url": "https://example.com/api"
+        },
+        "database_url_configured": True
+    }
+    sanitized = sanitize_response(data)
+    assert sanitized["database_url"] == "postgresql://scott:***@localhost:5432/mydatabase"
+    assert sanitized["nested"]["conn_str"] == "postgresql://admin:***@host:5432/db"
+    assert sanitized["nested"]["url_in_value"] == "postgresql://user:***@host/db"
+    assert sanitized["nested"]["other_url"] == "https://example.com/api"
+    assert sanitized["database_url_configured"] is True

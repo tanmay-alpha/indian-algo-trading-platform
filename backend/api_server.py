@@ -315,12 +315,40 @@ async def startup_event():
 async def shutdown_event():
     await orchestrator.shutdown()
 
+def check_database_status():
+    from backend.core.security import _db_engine
+    from backend.core.database import create_engine_safe, check_db_health, redact_db_url, get_database_url
+    engine = _db_engine
+    if engine is None:
+        try:
+            engine = create_engine_safe()
+        except Exception as e:
+            from backend.core.database import sanitize_db_error
+            return {
+                "connected": False,
+                "error": sanitize_db_error(str(e), get_database_url()),
+                "url": redact_db_url(get_database_url())
+            }
+    
+    connected, err = check_db_health(engine)
+    return {
+        "connected": connected,
+        "error": err,
+        "url": redact_db_url(str(engine.url)) if engine else redact_db_url(get_database_url())
+    }
+
 @app.get("/")
 @app.get("/health")
 def health_check():
+    db_status = check_database_status()
     return sanitize_response({
-        "status": "online",
+        "status": "online" if db_status["connected"] else "degraded",
         "mode": execution_mode,
+        "database": {
+            "connected": db_status["connected"],
+            "url": db_status["url"],
+            "error": db_status["error"]
+        },
         "broker": get_broker_status(),
         "portfolio": portfolio_engine.get_summary(),
         "portfolio_engine": portfolio_engine.get_summary(),
@@ -335,8 +363,9 @@ def ready_check():
     db_path = Path(settings.db_path)
     db_parent = db_path.parent if db_path.parent != Path("") else Path(".")
     gateway_status = gateway.status() if gateway else None
+    db_status = check_database_status()
     return sanitize_response({
-        "status": "ready",
+        "status": "ready" if db_status["connected"] else "error",
         "app": {"status": "online", "environment": settings.environment},
         "broker": get_broker_status(),
         "gateway": gateway_status,
@@ -344,6 +373,9 @@ def ready_check():
             "path_configured": bool(settings.db_path),
             "parent_exists": db_parent.exists(),
             "path": settings.db_path,
+            "connected": db_status["connected"],
+            "url": db_status["url"],
+            "error": db_status["error"]
         },
         "trading_mode": execution_mode,
         "live_trading_enabled": settings.live_trading_enabled,

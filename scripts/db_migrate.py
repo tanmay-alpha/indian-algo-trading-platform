@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from backend.core.config import settings
-from backend.core.database import get_database_url
+from backend.core.database import get_database_url, redact_db_url, sanitize_db_error
 from alembic.config import Config
 from alembic import command
 
@@ -28,7 +28,7 @@ def run_migration():
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         
-    print(f"[DB MIGRATE] Running database command: '{cmd}'")
+    print(f"[DB MIGRATE] Running database command: '{cmd}' on '{redact_db_url(db_url)}'")
     
     try:
         if cmd == "upgrade":
@@ -43,7 +43,8 @@ def run_migration():
             print("[DB MIGRATE] Supported commands: upgrade, current, history")
             sys.exit(1)
     except Exception as e:
-        print(f"[DB MIGRATE] ERROR: Database operation failed: {e}", file=sys.stderr)
+        sanitized_err = sanitize_db_error(str(e), db_url)
+        print(f"[DB MIGRATE] ERROR: Database operation failed: {sanitized_err}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

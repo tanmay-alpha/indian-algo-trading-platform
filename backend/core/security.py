@@ -25,6 +25,10 @@ SENSITIVE_KEY_PARTS = (
     "refresh",
     "auth",
     "credential",
+    "database_url",
+    "db_url",
+    "conn_str",
+    "dsn",
 )
 
 PRESERVE_SENSITIVE_STATUS_KEYS = {
@@ -49,9 +53,17 @@ def sanitize_response(data):
         for key, value in data.items():
             key_text = str(key).lower()
             if _should_redact(key_text, value):
-                sanitized[key] = "***REDACTED***"
+                if isinstance(value, str) and any(x in key_text for x in ("database_url", "db_url", "conn_str", "dsn")):
+                    from backend.core.database import redact_db_url
+                    sanitized[key] = redact_db_url(value)
+                else:
+                    sanitized[key] = "***REDACTED***"
             else:
-                sanitized[key] = sanitize_response(value)
+                if isinstance(value, str) and "://" in value:
+                    from backend.core.database import redact_db_url
+                    sanitized[key] = redact_db_url(value)
+                else:
+                    sanitized[key] = sanitize_response(value)
         return sanitized
 
     if isinstance(data, list):

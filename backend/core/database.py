@@ -5,9 +5,51 @@ from typing import Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from backend.core.config import settings
+from urllib.parse import urlparse, urlunparse
 
 # Base class for SQLAlchemy models
 Base = declarative_base()
+
+def redact_db_url(url: str) -> str:
+    """Redact credentials from a database URL."""
+    if not url:
+        return ""
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+            # Mask the password
+            netloc = parsed.username or ""
+            netloc += ":***"
+            if parsed.hostname:
+                netloc += f"@{parsed.hostname}"
+                if parsed.port:
+                    netloc += f":{parsed.port}"
+            else:
+                netloc += f"@{parsed.netloc.split('@')[-1]}"
+            parsed = parsed._replace(netloc=netloc)
+            return urlunparse(parsed)
+        return url
+    except Exception:
+        return "database_url_redacted"
+
+def sanitize_db_error(message: str, raw_url: Optional[str] = None) -> str:
+    """Sanitize database error messages by removing raw credentials or the raw URL."""
+    if not message:
+        return ""
+    if raw_url:
+        try:
+            redacted = redact_db_url(raw_url)
+            if raw_url in message:
+                message = message.replace(raw_url, redacted)
+            parsed = urlparse(raw_url)
+            if parsed.password and parsed.password in message:
+                message = message.replace(parsed.password, "***")
+        except Exception:
+            pass
+    sensitive_terms = ("api_key", "password", "secret", "jwt", "refresh", "feed", "token")
+    if any(term in message.lower() for term in sensitive_terms):
+        return "Database connection error (credentials/sensitive info redacted)"
+    return message
 
 def get_database_url() -> str:
     """Get database URL from settings or fall back to SQLite."""
@@ -19,6 +61,11 @@ def get_database_url() -> str:
             url = "sqlite:///:memory:"
         else:
             url = f"sqlite:///{db_path}"
+            
+    # Handle postgres:// to postgresql:// conversion for SQLAlchemy 1.4+
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+        
     return url
 
 def create_engine_safe(url: Optional[str] = None, **kwargs):
@@ -42,8 +89,10 @@ def create_engine_safe(url: Optional[str] = None, **kwargs):
             kwargs["connect_args"] = {"check_same_thread": False}
     else:
         # Postgres connection options
-        if "pool_size" not in kwargs and settings.database_pool_size:
-            kwargs["pool_size"] = settings.database_pool_size
+        # pool_size is only valid if we are not using a custom poolclass (like NullPool in migrations)
+        if "poolclass" not in kwargs:
+            if "pool_size" not in kwargs and settings.database_pool_size:
+                kwargs["pool_size"] = settings.database_pool_size
             
     if "echo" not in kwargs:
         kwargs["echo"] = settings.database_echo
@@ -57,3 +106,14 @@ def get_session_factory(engine):
 def init_db_metadata(engine) -> None:
     """Create all tables defined in declarative metadata."""
     Base.metadata.create_all(bind=engine)
+
+def check_db_health(engine) -> tuple[bool, Optional[str]]:
+    """Check connection health of the database engine."""
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True, None
+    except Exception as e:
+        raw_url = str(engine.url) if engine and engine.url else None
+        return False, sanitize_db_error(str(e), raw_url)
