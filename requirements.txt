@@ -20,3 +20,4 @@ pytest-asyncio
 aiosqlite
 SQLAlchemy
 alembic
+openpyxl

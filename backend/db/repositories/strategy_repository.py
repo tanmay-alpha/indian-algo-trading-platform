@@ -218,3 +218,134 @@ class StrategyRepository:
             source_candle_time=source_candle_time,
             status=status,
         )
+
+    # ------------------------------------------------------------------
+    # Phase 21B — Manual Approval Queue Methods
+    # ------------------------------------------------------------------
+
+    # Statuses that can be acted upon (not yet terminal)
+    _PENDING_STATUSES: frozenset = frozenset({"GENERATED", "VALIDATED"})
+    # Statuses that are terminal — no further transitions allowed
+    _TERMINAL_SIGNAL_STATUSES: frozenset = frozenset(
+        {"PAPER_EXECUTED", "DISMISSED", "ERROR"}
+    )
+    # Statuses that cannot be approved (already done or dismissed)
+    _NON_APPROVABLE: frozenset = frozenset(
+        {"PAPER_EXECUTED", "APPROVED_PAPER", "DISMISSED", "ERROR"}
+    )
+    # Statuses that cannot be dismissed
+    _NON_DISMISSABLE: frozenset = frozenset({"PAPER_EXECUTED", "DISMISSED", "ERROR"})
+
+    def list_pending_signals(
+        self, session, limit: int = 100
+    ) -> list[StrategySignalModel]:
+        """Return signals awaiting review (GENERATED or VALIDATED), newest first.
+
+        Excludes terminal statuses: PAPER_EXECUTED, DISMISSED, ERROR.
+        Hard cap: 100 rows.
+        """
+        limit = min(max(1, int(limit)), 100)
+        return (
+            session.query(StrategySignalModel)
+            .filter(StrategySignalModel.status.in_(self._PENDING_STATUSES))
+            .order_by(StrategySignalModel.id.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_signal(self, session, signal_id: int) -> Optional[StrategySignalModel]:
+        """Fetch a single signal by primary key."""
+        return (
+            session.query(StrategySignalModel)
+            .filter(StrategySignalModel.id == signal_id)
+            .first()
+        )
+
+    def approve_signal_for_paper(
+        self, session, signal_id: int
+    ) -> Optional[StrategySignalModel]:
+        """Transition GENERATED/VALIDATED → APPROVED_PAPER.
+
+        Idempotent: if already APPROVED_PAPER returns the signal unchanged.
+        Raises ValueError for non-approvable terminal statuses.
+        Never transitions to APPROVED_LIVE or any live state.
+        """
+        signal = self.get_signal(session, signal_id)
+        if signal is None:
+            return None
+        if signal.status == "APPROVED_PAPER":
+            # Already approved — idempotent, return as-is
+            return signal
+        if signal.status in self._NON_APPROVABLE:
+            raise ValueError(
+                f"Signal {signal_id} cannot be approved: status is '{signal.status}'"
+            )
+        signal.status = "APPROVED_PAPER"
+        session.commit()
+        session.refresh(signal)
+        logger.info("Signal ID %s approved for PAPER execution.", signal_id)
+        return signal
+
+    def dismiss_signal(
+        self, session, signal_id: int, reason: Optional[str] = None
+    ) -> Optional[StrategySignalModel]:
+        """Transition GENERATED/VALIDATED/REJECTED/APPROVED_PAPER → DISMISSED.
+
+        Idempotent: if already DISMISSED returns signal unchanged.
+        Raises ValueError for non-dismissable terminal statuses (PAPER_EXECUTED, ERROR).
+        """
+        signal = self.get_signal(session, signal_id)
+        if signal is None:
+            return None
+        if signal.status == "DISMISSED":
+            return signal
+        if signal.status in self._NON_DISMISSABLE:
+            raise ValueError(
+                f"Signal {signal_id} cannot be dismissed: status is '{signal.status}'"
+            )
+        signal.status = "DISMISSED"
+        if reason:
+            signal.dismiss_reason = reason[:500]  # cap length
+        session.commit()
+        session.refresh(signal)
+        logger.info("Signal ID %s dismissed. Reason: %s", signal_id, reason)
+        return signal
+
+    def mark_signal_paper_executed(
+        self, session, signal_id: int
+    ) -> Optional[StrategySignalModel]:
+        """Transition APPROVED_PAPER → PAPER_EXECUTED.
+
+        Idempotent: already PAPER_EXECUTED returns unchanged.
+        Raises ValueError for other statuses.
+        """
+        signal = self.get_signal(session, signal_id)
+        if signal is None:
+            return None
+        if signal.status == "PAPER_EXECUTED":
+            return signal
+        if signal.status != "APPROVED_PAPER":
+            raise ValueError(
+                f"Signal {signal_id} cannot be marked PAPER_EXECUTED: status is '{signal.status}'"
+            )
+        signal.status = "PAPER_EXECUTED"
+        session.commit()
+        session.refresh(signal)
+        logger.info("Signal ID %s marked as PAPER_EXECUTED.", signal_id)
+        return signal
+
+    def list_signal_history(
+        self,
+        session,
+        strategy_id: Optional[int] = None,
+        limit: int = 500,
+    ) -> list[StrategySignalModel]:
+        """Return signal history, newest first. Hard cap at 500 rows.
+
+        Optionally filter by strategy_id. Includes all statuses (full audit view).
+        """
+        limit = min(max(1, int(limit)), 500)
+        query = session.query(StrategySignalModel)
+        if strategy_id is not None:
+            query = query.filter(StrategySignalModel.strategy_id == strategy_id)
+        return query.order_by(StrategySignalModel.id.desc()).limit(limit).all()

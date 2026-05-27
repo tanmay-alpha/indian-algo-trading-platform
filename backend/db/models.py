@@ -133,8 +133,14 @@ class StrategySignalModel(Base):
     price = Column(Float, nullable=True)
     timeframe = Column(String, nullable=True)
     source_candle_time = Column(String, nullable=True)
-    status = Column(String, nullable=False, default="GENERATED")  # GENERATED | VALIDATED | REJECTED | APPROVED | PAPER_EXECUTED
+    # Status state machine (PAPER-only platform):
+    # GENERATED → APPROVED_PAPER → PAPER_EXECUTED
+    # GENERATED → VALIDATED → APPROVED_PAPER → PAPER_EXECUTED
+    # GENERATED / VALIDATED / REJECTED → DISMISSED
+    # Terminal statuses: PAPER_EXECUTED, DISMISSED, ERROR
+    # Forbidden: APPROVED_LIVE, LIVE_EXECUTED
+    status = Column(String, nullable=False, default="GENERATED")
+    dismiss_reason = Column(String, nullable=True)  # set on DISMISSED transition
     created_at = Column(String, nullable=False)
 
     strategy = relationship("StrategyConfigModel", back_populates="signals")
-

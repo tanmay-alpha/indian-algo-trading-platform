@@ -4,7 +4,8 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from backend.candles.candle_store import CandleStore
@@ -111,6 +112,7 @@ def _signal_to_dict(sig) -> dict:
         "timeframe": sig.timeframe,
         "source_candle_time": sig.source_candle_time,
         "status": sig.status,
+        "dismiss_reason": getattr(sig, "dismiss_reason", None),
         "created_at": sig.created_at.isoformat() if hasattr(sig.created_at, "isoformat") else sig.created_at,
     }
 
@@ -500,6 +502,241 @@ async def approve_strategy_signal(signal_id: int, request: Request):
     except Exception as exc:
         logger.error("Error approving signal %d: %s", signal_id, exc)
         raise HTTPException(status_code=500, detail=f"Failed to approve signal: {exc}")
+
+
+# ------------------------------------------------------------------
+# Phase 21B — Manual Approval Queue Routes
+# ------------------------------------------------------------------
+
+
+@router.get("/signals/pending", dependencies=[Depends(require_admin_token)])
+def get_pending_signals():
+    """Return signals awaiting manual review (status: GENERATED or VALIDATED).
+
+    Excludes PAPER_EXECUTED, DISMISSED, ERROR. Hard cap: 100 rows, newest first.
+    PAPER-only platform — no live signals.
+    """
+    session = None
+    try:
+        session = _get_session()
+        signals = _repo.list_pending_signals(session)
+        return sanitize_response({
+            "pending_count": len(signals),
+            "signals": [_signal_to_dict(s) for s in signals],
+        })
+    except Exception as exc:
+        logger.error("Error listing pending signals: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to list pending signals")
+    finally:
+        if session:
+            session.close()
+
+
+@router.get("/signals/history", dependencies=[Depends(require_admin_token)])
+def get_signal_history(strategy_id: Optional[int] = None, limit: int = 100):
+    """Return full signal history (all statuses). Optional filter by strategy_id.
+
+    Hard cap: 500 rows, newest first.
+    """
+    session = None
+    try:
+        session = _get_session()
+        signals = _repo.list_signal_history(session, strategy_id=strategy_id, limit=min(limit, 500))
+        return sanitize_response({
+            "total": len(signals),
+            "strategy_id_filter": strategy_id,
+            "signals": [_signal_to_dict(s) for s in signals],
+        })
+    except Exception as exc:
+        logger.error("Error listing signal history: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to list signal history")
+    finally:
+        if session:
+            session.close()
+
+
+@router.post("/signals/{signal_id}/dismiss", dependencies=[Depends(require_admin_token)])
+def dismiss_strategy_signal(signal_id: int, reason: Optional[str] = None):
+    """Dismiss a pending signal (GENERATED/VALIDATED/REJECTED/APPROVED_PAPER → DISMISSED).
+
+    Idempotent: already-dismissed signals return 200 unchanged.
+    Cannot dismiss PAPER_EXECUTED or ERROR signals.
+    """
+    session = None
+    try:
+        session = _get_session()
+        signal = _repo.dismiss_signal(session, signal_id, reason=reason)
+        if signal is None:
+            raise HTTPException(status_code=404, detail=f"Signal {signal_id} not found")
+        return sanitize_response({"status": "ok", "signal": _signal_to_dict(signal)})
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        logger.error("Error dismissing signal %d: %s", signal_id, exc)
+        raise HTTPException(status_code=500, detail="Failed to dismiss signal")
+    finally:
+        if session:
+            session.close()
+
+
+# ------------------------------------------------------------------
+# Phase 21C — Export Routes
+# ------------------------------------------------------------------
+
+
+@router.get("/export.xlsx", dependencies=[Depends(require_admin_token)])
+def export_all_strategies_xlsx(request: Request):
+    """Download an Excel workbook with all strategy results.
+
+    Sheets: Summary, Signals, Orders, Fills, PnL, EquityCurve.
+    Data sourced from persisted DB only. No broker API calls.
+    PAPER-only platform.
+    """
+    from backend.services.strategy_export_service import build_strategy_results_workbook
+    session = None
+    try:
+        session = _get_session()
+        order_store = getattr(request.app.state, "order_store", None)
+        xlsx_bytes = build_strategy_results_workbook(
+            strategy_id=None,
+            order_store=order_store,
+            db_session=session,
+        )
+        return Response(
+            content=xlsx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": 'attachment; filename="maet_strategy_results.xlsx"'},
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        logger.error("Export all xlsx failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Export failed")
+    finally:
+        if session:
+            session.close()
+
+
+@router.get("/{strategy_id}/export.xlsx", dependencies=[Depends(require_admin_token)])
+def export_strategy_xlsx(strategy_id: int, request: Request):
+    """Download an Excel workbook for a specific strategy.
+
+    Signals sheet is filtered to the given strategy_id.
+    Orders/Fills are unfiltered (shared OMS).
+    """
+    from backend.services.strategy_export_service import build_strategy_results_workbook
+    session = None
+    try:
+        session = _get_session()
+        config = _repo.get_config_by_id(session, strategy_id)
+        if config is None:
+            raise HTTPException(status_code=404, detail=f"Strategy {strategy_id} not found")
+        order_store = getattr(request.app.state, "order_store", None)
+        xlsx_bytes = build_strategy_results_workbook(
+            strategy_id=strategy_id,
+            order_store=order_store,
+            db_session=session,
+        )
+        filename = f"maet_strategy_{strategy_id}_results.xlsx"
+        return Response(
+            content=xlsx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except HTTPException:
+        raise
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        logger.error("Export strategy %d xlsx failed: %s", strategy_id, exc)
+        raise HTTPException(status_code=500, detail="Export failed")
+    finally:
+        if session:
+            session.close()
+
+
+@router.get("/export.csv", dependencies=[Depends(require_admin_token)])
+def export_csv(dataset: str = "signals", request: Request = None):
+    """Download a CSV of a specific dataset.
+
+    dataset: signals | orders | fills
+    Returns text/csv. No credentials. No live data.
+    """
+    import csv
+    import io as _io
+    allowed_datasets = {"signals", "orders", "fills"}
+    if dataset not in allowed_datasets:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid dataset '{dataset}'. Must be one of: {sorted(allowed_datasets)}",
+        )
+    session = None
+    try:
+        session = _get_session()
+        order_store = getattr(request.app.state, "order_store", None) if request else None
+        buf = _io.StringIO()
+        writer = csv.writer(buf)
+
+        if dataset == "signals":
+            from backend.db.models import StrategySignalModel
+            headers = [
+                "id", "strategy_id", "symbol", "side", "status",
+                "confidence", "price", "timeframe", "source_candle_time",
+                "reason", "dismiss_reason", "created_at",
+            ]
+            writer.writerow(headers)
+            sigs = session.query(StrategySignalModel).order_by(StrategySignalModel.id.asc()).all()
+            if not sigs:
+                writer.writerow(["NO_DATA"] + [""] * (len(headers) - 1))
+            else:
+                for s in sigs:
+                    writer.writerow([
+                        s.id, s.strategy_id, s.symbol, s.side, s.status,
+                        s.confidence, s.price, s.timeframe, s.source_candle_time,
+                        s.reason, getattr(s, "dismiss_reason", ""), s.created_at,
+                    ])
+
+        elif dataset == "orders" and order_store is not None:
+            from backend.services.strategy_export_service import _SAFE_ORDER_FIELDS
+            writer.writerow(list(_SAFE_ORDER_FIELDS))
+            orders = order_store.get_recent_order_requests(limit=200)
+            if not orders:
+                writer.writerow(["NO_DATA"] + [""] * (len(_SAFE_ORDER_FIELDS) - 1))
+            else:
+                for o in orders:
+                    writer.writerow([o.get(f, "") for f in _SAFE_ORDER_FIELDS])
+
+        elif dataset == "fills" and order_store is not None:
+            from backend.services.strategy_export_service import _SAFE_FILL_FIELDS
+            writer.writerow(list(_SAFE_FILL_FIELDS))
+            fills = order_store.get_all_fills_chronological()
+            if not fills:
+                writer.writerow(["NO_DATA"] + [""] * (len(_SAFE_FILL_FIELDS) - 1))
+            else:
+                for f in fills:
+                    writer.writerow([f.get(k, "") for k in _SAFE_FILL_FIELDS])
+
+        else:
+            writer.writerow(["dataset", "status"])
+            writer.writerow([dataset, "NO_DATA (order_store not available)"])
+
+        csv_bytes = buf.getvalue().encode("utf-8")
+        filename = f"maet_{dataset}.csv"
+        return Response(
+            content=csv_bytes,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("CSV export failed for dataset=%s: %s", dataset, exc)
+        raise HTTPException(status_code=500, detail="CSV export failed")
+    finally:
+        if session:
+            session.close()
 
 
 # ------------------------------------------------------------------
