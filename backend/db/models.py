@@ -4,6 +4,18 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
 
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="VIEWER")  # ADMIN, VIEWER, TRADER_PAPER, TRADER_LIVE_DISABLED_PLACEHOLDER
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+
 class Instrument(Base):
     __tablename__ = "instruments"
     

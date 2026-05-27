@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     max_order_notional: float = 500000.0
     max_daily_loss: float = -25000.0
     jwt_refresh_interval_minutes: int = 30
+    jwt_secret_key: str = "supersecretchangeinprod"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 120
     ws_reconnect_delay_seconds: int = 3
     live_trading_enabled: bool = False
     demo_mode: bool = False
