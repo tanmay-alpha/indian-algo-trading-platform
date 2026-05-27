@@ -92,6 +92,27 @@ class CandleStore:
         self._candles[normalized_symbol][timeframe] = deque(sorted_candles[-max_count:], maxlen=max_count)
         return len(self._candles[normalized_symbol][timeframe])
 
+    def add_candle(self, timeframe: str, symbol: str, candle: dict) -> None:
+        self._validate_timeframe(timeframe)
+        normalized_symbol = str(symbol or "").strip().upper()
+        if not normalized_symbol:
+            return
+
+        time_val = candle.get("time") or candle.get("timestamp")
+        if time_val is None:
+            raise ValueError("Candle must have 'time' or 'timestamp'")
+
+        cleaned = {
+            "time": int(time_val),
+            "open": float(candle["open"]),
+            "high": float(candle["high"]),
+            "low": float(candle["low"]),
+            "close": float(candle["close"]),
+            "volume": int(candle.get("volume") or 0),
+        }
+        self._candles[normalized_symbol][timeframe].append(cleaned)
+
+
     def get_candles(self, symbol: str, timeframe: str, limit: Optional[int] = None) -> list[dict]:
         self._validate_timeframe(timeframe)
         normalized_symbol = str(symbol or "").strip().upper()

@@ -247,6 +247,8 @@ app.state.obs_event_log = obs_event_log
 app.state.obs_timeline = obs_timeline
 app.state.execution_router = router
 app.state.backtest_history = []
+app.state.orchestrator = orchestrator
+app.state.strategy_runtime_manager = orchestrator.strategy_runtime_manager
 # Phase 18J: OMS admin visibility state
 app.state.order_store = getattr(router, "order_store", None)
 app.state.trading_mode = execution_mode

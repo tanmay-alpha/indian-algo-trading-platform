@@ -102,3 +102,39 @@ class AuditLog(Base):
     details = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
     created_at = Column(String, nullable=False)
+
+
+class StrategyConfigModel(Base):
+    __tablename__ = "strategy_configs"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, index=True)
+    template_id = Column(String, nullable=False)
+    symbols = Column(String, nullable=False)  # JSON-serialized symbols list/dict
+    timeframe = Column(String, nullable=False)
+    parameters = Column(String, nullable=False)  # JSON-serialized params dict
+    mode = Column(String, nullable=False, default="PAPER")  # PAPER | REVIEW_ONLY
+    status = Column(String, nullable=False, default="STOPPED")  # STOPPED | RUNNING | PAUSED | ERROR
+    created_at = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
+
+    signals = relationship("StrategySignalModel", back_populates="strategy", cascade="all, delete-orphan")
+
+
+class StrategySignalModel(Base):
+    __tablename__ = "strategy_signals"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    strategy_id = Column(Integer, ForeignKey("strategy_configs.id", ondelete="CASCADE"), nullable=False)
+    symbol = Column(String, nullable=False)
+    side = Column(String, nullable=False)  # BUY | SELL | NEUTRAL
+    confidence = Column(Float, nullable=True)
+    reason = Column(String, nullable=True)
+    price = Column(Float, nullable=True)
+    timeframe = Column(String, nullable=True)
+    source_candle_time = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="GENERATED")  # GENERATED | VALIDATED | REJECTED | APPROVED | PAPER_EXECUTED
+    created_at = Column(String, nullable=False)
+
+    strategy = relationship("StrategyConfigModel", back_populates="signals")
+

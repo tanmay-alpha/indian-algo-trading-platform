@@ -135,6 +135,21 @@ class SystemOrchestrator:
             default_quantity=1,
         )
 
+        # Initialize Strategy Runtime Manager
+        from backend.core.database import create_engine_safe, get_session_factory, init_db_metadata
+        self._db_engine = create_engine_safe()
+        init_db_metadata(self._db_engine)
+        self.session_factory = get_session_factory(self._db_engine)
+
+        from backend.strategy.runtime import StrategyRuntimeManager
+        self.strategy_runtime_manager = StrategyRuntimeManager(
+            session_factory=self.session_factory,
+            event_bus=self.event_bus,
+            candle_store=self.candle_store,
+            indicator_engine=self.indicator_engine,
+            backtest_engine=self.backtest_engine,
+        )
+
         self._setup_event_subscriptions()
 
     def _update_state(self, name: str, value: Any):
@@ -482,12 +497,18 @@ class SystemOrchestrator:
         # Start broker connectivity separately in background
         asyncio.create_task(self.start_gateway_background(loop))
 
+        # Start strategy runtime background loop
+        if self.strategy_runtime_manager:
+            await self.strategy_runtime_manager.start_background_loop()
+
         if settings.demo_mode:
             logger.info("DEMO MODE enabled")
 
         logger.info(f"TERMINAL: Backend operational in {self.execution_mode} mode")
 
     async def shutdown(self):
+        if self.strategy_runtime_manager:
+            await self.strategy_runtime_manager.stop_background_loop()
         if self.sampler_task and not self.sampler_task.done():
             self.sampler_task.cancel()
             try:

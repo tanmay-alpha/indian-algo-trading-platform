@@ -59,8 +59,21 @@ class SignalEvent:
     ltp: Optional[float]
     indicators: dict[str, float]
     source_tick_event_id: Optional[str]
+    mode: Optional[str] = None
+    strategy_id: Optional[int] = None
+    signal_id: Optional[int] = None
     event_id: str = field(default_factory=lambda: str(uuid4()))
     occurred_at: datetime = field(default_factory=utc_now)
+
+    @property
+    def data(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "side": self.action,
+            "mode": self.mode,
+            "strategy_id": self.strategy_id,
+            "signal_id": self.signal_id,
+        }
 
     def __post_init__(self):
         if not 0.0 <= self.strength <= 1.0:

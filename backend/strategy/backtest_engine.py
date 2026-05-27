@@ -490,6 +490,17 @@ class BacktestEngine:
 
     @staticmethod
     def _validate_strategy(strategy_name: str) -> StrategyName:
+        normalized = strategy_name.lower().strip()
+        if normalized in ("ema_cross", "ema_crossover"):
+            return StrategyName.EMA_CROSSOVER
+        if normalized in ("rsi_mean_reversion", "rsi"):
+            return StrategyName.RSI_MEAN_REVERSION
+        if normalized in ("macd_trend", "macd"):
+            return StrategyName.MACD_TREND
+        if normalized in ("vwap_pullback", "vwap"):
+            return StrategyName.VWAP_PULLBACK
+        if normalized in ("bollinger_breakout", "bollinger", "bb_breakout"):
+            return StrategyName.BOLLINGER_BREAKOUT
         try:
             return StrategyName(strategy_name)
         except ValueError as exc:
