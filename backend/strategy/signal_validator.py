@@ -18,9 +18,10 @@ class SignalValidator:
         Validates the SignalEvent. If valid, converts it to an OrderRequestEvent and publishes it.
         If invalid, publishes a safe rejection event.
         """
-        if event.action == "NEUTRAL":
-            logger.debug("Signal is NEUTRAL, no order event emitted.")
+        if event.action in {"NEUTRAL", "HOLD"}:
+            logger.debug(f"Signal is {event.action}, no order event emitted.")
             return None
+
 
         failed: list[str] = []
 

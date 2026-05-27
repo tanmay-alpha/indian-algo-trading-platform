@@ -58,6 +58,26 @@ def get_live_safety_status(request: Request):
     return sanitize_response(status_data)
 
 
+@router.get("/kill-switch/status")
+def get_kill_switch_status(request: Request):
+    """
+    Expose status of the kill switch.
+    """
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    if not orchestrator:
+        er = getattr(request.app.state, "execution_router", None)
+        if not er:
+            raise HTTPException(status_code=500, detail="System components not initialized")
+        kill_switch = getattr(er, "kill_switch", None)
+    else:
+        kill_switch = getattr(orchestrator.router, "kill_switch", None)
+
+    if not kill_switch:
+        raise HTTPException(status_code=500, detail="Kill switch not initialized")
+
+    return sanitize_response(kill_switch.status())
+
+
 @router.post("/kill-switch/activate")
 def activate_kill_switch(request: Request, body: KillSwitchActionRequest):
     """

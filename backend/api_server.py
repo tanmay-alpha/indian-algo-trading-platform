@@ -30,6 +30,7 @@ from backend.routers import account_reconciliation as account_reconciliation_rou
 from backend.routers import auth as auth_router
 from backend.routers import live_approval_sandbox as live_approval_sandbox_router
 from backend.routers import safety as safety_router
+from backend.routers import manual_order as manual_order_router
 from backend.services.watchlist_service import WatchlistService
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
@@ -102,6 +103,7 @@ app.include_router(account_reconciliation_router.router)
 app.include_router(auth_router.router)
 app.include_router(live_approval_sandbox_router.router)
 app.include_router(safety_router.router)
+app.include_router(manual_order_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()

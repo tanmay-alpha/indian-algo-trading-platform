@@ -10,6 +10,16 @@ class StrategyName(str, Enum):
     MACD_TREND = "MACD_TREND"
     VWAP_PULLBACK = "VWAP_PULLBACK"
     BOLLINGER_BREAKOUT = "BOLLINGER_BREAKOUT"
+    OPENING_RANGE_BREAKOUT = "OPENING_RANGE_BREAKOUT"
+    CPR_BREAKOUT = "CPR_BREAKOUT"
+    VWAP_MEAN_REVERSION = "VWAP_MEAN_REVERSION"
+    SUPERTREND_TREND = "SUPERTREND_TREND"
+    MOVING_AVERAGE_CROSSOVER = "MOVING_AVERAGE_CROSSOVER"
+    RSI_REVERSAL = "RSI_REVERSAL"
+    GAP_CONTINUATION = "GAP_CONTINUATION"
+    PREVIOUS_DAY_BREAKOUT = "PREVIOUS_DAY_BREAKOUT"
+    VOLUME_BREAKOUT = "VOLUME_BREAKOUT"
+    INDEX_TREND_FILTER = "INDEX_TREND_FILTER"
 
 
 class SignalAction(str, Enum):
@@ -60,6 +70,10 @@ class StrategySignal(BaseModel):
     strength: float = Field(ge=0.0, le=1.0)
     reason: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+    confidence: Optional[float] = None
+    invalidation_level: Optional[float] = None
+    suggested_stop_loss: Optional[float] = None
+    suggested_target: Optional[float] = None
 
     @field_validator("action")
     @classmethod

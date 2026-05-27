@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
 from backend.indicators.engine import IndicatorEngine
@@ -63,6 +64,16 @@ class BacktestEngine:
             StrategyName.MACD_TREND: self._signals_macd_trend,
             StrategyName.VWAP_PULLBACK: self._signals_vwap_pullback,
             StrategyName.BOLLINGER_BREAKOUT: self._signals_bollinger_breakout,
+            StrategyName.OPENING_RANGE_BREAKOUT: self._signals_opening_range_breakout,
+            StrategyName.CPR_BREAKOUT: self._signals_cpr_breakout,
+            StrategyName.VWAP_MEAN_REVERSION: self._signals_vwap_mean_reversion,
+            StrategyName.SUPERTREND_TREND: self._signals_supertrend_trend,
+            StrategyName.MOVING_AVERAGE_CROSSOVER: self._signals_moving_average_crossover,
+            StrategyName.RSI_REVERSAL: self._signals_rsi_reversal,
+            StrategyName.GAP_CONTINUATION: self._signals_gap_continuation,
+            StrategyName.PREVIOUS_DAY_BREAKOUT: self._signals_previous_day_breakout,
+            StrategyName.VOLUME_BREAKOUT: self._signals_volume_breakout,
+            StrategyName.INDEX_TREND_FILTER: self._signals_index_trend_filter,
         }
         return generators[strategy](config, normalized)
 
@@ -427,7 +438,7 @@ class BacktestEngine:
                 continue
         return normalized
 
-    def _indicator_candles(self, candles: list[dict]) -> list[dict[str, float]]:
+    def _indicator_candles(self, candles: list[dict]) -> list[dict]:
         return [
             {
                 "open": candle["open"],
@@ -435,6 +446,7 @@ class BacktestEngine:
                 "low": candle["low"],
                 "close": candle["close"],
                 "volume": candle["volume"],
+                "time": candle["timestamp"],
             }
             for candle in candles
         ]
@@ -447,7 +459,18 @@ class BacktestEngine:
         strength: float,
         reason: str,
         metadata: dict[str, Any],
+        invalidation_level: Optional[float] = None,
+        suggested_stop_loss: Optional[float] = None,
+        suggested_target: Optional[float] = None,
     ) -> StrategySignal:
+        full_metadata = dict(metadata)
+        if invalidation_level is not None:
+            full_metadata["invalidation_level"] = invalidation_level
+        if suggested_stop_loss is not None:
+            full_metadata["suggested_stop_loss"] = suggested_stop_loss
+        if suggested_target is not None:
+            full_metadata["suggested_target"] = suggested_target
+
         return StrategySignal(
             timestamp=candle["timestamp"],
             symbol=config.symbol.strip().upper(),
@@ -455,9 +478,14 @@ class BacktestEngine:
             action=action,
             price=candle["close"],
             strength=self._clamp(strength),
+            confidence=self._clamp(strength),
             reason=reason,
-            metadata={key: self._round_optional(value) for key, value in metadata.items()},
+            metadata={key: self._round_optional(value) for key, value in full_metadata.items()},
+            invalidation_level=self._round_optional(invalidation_level),
+            suggested_stop_loss=self._round_optional(suggested_stop_loss),
+            suggested_target=self._round_optional(suggested_target),
         )
+
 
     def _equity_point(self, timestamp: str, equity: float, peak_equity: float) -> EquityPoint:
         drawdown = ((peak_equity - equity) / peak_equity) * 100.0 if peak_equity > 0 else 0.0
@@ -558,4 +586,789 @@ class BacktestEngine:
             average_win=None,
             average_loss=None,
         )
+
+    @staticmethod
+    def _parse_candle_time(timestamp: Any) -> datetime:
+        from datetime import datetime, timezone, timedelta
+        if isinstance(timestamp, (int, float)):
+            ts = float(timestamp)
+            if ts > 5000000000:
+                ts /= 1000.0
+            dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+            return dt.astimezone(timezone(timedelta(hours=5, minutes=30)))
+        elif isinstance(timestamp, str):
+            if timestamp.isdigit():
+                ts = float(timestamp)
+                if ts > 5000000000:
+                    ts /= 1000.0
+                dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                return dt.astimezone(timezone(timedelta(hours=5, minutes=30)))
+            try:
+                clean_ts = timestamp.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(clean_ts)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone(timedelta(hours=5, minutes=30)))
+            except Exception:
+                return datetime.fromtimestamp(0, tz=timezone(timedelta(hours=5, minutes=30)))
+        return datetime.fromtimestamp(0, tz=timezone(timedelta(hours=5, minutes=30)))
+
+    def _signals_opening_range_breakout(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        orb_minutes = self._int_param(config, "orb_minutes", 15)
+        target_multiplier = self._float_param(config, "target_multiplier", 1.5)
+        stop_loss_multiplier = self._float_param(config, "stop_loss_multiplier", 1.0)
+
+        signals: list[StrategySignal] = []
+        candles_with_time = [(c, self._parse_candle_time(c["timestamp"])) for c in candles]
+        
+        # Group by day
+        days = {}
+        for c, dt in candles_with_time:
+            d = dt.date()
+            if d not in days:
+                days[d] = []
+            days[d].append((c, dt))
+            
+        in_position = False
+        
+        for d, day_candles in days.items():
+            if not day_candles:
+                continue
+            first_c, day_start = day_candles[0]
+            orb_end = day_start + timedelta(minutes=orb_minutes)
+            
+            # Find ORB high and low
+            orb_candles = [c for c, dt in day_candles if dt < orb_end]
+            if not orb_candles:
+                orb_candles = [first_c]
+                
+            orb_high = max(c["high"] for c in orb_candles)
+            orb_low = min(c["low"] for c in orb_candles)
+            
+            for index, (c, dt) in enumerate(day_candles):
+                close = c["close"]
+                
+                # Check if this candle is part of opening range
+                if dt < orb_end:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.0,
+                        "Within opening range duration",
+                        {"orb_high": orb_high, "orb_low": orb_low}
+                    ))
+                    continue
+                
+                prev_c, _ = day_candles[index - 1]
+                prev_close = prev_c["close"]
+                range_size = orb_high - orb_low
+                if range_size <= 0:
+                    range_size = close * 0.01
+                    
+                if not in_position and prev_close <= orb_high < close:
+                    in_position = True
+                    target = close + target_multiplier * range_size
+                    sl = close - stop_loss_multiplier * range_size
+                    signals.append(self._signal(
+                        config, c, SignalAction.BUY.value,
+                        self._strength(close - orb_high, range_size),
+                        f"Opening Range Breakout UP of {orb_high:.2f}",
+                        {"orb_high": orb_high, "orb_low": orb_low},
+                        invalidation_level=orb_high,
+                        suggested_stop_loss=sl,
+                        suggested_target=target,
+                    ))
+                elif in_position and prev_close >= orb_low > close:
+                    in_position = False
+                    target = close - target_multiplier * range_size
+                    sl = close + stop_loss_multiplier * range_size
+                    signals.append(self._signal(
+                        config, c, SignalAction.SELL.value,
+                        self._strength(orb_low - close, range_size),
+                        f"Opening Range Breakout DOWN of {orb_low:.2f}",
+                        {"orb_high": orb_high, "orb_low": orb_low},
+                        invalidation_level=orb_low,
+                        suggested_stop_loss=sl,
+                        suggested_target=target,
+                    ))
+                else:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold position / No ORB trigger",
+                        {"orb_high": orb_high, "orb_low": orb_low}
+                    ))
+        return signals
+
+    def _signals_cpr_breakout(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        target_multiplier = self._float_param(config, "target_multiplier", 1.5)
+        signals: list[StrategySignal] = []
+        candles_with_time = [(c, self._parse_candle_time(c["timestamp"])) for c in candles]
+        
+        # Group by day
+        days = {}
+        for c, dt in candles_with_time:
+            d = dt.date()
+            if d not in days:
+                days[d] = []
+            days[d].append((c, dt))
+            
+        sorted_dates = sorted(days.keys())
+        day_metrics = {}
+        
+        # Calculate daily metrics for CPR (Pivot, BC, TC)
+        for d in sorted_dates:
+            dc = days[d]
+            high = max(c["high"] for c, _ in dc)
+            low = min(c["low"] for c, _ in dc)
+            close = dc[-1][0]["close"]
+            day_metrics[d] = {"high": high, "low": low, "close": close}
+            
+        in_position = False
+        
+        for i, d in enumerate(sorted_dates):
+            day_candles = days[d]
+            if i == 0:
+                # First day: no previous day data
+                for c, _ in day_candles:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.0,
+                        "Insufficient data (No previous day for CPR calculation)",
+                        {}
+                    ))
+                continue
+                
+            prev_d = sorted_dates[i - 1]
+            prev_m = day_metrics[prev_d]
+            p = (prev_m["high"] + prev_m["low"] + prev_m["close"]) / 3.0
+            bc = (prev_m["high"] + prev_m["low"]) / 2.0
+            tc = (p - bc) + p
+            cpr_high = max(tc, bc)
+            cpr_low = min(tc, bc)
+            
+            for index, (c, dt) in enumerate(day_candles):
+                close = c["close"]
+                if index == 0:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold (First candle of day for CPR calculation)",
+                        {"cpr_high": cpr_high, "cpr_low": cpr_low, "pivot": p}
+                    ))
+                    continue
+                    
+                prev_c, _ = day_candles[index - 1]
+                prev_close = prev_c["close"]
+                range_size = cpr_high - cpr_low
+                if range_size <= 0:
+                    range_size = close * 0.01
+                    
+                if not in_position and prev_close <= cpr_high < close:
+                    in_position = True
+                    target = close + target_multiplier * range_size
+                    sl = cpr_low
+                    signals.append(self._signal(
+                        config, c, SignalAction.BUY.value,
+                        self._strength(close - cpr_high, range_size),
+                        f"CPR Breakout UP of {cpr_high:.2f}",
+                        {"cpr_high": cpr_high, "cpr_low": cpr_low, "pivot": p},
+                        invalidation_level=cpr_high,
+                        suggested_stop_loss=sl,
+                        suggested_target=target,
+                    ))
+                elif in_position and prev_close >= cpr_low > close:
+                    in_position = False
+                    target = close - target_multiplier * range_size
+                    sl = cpr_high
+                    signals.append(self._signal(
+                        config, c, SignalAction.SELL.value,
+                        self._strength(cpr_low - close, range_size),
+                        f"CPR Breakout DOWN of {cpr_low:.2f}",
+                        {"cpr_high": cpr_high, "cpr_low": cpr_low, "pivot": p},
+                        invalidation_level=cpr_low,
+                        suggested_stop_loss=sl,
+                        suggested_target=target,
+                    ))
+                else:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold position / Within CPR trend",
+                        {"cpr_high": cpr_high, "cpr_low": cpr_low, "pivot": p}
+                    ))
+        return signals
+
+    def _signals_vwap_mean_reversion(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        deviation_pct = self._float_param(config, "deviation_pct", 1.0)
+        signals: list[StrategySignal] = []
+        
+        vwap_vals = self._indicator_engine.vwap(self._indicator_candles(candles))
+        
+        in_position = False
+        for i, c in enumerate(candles):
+            close = c["close"]
+            vwap = vwap_vals[i] if i < len(vwap_vals) else math.nan
+            
+            if math.isnan(vwap):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    "Insufficient data for VWAP calculation",
+                    {}
+                ))
+                continue
+                
+            deviation = (close - vwap) / vwap * 100.0
+            
+            if not in_position and deviation <= -deviation_pct:
+                in_position = True
+                sl = close * (1.0 - deviation_pct / 100.0)
+                signals.append(self._signal(
+                    config, c, SignalAction.BUY.value,
+                    self._strength(-deviation, deviation_pct),
+                    f"VWAP oversold mean reversion: deviation {deviation:.2f}%",
+                    {"vwap": vwap, "deviation": deviation},
+                    invalidation_level=close * 0.98,
+                    suggested_stop_loss=sl,
+                    suggested_target=vwap,
+                ))
+            elif in_position and deviation >= deviation_pct:
+                in_position = False
+                sl = close * (1.0 + deviation_pct / 100.0)
+                signals.append(self._signal(
+                    config, c, SignalAction.SELL.value,
+                    self._strength(deviation, deviation_pct),
+                    f"VWAP overbought mean reversion: deviation {deviation:.2f}%",
+                    {"vwap": vwap, "deviation": deviation},
+                    invalidation_level=close * 1.02,
+                    suggested_stop_loss=sl,
+                    suggested_target=vwap,
+                ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    "Hold position / deviation normal",
+                    {"vwap": vwap, "deviation": deviation}
+                ))
+        return signals
+
+    def _signals_supertrend_trend(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        period = self._int_param(config, "period", 10)
+        multiplier = self._float_param(config, "multiplier", 3.0)
+        
+        signals: list[StrategySignal] = []
+        
+        atr_vals = self._indicator_engine.atr(self._indicator_candles(candles), period)
+        
+        upper_bands = [0.0] * len(candles)
+        lower_bands = [0.0] * len(candles)
+        supertrend = [0.0] * len(candles)
+        trend = [1] * len(candles)
+        
+        for i, c in enumerate(candles):
+            close = c["close"]
+            high = c["high"]
+            low = c["low"]
+            atr = atr_vals[i] if i < len(atr_vals) else math.nan
+            
+            if math.isnan(atr):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    "Insufficient data for ATR (Supertrend calculation)",
+                    {}
+                ))
+                continue
+                
+            hl2 = (high + low) / 2.0
+            basic_upper = hl2 + multiplier * atr
+            basic_lower = hl2 - multiplier * atr
+            
+            if i == 0 or math.isnan(atr_vals[i-1]):
+                upper_bands[i] = basic_upper
+                lower_bands[i] = basic_lower
+                supertrend[i] = basic_upper
+                trend[i] = -1 if close < supertrend[i] else 1
+            else:
+                prev_close = candles[i-1]["close"]
+                prev_upper = upper_bands[i-1]
+                prev_lower = lower_bands[i-1]
+                prev_supertrend = supertrend[i-1]
+                
+                if basic_upper < prev_upper or prev_close > prev_upper:
+                    upper_bands[i] = basic_upper
+                else:
+                    upper_bands[i] = prev_upper
+                    
+                if basic_lower > prev_lower or prev_close < prev_lower:
+                    lower_bands[i] = basic_lower
+                else:
+                    lower_bands[i] = prev_lower
+                    
+                if prev_supertrend == prev_upper:
+                    if close > upper_bands[i]:
+                        trend[i] = 1
+                        supertrend[i] = lower_bands[i]
+                    else:
+                        trend[i] = -1
+                        supertrend[i] = upper_bands[i]
+                else:
+                    if close < lower_bands[i]:
+                        trend[i] = -1
+                        supertrend[i] = upper_bands[i]
+                    else:
+                        trend[i] = 1
+                        supertrend[i] = lower_bands[i]
+            
+            if i == 0 or math.isnan(atr_vals[i-1]):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    "Hold (Supertrend initializing)",
+                    {"supertrend": supertrend[i], "trend": trend[i]}
+                ))
+                continue
+                
+            prev_trend = trend[i-1]
+            curr_trend = trend[i]
+            
+            if prev_trend == -1 and curr_trend == 1:
+                target = close + 2.0 * atr
+                sl = supertrend[i]
+                signals.append(self._signal(
+                    config, c, SignalAction.BUY.value, 0.8,
+                    f"Supertrend bullish crossover: close above {supertrend[i]:.2f}",
+                    {"supertrend": supertrend[i], "trend": curr_trend},
+                    invalidation_level=supertrend[i],
+                    suggested_stop_loss=sl,
+                    suggested_target=target,
+                ))
+            elif prev_trend == 1 and curr_trend == -1:
+                target = close - 2.0 * atr
+                sl = supertrend[i]
+                signals.append(self._signal(
+                    config, c, SignalAction.SELL.value, 0.8,
+                    f"Supertrend bearish crossover: close below {supertrend[i]:.2f}",
+                    {"supertrend": supertrend[i], "trend": curr_trend},
+                    invalidation_level=supertrend[i],
+                    suggested_stop_loss=sl,
+                    suggested_target=target,
+                ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    f"Supertrend following: trend {'bullish' if curr_trend == 1 else 'bearish'}",
+                    {"supertrend": supertrend[i], "trend": curr_trend}
+                ))
+        return signals
+
+    def _signals_moving_average_crossover(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        fast_period = self._int_param(config, "fast_period", 9)
+        slow_period = self._int_param(config, "slow_period", 21)
+        ma_type = config.params.get("ma_type", "EMA") if config.params else "EMA"
+        
+        if fast_period >= slow_period:
+            raise ValueError("fast_period must be less than slow_period")
+            
+        signals: list[StrategySignal] = []
+        closes = [c["close"] for c in candles]
+        
+        if ma_type == "SMA":
+            fast_ma = self._indicator_engine.sma(closes, fast_period)
+            slow_ma = self._indicator_engine.sma(closes, slow_period)
+        else:
+            fast_ma = self._indicator_engine.ema(closes, fast_period)
+            slow_ma = self._indicator_engine.ema(closes, slow_period)
+            
+        in_position = False
+        
+        for i, c in enumerate(candles):
+            close = c["close"]
+            f_val = fast_ma[i]
+            s_val = slow_ma[i]
+            
+            if math.isnan(f_val) or math.isnan(s_val):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    f"Insufficient data for MA Crossover ({ma_type})",
+                    {}
+                ))
+                continue
+                
+            prev_f = fast_ma[i-1]
+            prev_s = slow_ma[i-1]
+            
+            if not in_position and prev_f <= prev_s and f_val > s_val:
+                in_position = True
+                signals.append(self._signal(
+                    config, c, SignalAction.BUY.value,
+                    self._strength(f_val - s_val, s_val * 0.01),
+                    f"MA Crossover bullish: {ma_type} {fast_period} crossed above {slow_period}",
+                    {"fast_ma": f_val, "slow_ma": s_val},
+                    invalidation_level=s_val,
+                    suggested_stop_loss=s_val,
+                    suggested_target=close + 2.0 * (close - s_val),
+                ))
+            elif in_position and prev_f >= prev_s and f_val < s_val:
+                in_position = False
+                signals.append(self._signal(
+                    config, c, SignalAction.SELL.value,
+                    self._strength(s_val - f_val, s_val * 0.01),
+                    f"MA Crossover bearish: {ma_type} {fast_period} crossed below {slow_period}",
+                    {"fast_ma": f_val, "slow_ma": s_val},
+                    invalidation_level=s_val,
+                    suggested_stop_loss=s_val,
+                    suggested_target=close - 2.0 * (s_val - close),
+                ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    f"MA Crossover follow trend",
+                    {"fast_ma": f_val, "slow_ma": s_val}
+                ))
+        return signals
+
+    def _signals_rsi_reversal(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        rsi_period = self._int_param(config, "rsi_period", 14)
+        oversold = self._float_param(config, "oversold", 30.0)
+        overbought = self._float_param(config, "overbought", 70.0)
+        
+        signals: list[StrategySignal] = []
+        closes = [c["close"] for c in candles]
+        
+        rsi_vals = self._indicator_engine.rsi(closes, rsi_period)
+        in_position = False
+        
+        for i, c in enumerate(candles):
+            close = c["close"]
+            rsi = rsi_vals[i]
+            
+            if math.isnan(rsi):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    "Insufficient data for RSI calculation",
+                    {}
+                ))
+                continue
+                
+            prev_rsi = rsi_vals[i-1]
+            
+            if not in_position and prev_rsi <= oversold and rsi > oversold:
+                in_position = True
+                signals.append(self._signal(
+                    config, c, SignalAction.BUY.value,
+                    self._strength(rsi - oversold, 10.0),
+                    f"RSI oversold reversal: RSI crossed above {oversold:.1f}",
+                    {"rsi": rsi},
+                    invalidation_level=close * 0.99,
+                    suggested_stop_loss=close * 0.98,
+                    suggested_target=close * 1.04,
+                ))
+            elif in_position and prev_rsi >= overbought and rsi < overbought:
+                in_position = False
+                signals.append(self._signal(
+                    config, c, SignalAction.SELL.value,
+                    self._strength(overbought - rsi, 10.0),
+                    f"RSI overbought reversal: RSI crossed below {overbought:.1f}",
+                    {"rsi": rsi},
+                    invalidation_level=close * 1.01,
+                    suggested_stop_loss=close * 1.02,
+                    suggested_target=close * 0.96,
+                ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    f"RSI neutral ({rsi:.2f})",
+                    {"rsi": rsi}
+                ))
+        return signals
+
+    def _signals_gap_continuation(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        gap_threshold_pct = self._float_param(config, "gap_threshold_pct", 0.5)
+        signals: list[StrategySignal] = []
+        candles_with_time = [(c, self._parse_candle_time(c["timestamp"])) for c in candles]
+        
+        days = {}
+        for c, dt in candles_with_time:
+            d = dt.date()
+            if d not in days:
+                days[d] = []
+            days[d].append((c, dt))
+            
+        sorted_dates = sorted(days.keys())
+        day_metrics = {}
+        
+        for d in sorted_dates:
+            dc = days[d]
+            day_metrics[d] = {
+                "close": dc[-1][0]["close"]
+            }
+            
+        for i, d in enumerate(sorted_dates):
+            day_candles = days[d]
+            if i == 0:
+                for c, _ in day_candles:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.0,
+                        "Insufficient data (No previous day close for Gap calculation)",
+                        {}
+                    ))
+                continue
+                
+            prev_d = sorted_dates[i-1]
+            prev_close = day_metrics[prev_d]["close"]
+            
+            for index, (c, dt) in enumerate(day_candles):
+                close = c["close"]
+                open_p = c["open"]
+                
+                if index == 0:
+                    gap_pct = (open_p - prev_close) / prev_close * 100.0
+                    
+                    if gap_pct >= gap_threshold_pct:
+                        signals.append(self._signal(
+                            config, c, SignalAction.BUY.value,
+                            self._strength(gap_pct, gap_threshold_pct),
+                            f"Gap Up Continuation: gapped up by {gap_pct:.2f}%",
+                            {"gap_pct": gap_pct, "prev_close": prev_close},
+                            invalidation_level=prev_close,
+                            suggested_stop_loss=prev_close,
+                            suggested_target=open_p * (1.0 + 2.0 * gap_threshold_pct / 100.0),
+                        ))
+                    elif gap_pct <= -gap_threshold_pct:
+                        signals.append(self._signal(
+                            config, c, SignalAction.SELL.value,
+                            self._strength(-gap_pct, gap_threshold_pct),
+                            f"Gap Down Continuation: gapped down by {gap_pct:.2f}%",
+                            {"gap_pct": gap_pct, "prev_close": prev_close},
+                            invalidation_level=prev_close,
+                            suggested_stop_loss=prev_close,
+                            suggested_target=open_p * (1.0 - 2.0 * gap_threshold_pct / 100.0),
+                        ))
+                    else:
+                        signals.append(self._signal(
+                            config, c, SignalAction.HOLD.value, 0.5,
+                            f"Gap within threshold limits: {gap_pct:.2f}%",
+                            {"gap_pct": gap_pct, "prev_close": prev_close}
+                        ))
+                else:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold (Intraday candle, not gap trigger)",
+                        {"prev_close": prev_close}
+                    ))
+        return signals
+
+    def _signals_previous_day_breakout(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        breakout_pct = self._float_param(config, "breakout_pct", 0.1)
+        signals: list[StrategySignal] = []
+        candles_with_time = [(c, self._parse_candle_time(c["timestamp"])) for c in candles]
+        
+        days = {}
+        for c, dt in candles_with_time:
+            d = dt.date()
+            if d not in days:
+                days[d] = []
+            days[d].append((c, dt))
+            
+        sorted_dates = sorted(days.keys())
+        day_metrics = {}
+        
+        for d in sorted_dates:
+            dc = days[d]
+            day_metrics[d] = {
+                "high": max(c["high"] for c, _ in dc),
+                "low": min(c["low"] for c, _ in dc),
+                "close": dc[-1][0]["close"]
+            }
+            
+        in_position = False
+        
+        for i, d in enumerate(sorted_dates):
+            day_candles = days[d]
+            if i == 0:
+                for c, _ in day_candles:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.0,
+                        "Insufficient data (No previous day for breakout level)",
+                        {}
+                    ))
+                continue
+                
+            prev_d = sorted_dates[i-1]
+            prev_m = day_metrics[prev_d]
+            pdh = prev_m["high"]
+            pdl = prev_m["low"]
+            pdc = prev_m["close"]
+            
+            for index, (c, dt) in enumerate(day_candles):
+                close = c["close"]
+                if index == 0:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold (First candle of day)",
+                        {"prev_day_high": pdh, "prev_day_low": pdl}
+                    ))
+                    continue
+                    
+                prev_c, _ = day_candles[index - 1]
+                prev_close = prev_c["close"]
+                
+                trigger_high = pdh * (1.0 + breakout_pct / 100.0)
+                trigger_low = pdl * (1.0 - breakout_pct / 100.0)
+                
+                if not in_position and prev_close <= trigger_high < close:
+                    in_position = True
+                    signals.append(self._signal(
+                        config, c, SignalAction.BUY.value,
+                        self._strength(close - trigger_high, pdh - pdl),
+                        f"Previous Day High Breakout: close above {trigger_high:.2f}",
+                        {"prev_day_high": pdh, "prev_day_low": pdl},
+                        invalidation_level=pdh,
+                        suggested_stop_loss=pdc,
+                        suggested_target=close + (pdh - pdl),
+                    ))
+                elif in_position and prev_close >= trigger_low > close:
+                    in_position = False
+                    signals.append(self._signal(
+                        config, c, SignalAction.SELL.value,
+                        self._strength(trigger_low - close, pdh - pdl),
+                        f"Previous Day Low Breakout: close below {trigger_low:.2f}",
+                        {"prev_day_high": pdh, "prev_day_low": pdl},
+                        invalidation_level=pdl,
+                        suggested_stop_loss=pdc,
+                        suggested_target=close - (pdh - pdl),
+                    ))
+                else:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold / Trend following",
+                        {"prev_day_high": pdh, "prev_day_low": pdl}
+                    ))
+        return signals
+
+    def _signals_volume_breakout(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        volume_period = self._int_param(config, "volume_period", 20)
+        volume_multiplier = self._float_param(config, "volume_multiplier", 2.0)
+        lookback_period = self._int_param(config, "lookback_period", 20)
+        
+        signals: list[StrategySignal] = []
+        volumes = [c["volume"] for c in candles]
+        closes = [c["close"] for c in candles]
+        
+        in_position = False
+        
+        for i, c in enumerate(candles):
+            close = c["close"]
+            volume = c["volume"]
+            
+            if i < max(volume_period, lookback_period):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    "Insufficient data for Volume Breakout calculation",
+                    {}
+                ))
+                continue
+                
+            prev_vols = volumes[i - volume_period : i]
+            avg_vol = sum(prev_vols) / volume_period
+            
+            prev_closes = closes[i - lookback_period : i]
+            highest_close = max(prev_closes)
+            lowest_close = min(prev_closes)
+            
+            if volume > avg_vol * volume_multiplier:
+                if not in_position and close > highest_close:
+                    in_position = True
+                    target = close + 2.0 * (close - lowest_close)
+                    signals.append(self._signal(
+                        config, c, SignalAction.BUY.value,
+                        self._strength(volume, avg_vol * volume_multiplier),
+                        f"Volume Breakout Bullish: volume {volume:.0f} > {avg_vol * volume_multiplier:.0f}",
+                        {"avg_volume": avg_vol, "highest_close": highest_close},
+                        invalidation_level=highest_close,
+                        suggested_stop_loss=lowest_close,
+                        suggested_target=target,
+                    ))
+                elif in_position and close < lowest_close:
+                    in_position = False
+                    target = close - 2.0 * (highest_close - close)
+                    signals.append(self._signal(
+                        config, c, SignalAction.SELL.value,
+                        self._strength(volume, avg_vol * volume_multiplier),
+                        f"Volume Breakout Bearish: volume {volume:.0f} > {avg_vol * volume_multiplier:.0f}",
+                        {"avg_volume": avg_vol, "lowest_close": lowest_close},
+                        invalidation_level=lowest_close,
+                        suggested_stop_loss=highest_close,
+                        suggested_target=target,
+                    ))
+                else:
+                    signals.append(self._signal(
+                        config, c, SignalAction.HOLD.value, 0.5,
+                        "Hold (High volume but no price breakout)",
+                        {"avg_volume": avg_vol}
+                    ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    "Hold (Volume below breakout threshold)",
+                    {"avg_volume": avg_vol}
+                ))
+        return signals
+
+    def _signals_index_trend_filter(self, config: StrategyConfig, candles: list[dict]) -> list[StrategySignal]:
+        fast_period = self._int_param(config, "fast_period", 9)
+        slow_period = self._int_param(config, "slow_period", 21)
+        filter_period = self._int_param(config, "filter_period", 200)
+        
+        if fast_period >= slow_period:
+            raise ValueError("fast_period must be less than slow_period")
+            
+        signals: list[StrategySignal] = []
+        closes = [c["close"] for c in candles]
+        
+        fast_ma = self._indicator_engine.ema(closes, fast_period)
+        slow_ma = self._indicator_engine.ema(closes, slow_period)
+        filter_ma = self._indicator_engine.ema(closes, filter_period)
+        
+        in_position = False
+        
+        for i, c in enumerate(candles):
+            close = c["close"]
+            f_val = fast_ma[i]
+            s_val = slow_ma[i]
+            filt_val = filter_ma[i]
+            
+            if math.isnan(f_val) or math.isnan(s_val) or math.isnan(filt_val):
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.0,
+                    "Insufficient data for Index Trend Filter calculation",
+                    {}
+                ))
+                continue
+                
+            prev_f = fast_ma[i-1]
+            prev_s = slow_ma[i-1]
+            
+            if not in_position and prev_f <= prev_s and f_val > s_val and close > filt_val:
+                in_position = True
+                signals.append(self._signal(
+                    config, c, SignalAction.BUY.value,
+                    self._strength(close - filt_val, filt_val * 0.01),
+                    f"Index Trend Filter Bullish: MA crossover confirmed above EMA {filter_period}",
+                    {"fast_ma": f_val, "slow_ma": s_val, "filter_ma": filt_val},
+                    invalidation_level=filt_val,
+                    suggested_stop_loss=filt_val,
+                    suggested_target=close + 2.0 * (close - s_val),
+                ))
+            elif in_position and prev_f >= prev_s and f_val < s_val:
+                in_position = False
+                signals.append(self._signal(
+                    config, c, SignalAction.SELL.value,
+                    self._strength(s_val - f_val, s_val * 0.01),
+                    f"Index Trend Filter Bearish exit: MA crossover below",
+                    {"fast_ma": f_val, "slow_ma": s_val, "filter_ma": filt_val},
+                    invalidation_level=filt_val,
+                    suggested_stop_loss=filt_val,
+                    suggested_target=close - 2.0 * (s_val - close),
+                ))
+            else:
+                signals.append(self._signal(
+                    config, c, SignalAction.HOLD.value, 0.5,
+                    "Hold / Index Trend filter following",
+                    {"fast_ma": f_val, "slow_ma": s_val, "filter_ma": filt_val}
+                ))
+        return signals
 

@@ -10,9 +10,11 @@ class BrokerMutationRejection:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "allowed": self.allowed,
-            "action": self.action,
             "reason": self.reason,
+            "guard_name": "BrokerMutationGuard",
+            "live_execution_enabled": False,
             "blocked": self.blocked,
+            "action": self.action,
         }
 
 class BrokerMutationGuard:
@@ -21,15 +23,23 @@ class BrokerMutationGuard:
 
     def check_mutation(self, action: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
-        Check if a broker mutation (place, cancel, modify) is allowed.
-        When enabled, all mutations are blocked by default with a structured rejection.
+        Check if a broker mutation is allowed.
+        Blocks: place, cancel, modify, squareoff, live execution
         """
-        mutations = {"placeOrder", "modifyOrder", "cancelOrder", "place_order", "modify_order", "cancel_order"}
-        if self.enabled and action in mutations:
-            return BrokerMutationRejection(
-                action=action,
-                reason=f"Broker mutation '{action}' blocked by default security guard. {action} is blocked."
-            ).to_dict()
+        action_norm = str(action).lower().strip().replace("_", "")
+        blocked_actions = {
+            "place", "cancel", "modify", "squareoff", "liveexecution",
+            "placeorder", "modifyorder", "cancelorder", "square_off"
+        }
+        if self.enabled and (action_norm in blocked_actions or "live" in action_norm or "execution" in action_norm):
+            return {
+                "allowed": False,
+                "reason": f"Broker mutation '{action}' blocked by default security guard. {action} is blocked.",
+                "guard_name": "BrokerMutationGuard",
+                "live_execution_enabled": False,
+                "blocked": True,
+                "action": action
+            }
         return None
 
     def protect(self, func_name: str, func, *args, **kwargs):
@@ -37,6 +47,6 @@ class BrokerMutationGuard:
         Wrap a function call and protect it if it is a mutation.
         """
         rejection = self.check_mutation(func_name, {"args": args, "kwargs": kwargs})
-        if rejection and rejection.get("blocked"):
+        if rejection and not rejection.get("allowed"):
             raise ValueError(rejection["reason"])
         return func(*args, **kwargs)

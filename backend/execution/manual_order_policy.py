@@ -90,3 +90,23 @@ class ManualOrderPolicy:
             else:
                 reasons.append(f)
         return False, "; ".join(reasons)
+
+
+class ManualOrderLivePolicy:
+    def __init__(self):
+        self.allow_live_orders = False
+        self.max_quantity = 1
+        self.cnc_only = True
+        self.market_only = True
+        self.equity_only = True
+        self.requires_final_confirmation = True
+        self.requires_kill_switch_clear = True
+        self.requires_broker_reconciliation_ok = True
+
+    def validate(self, order_request) -> tuple[bool, str]:
+        """
+        Validates manual live order request against the default locked policy constraints.
+        """
+        if not self.allow_live_orders:
+            return False, "Live trading is locked by policy (allow_live_orders=False)"
+        return True, ""

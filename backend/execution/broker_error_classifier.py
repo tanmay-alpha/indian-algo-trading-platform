@@ -1,3 +1,4 @@
+import re
 from typing import Union
 
 class BrokerErrorClassifier:
@@ -6,7 +7,7 @@ class BrokerErrorClassifier:
         """
         Classifies exception objects or error strings into unified safety categories:
         RATE_LIMIT, AUTH_FAILED, SESSION_EXPIRED, INSUFFICIENT_FUNDS,
-        REJECTED_BY_BROKER, NETWORK_TIMEOUT, UNKNOWN.
+        BROKER_REJECTED, NETWORK_TIMEOUT, VALIDATION_ERROR, UNKNOWN.
         """
         msg = str(error).upper()
         cls_name = ""
@@ -22,6 +23,8 @@ class BrokerErrorClassifier:
             return "SESSION_EXPIRED"
         if "LIMIT" in cls_name or "RATE" in cls_name:
             return "RATE_LIMIT"
+        if "VALIDATION" in cls_name or "PYDANTIC" in cls_name:
+            return "VALIDATION_ERROR"
 
         # Message content patterns
         if any(w in msg for w in ["RATE", "LIMIT", "TOO MANY", "429", "THROTTLE", "RESOURCE_EXHAUSTED"]):
@@ -32,8 +35,10 @@ class BrokerErrorClassifier:
             return "SESSION_EXPIRED"
         if any(w in msg for w in ["MARGIN", "FUNDS", "BALANCE", "INSUFFICIENT", "LIMIT EXCEEDED", "NSF"]):
             return "INSUFFICIENT_FUNDS"
+        if any(w in msg for w in ["VALIDATION", "FORMAT", "INVALID TYPE", "PYDANTIC"]):
+            return "VALIDATION_ERROR"
         if any(w in msg for w in ["REJECT", "BLOCKED", "INVALID", "FORBIDDEN", "403"]):
-            return "REJECTED_BY_BROKER"
+            return "BROKER_REJECTED"
         if any(w in msg for w in ["TIMEOUT", "TIME OUT", "504", "GATEWAY", "CONNECTION", "UNREACHABLE", "NETWORK"]):
             return "NETWORK_TIMEOUT"
 
@@ -42,7 +47,24 @@ class BrokerErrorClassifier:
     @staticmethod
     def get_safe_message(error: Exception) -> str:
         """
-        Returns a redacted, safe message using the exception class name to prevent
-        exposing sensitive internal messages/credentials/database URLs.
+        Returns a redacted, safe message to prevent exposing sensitive internal
+        messages/credentials/database URLs.
         """
-        return f"BrokerError: {error.__class__.__name__}"
+        msg = str(error)
+        
+        # Redact database URLs (e.g. postgresql://user:pass@host/db)
+        msg = re.sub(r"[a-zA-Z0-9\+\-\.]+://[^@\s]+:[^@\s]+@[^\s]+", "[REDACTED_URL]", msg)
+        msg = re.sub(r"(postgres(?:ql)?://[^\s]+)", "[REDACTED_DB_URL]", msg)
+        
+        # Redact API keys, tokens, passwords, and secrets
+        # Match pattern key=value or key: value
+        patterns = [
+            (r"(?i)(api[-_]?key|token|password|totp|secret|admin[-_]?token|jwt)[\"'\s]*[:=][\s\"']*[^\s,;&'\"]+", r"\1=[REDACTED]"),
+            (r"(?i)(api[-_]?key|token|password|totp|secret|admin[-_]?token|jwt) is [^\s,;&'\"]+", r"\1 is [REDACTED]"),
+        ]
+        
+        redacted = msg
+        for pat, repl in patterns:
+            redacted = re.sub(pat, repl, redacted)
+            
+        return redacted

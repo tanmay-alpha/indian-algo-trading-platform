@@ -11,6 +11,7 @@ def _utc_ts() -> str:
 class KillSwitchService:
     def __init__(self, event_bus=None, default_active: bool = True):
         self._active = default_active
+        self.blocking_live_orders = default_active
         self._reason: Optional[str] = "Initial safety lock active" if default_active else None
         self._updated_at: str = _utc_ts()
         self._updated_by: Optional[str] = "SYSTEM"
@@ -35,6 +36,7 @@ class KillSwitchService:
 
     def activate(self, reason: str, source: str = "SYSTEM") -> None:
         self._active = True
+        self.blocking_live_orders = True
         self._reason = reason or "Kill switch activated"
         self._updated_at = _utc_ts()
         self._updated_by = source
@@ -62,6 +64,7 @@ class KillSwitchService:
             self._record("DEACTIVATE_REJECTED", source, "confirm=True required")
             return False
         self._active = False
+        self.blocking_live_orders = False
         self._reason = None
         self._updated_at = _utc_ts()
         self._updated_by = source
@@ -80,6 +83,7 @@ class KillSwitchService:
     def status(self) -> dict:
         return {
             "active": self._active,
+            "blocking_live_orders": self.blocking_live_orders,
             "reason": self._reason,
             "updated_at": self._updated_at,
             "updated_by": self._updated_by,

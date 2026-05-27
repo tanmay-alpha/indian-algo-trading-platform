@@ -11,6 +11,10 @@ class MarketWatch:
         self._latest_by_symbol: dict[str, dict] = {}
 
     @property
+    def latest_ticks(self) -> dict[str, dict]:
+        return self._latest_by_symbol
+
+    @property
     def symbols(self) -> list[str]:
         return list(self._symbols)
 

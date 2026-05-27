@@ -1,7 +1,7 @@
 # backend/db/models.py
 
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from backend.core.database import Base
 
 class User(Base):
@@ -183,3 +183,29 @@ class LiveApprovalIntent(Base):
     validation_summary = Column(String, nullable=False)
     rejection_reason = Column(String, nullable=True)
 
+
+class ManualOrderTicket(Base):
+    __tablename__ = "manual_order_tickets"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticket_id = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(String, nullable=False)
+    symbol = Column(String, index=True, nullable=False)
+    exchange = Column(String, nullable=False)
+    side = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    product_type = Column(String, nullable=False)
+    order_type = Column(String, nullable=False)
+    price = Column(Float, nullable=True)
+    estimated_notional = Column(Float, nullable=True)
+    price_source = Column(String, nullable=True)  # MARKET_WATCH_LTP, OVERRIDE_FOR_TEST_ONLY, UNAVAILABLE
+    status = Column(String, nullable=False)
+    validation_summary = Column(String, nullable=False)
+    rejection_reason = Column(String, nullable=True)
+
+    @validates("status")
+    def validate_status(self, key, value):
+        allowed = {"VALIDATED", "REJECTED", "DISABLED"}
+        if value not in allowed:
+            raise ValueError(f"Forbid status: {value}")
+        return value
