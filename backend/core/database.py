@@ -14,6 +14,15 @@ def redact_db_url(url: str) -> str:
     """Redact credentials from a database URL."""
     if not url:
         return ""
+    # Try with regex first for general robustness (handles special chars in pass)
+    import re
+    # Matches scheme://username:password@ and captures scheme/username/remainder
+    # It avoids greedily grabbing past the '@' of the credentials block by stopping before '/' or '@'
+    pattern = re.compile(r"^([a-zA-Z0-9+.-]+://)([^:/@]+):([^@/]+)(@.*)$")
+    match = pattern.match(url)
+    if match:
+        return f"{match.group(1)}{match.group(2)}:***{match.group(4)}"
+
     try:
         parsed = urlparse(url)
         if parsed.password:
@@ -42,10 +51,23 @@ def sanitize_db_error(message: str, raw_url: Optional[str] = None) -> str:
             if raw_url in message:
                 message = message.replace(raw_url, redacted)
             parsed = urlparse(raw_url)
-            if parsed.password and parsed.password in message:
-                message = message.replace(parsed.password, "***")
+            if parsed.password:
+                if parsed.password in message:
+                    message = message.replace(parsed.password, "***")
+                # Also check URL-encoded version of password
+                from urllib.parse import quote_plus
+                quoted = quote_plus(parsed.password)
+                if quoted in message:
+                    message = message.replace(quoted, "***")
         except Exception:
             pass
+            
+    # Also search for password/username patterns inside the error message directly!
+    import re
+    # Match any URL-like structure in the error message and redact it
+    url_pattern = re.compile(r"([a-zA-Z0-9+.-]+://)([^:/@]+):([^@/]+)@")
+    message = url_pattern.sub(r"\1\2:***@", message)
+    
     sensitive_terms = ("api_key", "password", "secret", "jwt", "refresh", "feed", "token")
     if any(term in message.lower() for term in sensitive_terms):
         return "Database connection error (credentials/sensitive info redacted)"
@@ -89,6 +111,12 @@ def create_engine_safe(url: Optional[str] = None, **kwargs):
             kwargs["connect_args"] = {"check_same_thread": False}
     else:
         # Postgres connection options
+        # Ensure a connection timeout (e.g. 5 seconds) to avoid long blocking calls
+        if "connect_args" not in kwargs:
+            kwargs["connect_args"] = {"connect_timeout": 5}
+        elif isinstance(kwargs["connect_args"], dict) and "connect_timeout" not in kwargs["connect_args"]:
+            kwargs["connect_args"]["connect_timeout"] = 5
+
         # pool_size is only valid if we are not using a custom poolclass (like NullPool in migrations)
         if "poolclass" not in kwargs:
             if "pool_size" not in kwargs and settings.database_pool_size:

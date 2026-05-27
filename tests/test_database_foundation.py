@@ -277,3 +277,78 @@ def test_sanitize_response_redacts_db_url():
     assert sanitized["nested"]["url_in_value"] == "postgresql://user:***@host/db"
     assert sanitized["nested"]["other_url"] == "https://example.com/api"
     assert sanitized["database_url_configured"] is True
+
+
+def test_sanitize_response_url_in_nested_lists():
+    from backend.core.security import sanitize_response
+    data = {
+        "list_of_urls": [
+            "postgresql://scott:tiger_password@localhost:5432/mydatabase",
+            "sqlite:///some/path/to/db.sqlite",
+            "just normal string"
+        ]
+    }
+    sanitized = sanitize_response(data)
+    assert sanitized["list_of_urls"][0] == "postgresql://scott:***@localhost:5432/mydatabase"
+    assert sanitized["list_of_urls"][1] == "sqlite:///some/path/to/db.sqlite"
+    assert sanitized["list_of_urls"][2] == "just normal string"
+
+
+def test_redact_db_url_with_special_characters():
+    from backend.core.database import redact_db_url
+    # Special character in password like : or @
+    url_special = "postgresql://user:p@s:s:w@rd@localhost:5432/dbname"
+    # Wait, our regex expects: ^([a-zA-Z0-9+.-]+://)([^:/@]+):([^@/]+)(@.*)$
+    # In user:p@s:s:w@rd@localhost, scheme is postgresql://
+    # username is user
+    # password is p@s:s:w@rd
+    # remainder is @localhost:5432/dbname
+    redacted = redact_db_url(url_special)
+    assert "p@s:s:w@rd" not in redacted
+    assert "user:***" in redacted
+
+    # Also test URL-encoded version of special characters
+    url_encoded = "postgresql://user:p%40ss%3Aw%40rd@localhost:5432/dbname"
+    redacted_enc = redact_db_url(url_encoded)
+    assert "p%40ss%3Aw%40rd" not in redacted_enc
+    assert "user:***" in redacted_enc
+
+
+def test_invalid_db_url_error_sanitization():
+    from backend.core.database import sanitize_db_error
+    raw_url = "postgresql://attacker_user:sensitive_password_123@invalid_host:5432/dbname"
+    
+    # Simulate ValueError or connection exception from SQLAlchemy/driver containing raw url/credentials
+    # Use 'auth' instead of 'password' to test URL redaction path rather than generic sensitive terms fallback
+    err_msg = f"OperationalError: (psycopg2.OperationalError) connection to server failed: FATAL: authentication failed for user 'attacker_user'\nURL was: {raw_url}"
+    sanitized = sanitize_db_error(err_msg, raw_url)
+    
+    assert "sensitive_password_123" not in sanitized
+    assert "attacker_user:***" in sanitized
+    assert "attacker_user:sensitive_password_123" not in sanitized
+
+
+def test_migration_command_failure_sanitization():
+    # We can mock the migration failure to verify it gets sanitized correctly
+    from backend.core.database import sanitize_db_error
+    raw_url = "postgresql://migrator:mig_pass_abc@host:5432/db"
+    
+    # Exception containing password inside the trace
+    try:
+        raise ValueError(f"Alembic migration failed using database url {raw_url} due to timeout")
+    except Exception as e:
+        sanitized = sanitize_db_error(str(e), raw_url)
+        
+    assert "mig_pass_abc" not in sanitized
+    assert "migrator:***" in sanitized
+
+
+def test_create_engine_postgres_nullpool_bypasses_pool_size():
+    from sqlalchemy.pool import NullPool
+    from backend.core.database import create_engine_safe
+    
+    # Verify poolclass=NullPool with postgresql url does not crash with pool_size error
+    engine = create_engine_safe("postgresql://user:pass@host:5432/db", poolclass=NullPool)
+    assert isinstance(engine.pool, NullPool)
+    # Check that pool_size is not in kwargs of engine creation / not set on engine
+    assert getattr(engine.pool, "size", None) is None

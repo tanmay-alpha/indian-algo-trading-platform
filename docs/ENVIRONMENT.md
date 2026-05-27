@@ -14,11 +14,28 @@ This document lists variable names only. Do not commit real values.
 - `ALLOWED_ORIGINS`
 - `ENVIRONMENT`
 - `PUBLIC_BACKEND_URL`
-- `DB_PATH`
+- `DB_PATH` (defaults to `data/trades.db`)
+- `DATABASE_URL` (optional PostgreSQL or SQLite url; if set to PostgreSQL, SQLite fallback is bypassed)
+- `DATABASE_ECHO` (boolean, defaults to false)
+- `DATABASE_POOL_SIZE` (optional integer for pool size; bypassed during migrations using `NullPool`)
+- `DATABASE_BACKEND` (optional backend descriptor string, inferred from `DATABASE_URL` if not set)
 - `LOG_LEVEL`
 - `LOG_DIR`
 - `HOST`
 - `PORT`
+
+## Database Configuration
+
+MAET Terminal supports dynamic runtime configuration of the database:
+1. **SQLite Local Development**: By default, if `DATABASE_URL` is not set, the app falls back to SQLite using `DB_PATH` or `sqlite:///data/trades.db`. Parents directories are dynamically created during engine initialization.
+2. **PostgreSQL Production Runtime**: When `DATABASE_URL` is set, MAET Terminal connects to a Postgres server. It automatically handles `postgres://` to `postgresql://` URI prefix conversion for compatibility with modern SQLAlchemy versions.
+3. **Database Health Checks**:
+   - Health status can be checked via `/health` or `/ready` endpoints.
+   - Connection checks use a configured `connect_timeout` of 5 seconds for Postgres to prevent long blocking hangs.
+4. **Credential Security & Redaction**:
+   - Database credentials, passwords, and raw database URLs are automatically redacted in responses and exceptions via `sanitize_response` and `sanitize_db_error` utility methods.
+   - Any url-encoded or special characters in the database passwords are successfully captured and redacted.
+   - If `NullPool` is used during migrations (e.g. within Alembic), `pool_size` is bypassed to avoid initialization failures.
 
 ## Frontend
 

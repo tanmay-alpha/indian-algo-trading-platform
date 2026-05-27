@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 120
     ws_reconnect_delay_seconds: int = 3
     live_trading_enabled: bool = False
+    live_approval_sandbox_enabled: bool = False
     demo_mode: bool = False
     admin_token: str = ""
     allowed_origins: str = "http://localhost:3000"

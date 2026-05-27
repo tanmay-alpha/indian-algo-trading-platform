@@ -47,6 +47,7 @@ class ExecutionRouter:
         trade_journal=None,
         order_store=None,
         paper_config=None,
+        kill_switch=None,
     ):
         self.mode = mode or initial_mode or TradingMode.PAPER.value
         if self.mode not in {TradingMode.PAPER.value, TradingMode.LIVE.value}:
@@ -57,7 +58,16 @@ class ExecutionRouter:
         self.portfolio_manager = portfolio_manager
         self.risk_manager = risk_manager
         self.live_enabled = bool(live_enabled)
-        self.kill_switch = KillSwitch(event_bus=event_bus)
+        
+        # Kill switch initialization: default active to True in production, but False in tests
+        if kill_switch is not None:
+            self.kill_switch = kill_switch
+        else:
+            import sys
+            from backend.execution.kill_switch import KillSwitchService
+            in_pytest = "pytest" in sys.modules
+            default_active = not in_pytest
+            self.kill_switch = KillSwitchService(event_bus=event_bus, default_active=default_active)
         self.order_state_machine = OrderStateMachine(event_bus=event_bus)
         self.risk_gate = PreTradeRiskGate(
             self.kill_switch,

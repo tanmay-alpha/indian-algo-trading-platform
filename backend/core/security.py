@@ -48,6 +48,12 @@ def sanitize_response(data):
     Boolean availability/status fields are preserved when they are explicitly
     non-secret health indicators.
     """
+    if isinstance(data, str):
+        if "://" in data:
+            from backend.core.database import redact_db_url
+            return redact_db_url(data)
+        return data
+
     if isinstance(data, dict):
         sanitized = {}
         for key, value in data.items():
@@ -59,11 +65,7 @@ def sanitize_response(data):
                 else:
                     sanitized[key] = "***REDACTED***"
             else:
-                if isinstance(value, str) and "://" in value:
-                    from backend.core.database import redact_db_url
-                    sanitized[key] = redact_db_url(value)
-                else:
-                    sanitized[key] = sanitize_response(value)
+                sanitized[key] = sanitize_response(value)
         return sanitized
 
     if isinstance(data, list):

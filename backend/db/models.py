@@ -165,3 +165,21 @@ class StrategySignalModel(Base):
     created_at = Column(String, nullable=False)
 
     strategy = relationship("StrategyConfigModel", back_populates="signals")
+
+
+class LiveApprovalIntent(Base):
+    __tablename__ = "live_approval_intents"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    intent_id = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(String, nullable=False)
+    symbol = Column(String, index=True, nullable=False)
+    side = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    product_type = Column(String, nullable=False)
+    order_type = Column(String, nullable=False)
+    source_signal_id = Column(String, nullable=True)
+    status = Column(String, nullable=False)
+    validation_summary = Column(String, nullable=False)
+    rejection_reason = Column(String, nullable=True)
+

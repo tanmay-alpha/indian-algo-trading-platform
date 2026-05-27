@@ -28,6 +28,8 @@ from backend.routers import broker_account as broker_account_router
 from backend.routers import trade_reconciliation as trade_reconciliation_router
 from backend.routers import account_reconciliation as account_reconciliation_router
 from backend.routers import auth as auth_router
+from backend.routers import live_approval_sandbox as live_approval_sandbox_router
+from backend.routers import safety as safety_router
 from backend.services.watchlist_service import WatchlistService
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
@@ -98,6 +100,8 @@ app.include_router(broker_account_router.router)
 app.include_router(trade_reconciliation_router.router)
 app.include_router(account_reconciliation_router.router)
 app.include_router(auth_router.router)
+app.include_router(live_approval_sandbox_router.router)
+app.include_router(safety_router.router)
 
 # --- Components ---
 broadcaster = WebSocketBroadcaster()
