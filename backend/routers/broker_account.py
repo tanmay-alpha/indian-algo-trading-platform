@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Request
 from backend.core.security import require_admin_token, sanitize_response
 from backend.services.broker_account_sync import BrokerAccountSyncService
 from backend.services.broker_trade_reconciliation import BrokerTradeReconciliationService
+from backend.services.broker_account_snapshot_service import BrokerAccountSnapshotService
 import dataclasses
 from typing import Optional
 
@@ -65,8 +66,10 @@ def get_broker_account_status(request: Request):
 @router.get("/snapshot", dependencies=[Depends(require_admin_token)])
 def get_broker_account_snapshot(request: Request):
     """Return combined read-only snapshot of all account sections."""
-    svc = _get_sync_service(request)
-    return sanitize_response(svc.get_account_snapshot())
+    sm = getattr(request.app.state, "session_manager", None)
+    snapshot_svc = BrokerAccountSnapshotService(session_manager=sm)
+    snapshot = snapshot_svc.get_snapshot()
+    return sanitize_response(snapshot.model_dump())
 
 
 @router.get("/holdings", dependencies=[Depends(require_admin_token)])
@@ -112,9 +115,10 @@ def sync_broker_account_readonly(request: Request):
     SAFE: Only reads from broker. No order placement, cancel, or modify.
     Returns combined snapshot.
     """
-    svc = _get_sync_service(request)
-    result = svc.sync_all_read_only()
-    return sanitize_response(result)
+    sm = getattr(request.app.state, "session_manager", None)
+    snapshot_svc = BrokerAccountSnapshotService(session_manager=sm)
+    snapshot = snapshot_svc.get_snapshot()
+    return sanitize_response(snapshot.model_dump())
 
 
 _last_reconciliation_report: Optional[dict] = None
