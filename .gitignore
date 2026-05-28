@@ -44,3 +44,35 @@ maet-frontend-dev.*.log
 # Pyflakes / mypy caches
 .mypy_cache/
 .ruff_cache/
+
+# Temporary AI session extraction/debug scripts (not part of the project)
+get_full_prompt.py
+read_all_steps.py
+read_full_log.py
+read_log.py
+read_raw_log.py
+read_user_inputs.py
+scan_all_overviews.py
+search_all_gemini.py
+search_pb.py
+search_steps.py
+extract_pb_utf8.py
+extract_prompt_from_step.py
+extract_prompts.py
+extract_req.py
+clean_prompt.py
+
+# Extracted prompt/log text artifacts (session forensics)
+clean_prompt.txt
+cleaned_full_request.txt
+extracted_*.txt
+full_prompt*.txt
+full_user_prompt.txt
+phase_26_search_results.txt
+scratched_prompt_*.txt
+step_*.txt
+temp_chunk.txt
+temp_prompt.json
+untruncated_prompts.txt
+user_input_*.txt
+user_request*.txt
