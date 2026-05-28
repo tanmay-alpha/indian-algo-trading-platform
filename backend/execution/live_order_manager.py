@@ -42,24 +42,12 @@ class LiveOrderManager:
         )
 
     async def place_order(self, order_request: OrderRequestEvent, ltp: Optional[float] = None) -> OrderStateEvent:
-        # 1. Phase 26A: Structured pre-flight gate check
-        preflight = self.preflight_gate.evaluate(
-            trading_mode=self.trading_mode,
-            live_enabled=self.live_enabled,
-            symbol=order_request.symbol,
-        )
-        if not preflight.passed:
-            if self.event_bus:
-                await self.event_bus.publish(
-                    LogEvent(
-                        level="WARNING",
-                        component="LIVE_SAFETY",
-                        message=f"Live order pre-flight failed: {preflight.reason}"
-                    )
-                )
-            return self._rejected_event(order_request, f"preflight_failed:{preflight.reason}")
+        # Phase 26-Safety-Rollback: build-level lock — check build constant before anything else
+        from backend.core.config import settings
+        if not getattr(settings, "live_execution_build_enabled", False):
+            return self._rejected_event(order_request, "live_execution_build_disabled: Live execution is not enabled in this build")
 
-        # 2. General Safety Rejection checks
+        # 1. General Safety Rejection checks
         rejection = self._safety_rejection(order_request)
         if rejection:
             return self._rejected_event(order_request, rejection)

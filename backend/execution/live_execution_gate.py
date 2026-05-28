@@ -80,6 +80,13 @@ class LiveExecutionGate:
         failed: list[str] = []
         details: dict = {}
 
+        # --- Build-level execution lock ---
+        from backend.core.config import settings
+        build_enabled = getattr(settings, "live_execution_build_enabled", False)
+        if not build_enabled:
+            failed.append("live_execution_build_disabled")
+        details["live_execution_build_enabled"] = build_enabled
+
         # --- 1. live_enabled flag ---
         if not live_enabled:
             failed.append("live_trading_disabled")

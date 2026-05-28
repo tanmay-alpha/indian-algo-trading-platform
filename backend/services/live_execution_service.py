@@ -1,27 +1,31 @@
 """backend/services/live_execution_service.py
 
-Phase 26B — Live Execution Service
-====================================
-Orchestrates the full live execution lifecycle:
-- Live mode enable/disable toggle (with safety interlocks)
-- OrderPoller lifecycle management (start/stop with mode transitions)
-- Live status aggregation for API exposure
-
-Safety guarantees:
-- Never places, cancels, or modifies any orders directly.
-- Live enable requires explicit confirmation flag.
-- Kill switch must be inactive before enabling live.
-- OrderPoller is auto-stopped when mode returns to PAPER.
+Phase 26-Safety-Rollback — Live Execution Service (LOCKED DOWN)
+================================================================
+All execution-enabling methods check `settings.live_execution_build_enabled`.
+If False (default), they block execution proactively.
+Only read-only / deactivation paths (disable_live) are always available.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+_POLICY_RESPONSE = {
+    "success": False,
+    "enabled": False,
+    "live_execution_enabled": False,
+    "status": "DISABLED_BY_POLICY",
+    "reason": (
+        "Live execution is not enabled in this build. "
+        "Pending advisory-only Phase 24C / 26A / 26B sprint audit. "
+        "See phase-26-safety-rollback."
+    ),
+}
 
 
 def _utc_now() -> str:
@@ -31,11 +35,7 @@ def _utc_now() -> str:
 class LiveExecutionService:
     """
     Centralised service managing the live execution lifecycle.
-
-    Responsibilities:
-    1. Toggle live mode with safety interlocks (kill switch, session, open orders)
-    2. Start/stop OrderPoller when mode transitions to/from LIVE
-    3. Surface aggregated live status for the API router
+    Locked down by default under `live_execution_build_enabled=False`.
     """
 
     def __init__(
@@ -57,21 +57,21 @@ class LiveExecutionService:
         self._mode_history: list[dict] = []
         self._poller_running: bool = False
 
-    # ------------------------------------------------------------------
-    # Mode toggling
-    # ------------------------------------------------------------------
-
     async def enable_live(self, confirm: bool = False, source: str = "ADMIN") -> dict:
         """
-        Enable live trading mode with full safety interlock validation.
-
-        Requires:
-        - confirm=True (explicit double-confirmation)
-        - Kill switch must be inactive
-        - A valid broker session
-        - No pending/open orders in the state machine
-        - No existing open positions
+        Enable live trading mode.
+        If live_execution_build_enabled is False, this is blocked by policy.
         """
+        from backend.core.config import settings
+        if not getattr(settings, "live_execution_build_enabled", False):
+            logger.warning(
+                "LiveExecutionService.enable_live() called by source=%s — BLOCKED BY POLICY "
+                "(live_execution_build_enabled=False)",
+                source,
+            )
+            self._record_mode("LIVE_ENABLE_BLOCKED_BY_POLICY", source, ["live_execution_build_disabled"])
+            return {**_POLICY_RESPONSE, "mode": self._current_mode(), "success": False}
+
         if not confirm:
             return {
                 "success": False,
@@ -116,8 +116,8 @@ class LiveExecutionService:
 
     async def disable_live(self, source: str = "ADMIN") -> dict:
         """
-        Disable live trading (switch to PAPER) and stop the OrderPoller.
-        Always succeeds — there is no reason to block switching to PAPER.
+        Disable live trading and switch to PAPER mode.
+        Always safe to execute.
         """
         if self.execution_router:
             await self.execution_router.switch_to_paper()
@@ -126,10 +126,6 @@ class LiveExecutionService:
         self._record_mode("LIVE_DISABLED", source, [])
         logger.info("LiveExecutionService: mode switched to PAPER by source=%s", source)
         return {"success": True, "mode": "PAPER", "poller_running": self._poller_running}
-
-    # ------------------------------------------------------------------
-    # OrderPoller lifecycle
-    # ------------------------------------------------------------------
 
     async def _start_poller(self) -> None:
         if not self.order_poller:
@@ -153,12 +149,8 @@ class LiveExecutionService:
         except Exception as exc:
             logger.error("LiveExecutionService: Failed to stop OrderPoller: %s", exc.__class__.__name__)
 
-    # ------------------------------------------------------------------
-    # Status aggregation
-    # ------------------------------------------------------------------
-
     def get_status(self) -> dict:
-        """Return full live execution status for API exposure."""
+        from backend.core.config import settings
         router = self.execution_router
         ks = self.kill_switch
 
@@ -176,6 +168,7 @@ class LiveExecutionService:
             "poller_running": self._poller_running,
             "kill_switch": ks.status() if ks else {"active": True, "reason": "unavailable"},
             "mode_history": self._mode_history[-10:],
+            "live_execution_build_enabled": getattr(settings, "live_execution_build_enabled", False),
         }
 
         # Order counts from state machine
@@ -187,15 +180,10 @@ class LiveExecutionService:
             except Exception:
                 pass
 
-        # Safety monitor status
         if self.live_safety_monitor:
             status["safety_monitor"] = self.live_safety_monitor.status()
 
         return status
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
 
     def _current_mode(self) -> str:
         if self.execution_router:

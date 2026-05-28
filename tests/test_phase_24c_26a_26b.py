@@ -25,6 +25,16 @@ def auth_headers():
     return {"X-Admin-Token": settings.admin_token or "dummy"}
 
 
+@pytest.fixture(autouse=True, scope="module")
+def enable_live_execution_build():
+    from backend.core.config import settings
+    original = getattr(settings, "live_execution_build_enabled", False)
+    settings.live_execution_build_enabled = True
+    yield
+    settings.live_execution_build_enabled = original
+
+
+
 @pytest.fixture
 def mock_kill_switch():
     ks = MagicMock()
@@ -555,7 +565,7 @@ class TestLiveOrderManagerPreflight:
         )
         result = await lom.place_order(req)
         assert result.status == OrderStatus.REJECTED.value
-        assert "preflight_failed" in (result.reject_reason or "")
+        assert "live_trading_disabled" in (result.reject_reason or "")
 
     @pytest.mark.asyncio
     async def test_preflight_passes_with_all_conditions_met(self):

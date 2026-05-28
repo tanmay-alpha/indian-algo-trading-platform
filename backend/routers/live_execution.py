@@ -1,12 +1,12 @@
 """backend/routers/live_execution.py
 
-Phase 26B — Live Execution API Router
-======================================
+Phase 26-Safety-Rollback — Live Execution API Router (LOCKED DOWN)
+===============================================================
 Exposes endpoints to:
 - GET  /execution/live/status        — Full live execution status
-- POST /execution/live/enable        — Enable live trading (with confirm flag)
+- POST /execution/live/enable        — Enable live trading (guarded by build lock)
 - POST /execution/live/disable       — Disable live trading (always safe)
-- POST /execution/live/poller/poll   — Trigger a single manual poll cycle (admin)
+- POST /execution/live/poller/poll   — Trigger manual poll (guarded by build lock)
 """
 
 import logging
@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from backend.core.security import require_admin_token, sanitize_response
-from backend.services.live_execution_service import LiveExecutionService
+from backend.services.live_execution_service import LiveExecutionService, _POLICY_RESPONSE
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,6 @@ def _get_service(request: Request) -> LiveExecutionService:
     if svc is not None:
         return svc
 
-    # Build on-demand from available components (graceful degradation)
     orchestrator = getattr(request.app.state, "orchestrator", None)
     execution_router = getattr(request.app.state, "execution_router", None)
 
@@ -72,7 +71,7 @@ def _get_service(request: Request) -> LiveExecutionService:
 
 @router.get("/status")
 def get_live_status(request: Request):
-    """Return full live execution status including mode, poller, safety monitor, and order counts."""
+    """Return current live execution state. Read-only."""
     svc = _get_service(request)
     return sanitize_response(svc.get_status())
 
@@ -80,14 +79,16 @@ def get_live_status(request: Request):
 @router.post("/enable")
 async def enable_live(request: Request, body: LiveModeRequest):
     """
-    Enable live trading mode.
-
-    Requires confirm=True and all safety interlocks to pass:
-    - Kill switch must be inactive
-    - Broker session must be valid
-    - No pending/open orders
-    - No open positions
+    Enable live trading mode. Guarded by build-level lock.
     """
+    from backend.core.config import settings
+    if not getattr(settings, "live_execution_build_enabled", False):
+        logger.warning(
+            "POST /execution/live/enable called by source=%s — BLOCKED BY POLICY (live_execution_build_enabled=False)",
+            body.source or "UNKNOWN",
+        )
+        raise HTTPException(status_code=403, detail=_POLICY_RESPONSE["reason"])
+
     svc = _get_service(request)
     result = await svc.enable_live(confirm=body.confirm, source=body.source or "ADMIN")
     if not result["success"]:
@@ -99,7 +100,7 @@ async def enable_live(request: Request, body: LiveModeRequest):
 async def disable_live(request: Request, body: LiveModeRequest):
     """
     Disable live trading and switch to PAPER mode.
-    Also stops the OrderPoller. Always safe — cannot be blocked.
+    Always safe.
     """
     svc = _get_service(request)
     result = await svc.disable_live(source=body.source or "ADMIN")
@@ -109,9 +110,13 @@ async def disable_live(request: Request, body: LiveModeRequest):
 @router.post("/poller/poll")
 async def manual_poll(request: Request):
     """
-    Trigger a single manual order book poll cycle.
-    Useful for immediate status refresh without waiting for the next scheduled poll.
+    Trigger manual poll. Guarded by build-level lock.
     """
+    from backend.core.config import settings
+    if not getattr(settings, "live_execution_build_enabled", False):
+        logger.warning("POST /execution/live/poller/poll called — BLOCKED BY POLICY (live_execution_build_enabled=False)")
+        raise HTTPException(status_code=503, detail="OrderPoller is not permitted to run in this build.")
+
     orchestrator = getattr(request.app.state, "orchestrator", None)
     order_poller = getattr(orchestrator, "order_poller", None) if orchestrator else None
 

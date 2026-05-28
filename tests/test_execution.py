@@ -24,6 +24,16 @@ from backend.execution.pre_trade_risk_gate import PreTradeRiskGate
 _TEST_CFG = PaperExecutionConfig(allow_after_hours=True)
 
 
+@pytest.fixture(autouse=True, scope="module")
+def enable_live_execution_build():
+    from backend.core.config import settings
+    original = getattr(settings, "live_execution_build_enabled", False)
+    settings.live_execution_build_enabled = True
+    yield
+    settings.live_execution_build_enabled = original
+
+
+
 def fresh_market(**overrides):
     data = {
         "symbol": "SBIN",
