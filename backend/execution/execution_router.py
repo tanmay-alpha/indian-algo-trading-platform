@@ -5,7 +5,6 @@ from loguru import logger
 from backend.core.config import settings
 from backend.core.events import LogEvent, OrderRequestEvent, OrderStateEvent, EventType
 from backend.core.types import OrderStatus, TradingMode
-from backend.execution.kill_switch import KillSwitch
 from backend.execution.live_order_manager import LiveOrderManager
 from backend.execution.models import OrderIntent, RiskDecision, order_intent_to_request_event
 from backend.execution.order_state_machine import OrderStateMachine

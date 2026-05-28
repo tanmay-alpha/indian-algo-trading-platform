@@ -17,14 +17,14 @@ def detect_patterns(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
         try:
             o = float(candle.get("open", 0))
             h = float(candle.get("high", 0))
-            l = float(candle.get("low", 0))
+            low = float(candle.get("low", 0))
             c = float(candle.get("close", 0))
             t = candle.get("time")
         except (ValueError, TypeError):
             continue
 
         body = abs(c - o)
-        rng = h - l
+        rng = h - low
         if rng <= 0:
             continue
 
@@ -41,7 +41,7 @@ def detect_patterns(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
 
         # 2. Hammer
-        lower_shadow = min(o, c) - l
+        lower_shadow = min(o, c) - low
         upper_shadow = h - max(o, c)
         if body <= rng * 0.3 and lower_shadow >= 2 * body and upper_shadow <= 0.25 * body:
             markers.append({
@@ -71,8 +71,6 @@ def detect_patterns(candles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             prev_candle = candles[i - 1]
             try:
                 o_prev = float(prev_candle.get("open", 0))
-                h_prev = float(prev_candle.get("high", 0))
-                l_prev = float(prev_candle.get("low", 0))
                 c_prev = float(prev_candle.get("close", 0))
             except (ValueError, TypeError):
                 continue

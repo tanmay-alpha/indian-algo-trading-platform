@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 from backend.core.live_build_policy import is_live_execution_build_enabled
 
 logger = logging.getLogger(__name__)
@@ -150,7 +149,6 @@ class LiveExecutionService:
             logger.error("LiveExecutionService: Failed to stop OrderPoller: %s", exc.__class__.__name__)
 
     def get_status(self) -> dict:
-        from backend.core.config import settings
         router = self.execution_router
         ks = self.kill_switch
 

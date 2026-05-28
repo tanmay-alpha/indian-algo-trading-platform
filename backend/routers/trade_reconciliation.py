@@ -8,7 +8,7 @@ Provides read-only, admin-protected endpoints for trade book reconciliation.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 import dataclasses
 
 from fastapi import APIRouter, Depends, HTTPException, Request

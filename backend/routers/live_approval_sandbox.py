@@ -10,7 +10,7 @@ SAFETY INVARIANTS:
   - This router NEVER triggers order routing, broker API calls, or OMS mutations.
 """
 
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 

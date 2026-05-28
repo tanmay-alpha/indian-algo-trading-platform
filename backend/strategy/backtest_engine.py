@@ -589,7 +589,7 @@ class BacktestEngine:
 
     @staticmethod
     def _parse_candle_time(timestamp: Any) -> datetime:
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta
         if isinstance(timestamp, (int, float)):
             ts = float(timestamp)
             if ts > 5000000000:
@@ -1015,7 +1015,7 @@ class BacktestEngine:
             else:
                 signals.append(self._signal(
                     config, c, SignalAction.HOLD.value, 0.5,
-                    f"MA Crossover follow trend",
+                    "MA Crossover follow trend",
                     {"fast_ma": f_val, "slow_ma": s_val}
                 ))
         return signals
@@ -1358,7 +1358,7 @@ class BacktestEngine:
                 signals.append(self._signal(
                     config, c, SignalAction.SELL.value,
                     self._strength(s_val - f_val, s_val * 0.01),
-                    f"Index Trend Filter Bearish exit: MA crossover below",
+                    "Index Trend Filter Bearish exit: MA crossover below",
                     {"fast_ma": f_val, "slow_ma": s_val, "filter_ma": filt_val},
                     invalidation_level=filt_val,
                     suggested_stop_loss=filt_val,

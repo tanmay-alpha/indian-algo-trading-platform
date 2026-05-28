@@ -1,12 +1,10 @@
 # backend/routers/auth.py
 
 import logging
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from backend.core.security import (
-    hash_password,
     verify_password,
     create_access_token,
     get_current_user,

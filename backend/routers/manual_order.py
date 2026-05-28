@@ -9,7 +9,7 @@ SAFETY CONTRACT:
   - This router NEVER triggers live order routing, broker API calls, or portfolio changes.
 """
 
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 

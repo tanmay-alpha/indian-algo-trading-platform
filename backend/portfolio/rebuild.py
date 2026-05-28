@@ -79,8 +79,6 @@ def rebuild_portfolio_from_fills(
     PortfolioRebuildSummary
         Counts and any warnings about skipped rows.
     """
-    from backend.core.events import OrderStateEvent
-    from backend.core.types import OrderStatus
 
     summary = PortfolioRebuildSummary()
 

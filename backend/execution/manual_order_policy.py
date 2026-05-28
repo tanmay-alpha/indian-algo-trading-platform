@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import List
 from backend.core.events import OrderRequestEvent
 
 class ManualOrderPolicy:

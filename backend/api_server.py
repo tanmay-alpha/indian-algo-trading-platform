@@ -12,7 +12,6 @@ from pathlib import Path
 from backend.candles.candle_store import CandleStore
 from backend.core.config import settings
 from backend.core.event_bus import EventBus
-from backend.core.events import EventType, TickEvent, event_to_dict
 from backend.core.rate_limit import limiter, register_rate_limiter
 from backend.core.security import require_admin_token, sanitize_response
 from backend.routers import candles as candles_router

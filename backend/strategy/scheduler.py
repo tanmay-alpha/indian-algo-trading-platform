@@ -6,7 +6,6 @@ import json
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
-from backend.db.models import StrategyConfigModel
 from backend.db.repositories.strategy_repository import StrategyRepository
 
 logger = logging.getLogger(__name__)

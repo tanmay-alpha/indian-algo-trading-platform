@@ -229,7 +229,7 @@ def oms_reconciliation_status(request: Request):
             "queried_at": _utc_now(),
         })
 
-    from dataclasses import asdict, fields
+    from dataclasses import asdict
     import dataclasses
     try:
         report_dict = asdict(last_report) if dataclasses.is_dataclass(last_report) else dict(last_report)
