@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Optional
+from backend.core.live_build_policy import is_live_execution_build_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,7 @@ class LiveExecutionService:
         Enable live trading mode.
         If live_execution_build_enabled is False, this is blocked by policy.
         """
-        from backend.core.config import settings
-        if not getattr(settings, "live_execution_build_enabled", False):
+        if not is_live_execution_build_enabled():
             logger.warning(
                 "LiveExecutionService.enable_live() called by source=%s — BLOCKED BY POLICY "
                 "(live_execution_build_enabled=False)",
@@ -168,7 +168,7 @@ class LiveExecutionService:
             "poller_running": self._poller_running,
             "kill_switch": ks.status() if ks else {"active": True, "reason": "unavailable"},
             "mode_history": self._mode_history[-10:],
-            "live_execution_build_enabled": getattr(settings, "live_execution_build_enabled", False),
+            "live_execution_build_enabled": is_live_execution_build_enabled(),
         }
 
         # Order counts from state machine

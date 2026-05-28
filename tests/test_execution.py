@@ -27,9 +27,13 @@ _TEST_CFG = PaperExecutionConfig(allow_after_hours=True)
 @pytest.fixture(autouse=True, scope="module")
 def enable_live_execution_build():
     from backend.core.config import settings
+    from unittest.mock import patch
     original = getattr(settings, "live_execution_build_enabled", False)
     settings.live_execution_build_enabled = True
-    yield
+    with patch("backend.core.live_build_policy.is_live_execution_build_enabled", return_value=True), \
+         patch("backend.services.live_execution_service.is_live_execution_build_enabled", return_value=True), \
+         patch("backend.routers.live_execution.is_live_execution_build_enabled", return_value=True):
+        yield
     settings.live_execution_build_enabled = original
 
 

@@ -43,8 +43,8 @@ class LiveOrderManager:
 
     async def place_order(self, order_request: OrderRequestEvent, ltp: Optional[float] = None) -> OrderStateEvent:
         # Phase 26-Safety-Rollback: build-level lock — check build constant before anything else
-        from backend.core.config import settings
-        if not getattr(settings, "live_execution_build_enabled", False):
+        from backend.core.live_build_policy import is_live_execution_build_enabled
+        if not is_live_execution_build_enabled():
             return self._rejected_event(order_request, "live_execution_build_disabled: Live execution is not enabled in this build")
 
         # 1. General Safety Rejection checks

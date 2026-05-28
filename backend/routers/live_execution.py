@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from backend.core.security import require_admin_token, sanitize_response
 from backend.services.live_execution_service import LiveExecutionService, _POLICY_RESPONSE
+from backend.core.live_build_policy import is_live_execution_build_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +82,7 @@ async def enable_live(request: Request, body: LiveModeRequest):
     """
     Enable live trading mode. Guarded by build-level lock.
     """
-    from backend.core.config import settings
-    if not getattr(settings, "live_execution_build_enabled", False):
+    if not is_live_execution_build_enabled():
         logger.warning(
             "POST /execution/live/enable called by source=%s — BLOCKED BY POLICY (live_execution_build_enabled=False)",
             body.source or "UNKNOWN",
@@ -112,8 +112,7 @@ async def manual_poll(request: Request):
     """
     Trigger manual poll. Guarded by build-level lock.
     """
-    from backend.core.config import settings
-    if not getattr(settings, "live_execution_build_enabled", False):
+    if not is_live_execution_build_enabled():
         logger.warning("POST /execution/live/poller/poll called — BLOCKED BY POLICY (live_execution_build_enabled=False)")
         raise HTTPException(status_code=503, detail="OrderPoller is not permitted to run in this build.")
 
