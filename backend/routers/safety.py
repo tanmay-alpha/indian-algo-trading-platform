@@ -8,6 +8,15 @@ from backend.core.security import require_admin_token, sanitize_response
 
 logger = logging.getLogger(__name__)
 
+
+def _get_kill_switch(request: Request):
+    """Resolve kill switch from orchestrator or execution_router."""
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    if orchestrator:
+        return getattr(getattr(orchestrator, "router", None), "kill_switch", None)
+    er = getattr(request.app.state, "execution_router", None)
+    return getattr(er, "kill_switch", None) if er else None
+
 router = APIRouter(
     prefix="/safety",
     tags=["safety"],
@@ -58,23 +67,48 @@ def get_live_safety_status(request: Request):
     return sanitize_response(status_data)
 
 
+# --- Phase 24C: Live Safety Monitor ---
+
+@router.get("/monitor/status")
+def get_monitor_status(request: Request):
+    """
+    Phase 24C: Return LiveSafetyMonitor status.
+    Shows recent check results, consecutive anomalies, auto-activation count.
+    """
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    monitor = getattr(orchestrator, "live_safety_monitor", None) if orchestrator else None
+    monitor = monitor or getattr(request.app.state, "live_safety_monitor", None)
+    if not monitor:
+        return sanitize_response({
+            "running": False,
+            "detail": "LiveSafetyMonitor not configured on this instance"
+        })
+    return sanitize_response(monitor.status())
+
+
+@router.post("/monitor/run-checks")
+async def run_monitor_checks(request: Request):
+    """
+    Phase 24C: Trigger a single manual run of the safety monitor checks.
+    Returns the full check result without waiting for the scheduled poll.
+    """
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    monitor = getattr(orchestrator, "live_safety_monitor", None) if orchestrator else None
+    monitor = monitor or getattr(request.app.state, "live_safety_monitor", None)
+    if not monitor:
+        raise HTTPException(status_code=503, detail="LiveSafetyMonitor not configured")
+    result = await monitor.run_checks()
+    return sanitize_response(result)
+
+
 @router.get("/kill-switch/status")
 def get_kill_switch_status(request: Request):
     """
     Expose status of the kill switch.
     """
-    orchestrator = getattr(request.app.state, "orchestrator", None)
-    if not orchestrator:
-        er = getattr(request.app.state, "execution_router", None)
-        if not er:
-            raise HTTPException(status_code=500, detail="System components not initialized")
-        kill_switch = getattr(er, "kill_switch", None)
-    else:
-        kill_switch = getattr(orchestrator.router, "kill_switch", None)
-
+    kill_switch = _get_kill_switch(request)
     if not kill_switch:
         raise HTTPException(status_code=500, detail="Kill switch not initialized")
-
     return sanitize_response(kill_switch.status())
 
 
@@ -83,22 +117,13 @@ def activate_kill_switch(request: Request, body: KillSwitchActionRequest):
     """
     Activate the kill switch to block live trading.
     """
-    orchestrator = getattr(request.app.state, "orchestrator", None)
-    if not orchestrator:
-        er = getattr(request.app.state, "execution_router", None)
-        if not er:
-            raise HTTPException(status_code=500, detail="System components not initialized")
-        kill_switch = getattr(er, "kill_switch", None)
-    else:
-        kill_switch = getattr(orchestrator.router, "kill_switch", None)
-
+    kill_switch = _get_kill_switch(request)
     if not kill_switch:
         raise HTTPException(status_code=500, detail="Kill switch not initialized")
 
     reason = body.reason or "Manual admin activation"
     source = body.updated_by or "ADMIN"
     kill_switch.activate(reason=reason, source=source)
-    
     return sanitize_response({
         "status": "success",
         "message": "Kill switch activated successfully",
@@ -111,15 +136,7 @@ def deactivate_kill_switch(request: Request, body: KillSwitchActionRequest):
     """
     Deactivate the kill switch.
     """
-    orchestrator = getattr(request.app.state, "orchestrator", None)
-    if not orchestrator:
-        er = getattr(request.app.state, "execution_router", None)
-        if not er:
-            raise HTTPException(status_code=500, detail="System components not initialized")
-        kill_switch = getattr(er, "kill_switch", None)
-    else:
-        kill_switch = getattr(orchestrator.router, "kill_switch", None)
-
+    kill_switch = _get_kill_switch(request)
     if not kill_switch:
         raise HTTPException(status_code=500, detail="Kill switch not initialized")
 
@@ -127,7 +144,6 @@ def deactivate_kill_switch(request: Request, body: KillSwitchActionRequest):
     success = kill_switch.deactivate(confirm=True, source=source)
     if not success:
         raise HTTPException(status_code=400, detail="Failed to deactivate kill switch")
-        
     return sanitize_response({
         "status": "success",
         "message": "Kill switch deactivated successfully",

@@ -29,13 +29,37 @@ class LiveOrderManager:
         from backend.execution.broker_mutation_guard import BrokerMutationGuard
         from backend.execution.broker_rate_limiter import BrokerRateLimiter
         from backend.execution.manual_order_policy import ManualOrderPolicy
+        from backend.execution.live_execution_gate import LiveExecutionGate
 
         self.mutation_guard = BrokerMutationGuard(enabled=True)
         self.rate_limiter = BrokerRateLimiter(max_requests=3, window_seconds=1.0)
         self.manual_policy = ManualOrderPolicy(max_quantity=1, max_notional=10000.0)
+        self.preflight_gate = LiveExecutionGate(
+            kill_switch=None,  # Set from ExecutionRouter after construction
+            session_manager=session_manager,
+            market_watch=None,
+            settings=None,
+        )
 
     async def place_order(self, order_request: OrderRequestEvent, ltp: Optional[float] = None) -> OrderStateEvent:
-        # 1. General Safety Rejection checks
+        # 1. Phase 26A: Structured pre-flight gate check
+        preflight = self.preflight_gate.evaluate(
+            trading_mode=self.trading_mode,
+            live_enabled=self.live_enabled,
+            symbol=order_request.symbol,
+        )
+        if not preflight.passed:
+            if self.event_bus:
+                await self.event_bus.publish(
+                    LogEvent(
+                        level="WARNING",
+                        component="LIVE_SAFETY",
+                        message=f"Live order pre-flight failed: {preflight.reason}"
+                    )
+                )
+            return self._rejected_event(order_request, f"preflight_failed:{preflight.reason}")
+
+        # 2. General Safety Rejection checks
         rejection = self._safety_rejection(order_request)
         if rejection:
             return self._rejected_event(order_request, rejection)
