@@ -1008,4 +1008,8 @@ export interface BrokerAccountSnapshot {
   trades: BrokerTradeRow[]
   synced_at: string
   source: string
+  last_history_import_time: string | null
+  last_pnl_calculation_time: string | null
+  total_historical_trades: number | null
+  total_historical_orders: number | null
 }

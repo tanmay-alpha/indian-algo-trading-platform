@@ -13,12 +13,16 @@ ABSOLUTE SAFETY:
 """
 
 import logging
+import json
+from pathlib import Path
 from fastapi import APIRouter, Depends, Request
 
 from backend.core.security import require_admin_token, sanitize_response
 from backend.services.broker_account_sync import BrokerAccountSyncService
 from backend.services.broker_trade_reconciliation import BrokerTradeReconciliationService
 from backend.services.broker_account_snapshot_service import BrokerAccountSnapshotService
+from backend.services.broker_trade_history_service import BrokerTradeHistoryService
+from backend.services.pnl_snapshot_service import PnLSnapshotService
 import dataclasses
 from typing import Optional
 
@@ -183,4 +187,117 @@ def run_trade_reconciliation(request: Request):
             "status": "ERROR",
             "detail": f"Reconciliation error: {exc}"
         })
+
+
+@router.post("/history/import", dependencies=[Depends(require_admin_token)])
+def import_broker_history(request: Request):
+    """
+    Trigger read-only history import of trades and orders from Angel One.
+    """
+    sm = getattr(request.app.state, "session_manager", None)
+    history_svc = BrokerTradeHistoryService(session_manager=sm)
+    try:
+        metadata = history_svc.import_history()
+        # Automatically run PnL analytics calculation on new import
+        try:
+            history_svc.calculate_pnl_analytics()
+        except Exception as pnl_err:
+            logger.warning(f"Auto PnL calculation failed after import: {pnl_err}")
+        return sanitize_response({
+            "status": "OK",
+            "metadata": metadata
+        })
+    except ValueError as val_err:
+        if str(val_err) == "BROKER_SESSION_UNAVAILABLE":
+            return sanitize_response({
+                "status": "BROKER_SESSION_UNAVAILABLE",
+                "detail": "Cannot import history: Broker session is unavailable."
+            })
+        return sanitize_response({
+            "status": "ERROR",
+            "detail": str(val_err)
+        })
+    except Exception as exc:
+        logger.error(f"Error importing history: {exc}", exc_info=True)
+        return sanitize_response({
+            "status": "ERROR",
+            "detail": str(exc)
+        })
+
+
+@router.get("/history/trades", dependencies=[Depends(require_admin_token)])
+def get_historical_trades(request: Request):
+    """Return list of imported historical trades."""
+    history_svc = BrokerTradeHistoryService(session_manager=None)
+    trades = history_svc.get_merged_trades()
+    return sanitize_response({
+        "status": "OK",
+        "trades": trades
+    })
+
+
+@router.get("/history/orders", dependencies=[Depends(require_admin_token)])
+def get_historical_orders(request: Request):
+    """Return list of imported historical orders."""
+    history_svc = BrokerTradeHistoryService(session_manager=None)
+    orders = history_svc.get_merged_orders()
+    return sanitize_response({
+        "status": "OK",
+        "orders": orders
+    })
+
+
+@router.get("/history/pnl", dependencies=[Depends(require_admin_token)])
+def get_pnl_history(request: Request):
+    """Return real-time position PnL history/latest snapshot along with historical trades PnL analytics."""
+    pnl_svc = PnLSnapshotService()
+    history_svc = BrokerTradeHistoryService(session_manager=None)
+    
+    pnl_file = Path("data/pnl_history/calculated_pnl_analytics.json")
+    analytics = None
+    if pnl_file.exists():
+        try:
+            with open(pnl_file, "r") as f:
+                analytics = json.load(f)
+        except Exception:
+            analytics = None
+            
+    if analytics is None:
+        try:
+            analytics = history_svc.calculate_pnl_analytics()
+        except Exception as e:
+            logger.warning(f"Could not calculate historical PnL analytics: {e}")
+            analytics = {}
+            
+    return sanitize_response({
+        "status": "OK",
+        "latest": pnl_svc.get_latest_pnl_snapshot(),
+        "history": pnl_svc.get_pnl_history(),
+        "analytics": analytics
+    })
+
+
+@router.post("/history/pnl/calculate", dependencies=[Depends(require_admin_token)])
+def calculate_pnl(request: Request):
+    """Trigger PnL calculation for open positions."""
+    sm = getattr(request.app.state, "session_manager", None)
+    svc = PnLSnapshotService(session_manager=sm)
+    try:
+        report = svc.calculate_and_save_pnl_snapshot()
+        return sanitize_response({
+            "status": "OK",
+            "report": report
+        })
+    except ValueError as e:
+        return sanitize_response({
+            "status": str(e),
+            "report": None
+        })
+    except Exception as exc:
+        logger.error(f"Error calculating current positions PnL: {exc}", exc_info=True)
+        return sanitize_response({
+            "status": "ERROR",
+            "detail": str(exc)
+        })
+
 

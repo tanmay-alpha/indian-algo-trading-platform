@@ -20,6 +20,7 @@ import {
   getBrokerAccountStatus,
   getBrokerAccountSnapshot,
   syncBrokerAccountReadOnly,
+  importHistoricalTrades,
 } from '@/lib/api'
 import { useTerminalStore } from '@/store/terminal-store'
 
@@ -32,6 +33,7 @@ export function BrokerAccountPanel() {
   const [tab, setTab] = useState<BrokerTab>('overview')
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastRefreshed, setLastRefreshed] = useState<number | null>(null)
 
@@ -80,6 +82,31 @@ export function BrokerAccountPanel() {
     }
   }
 
+  const handleHistoricalImport = async () => {
+    setImporting(true)
+    setError(null)
+    try {
+      const result = await importHistoricalTrades(adminToken)
+      if (result.ok) {
+        // Trigger a fresh snapshot load to get updated times/counts
+        const snap = await getBrokerAccountSnapshot(adminToken)
+        if (snap.ok) {
+          setSnapshot(snap.data)
+        }
+      } else if ('adminRequired' in result) {
+        setError('Admin token required to import historical trades')
+      } else if ('backendUnavailable' in result) {
+        setError('Broker API/Backend is unavailable')
+      } else {
+        setError(result.error || 'Failed to import historical trades')
+      }
+    } catch {
+      setError('Network error during historical trades import')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const isUnavailable =
     !sessionStatus?.is_valid ||
     snapshot?.status === 'BROKER_SESSION_UNAVAILABLE'
@@ -105,7 +132,7 @@ export function BrokerAccountPanel() {
         <div className="flex items-center gap-1">
           <button
             onClick={handleSync}
-            disabled={syncing || loading}
+            disabled={syncing || loading || importing}
             className="inline-flex items-center gap-1 h-6 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[10px] font-mono hover:bg-info/20 disabled:opacity-40"
           >
             <RefreshCw className={cn('w-3 h-3', syncing && 'animate-spin')} />
@@ -113,7 +140,7 @@ export function BrokerAccountPanel() {
           </button>
           <button
             onClick={load}
-            disabled={loading}
+            disabled={loading || syncing || importing}
             className="h-6 w-6 flex items-center justify-center rounded-sm border border-border bg-bg text-text-dim hover:text-text disabled:opacity-40"
           >
             <RefreshCw className={cn('w-3 h-3', loading && 'animate-spin')} />
@@ -153,7 +180,15 @@ export function BrokerAccountPanel() {
           </div>
 
           <div className="flex-1 min-h-0 overflow-auto p-3">
-            {tab === 'overview' && <OverviewTab snapshot={snapshot} />}
+            {tab === 'overview' && (
+              <OverviewTab
+                snapshot={snapshot}
+                importing={importing}
+                loading={loading}
+                syncing={syncing}
+                handleImport={handleHistoricalImport}
+              />
+            )}
             {tab === 'holdings' && <HoldingsTab snapshot={snapshot} />}
             {tab === 'positions' && <PositionsTab snapshot={snapshot} />}
             {tab === 'orders' && <OrdersTab snapshot={snapshot} />}
@@ -178,7 +213,19 @@ export function BrokerAccountPanel() {
 
 // ---- Overview ----
 
-function OverviewTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
+function OverviewTab({
+  snapshot,
+  importing,
+  loading,
+  syncing,
+  handleImport,
+}: {
+  snapshot: BrokerAccountSnapshot
+  importing: boolean
+  loading: boolean
+  syncing: boolean
+  handleImport: () => void
+}) {
   const f = snapshot.funds
   const holdings_pnl = snapshot.holdings.reduce((s, h) => {
     const pnl = h.ltp != null && h.avg_price != null && h.quantity != null
@@ -213,6 +260,51 @@ function OverviewTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
         <CountStat label="Positions" value={snapshot.positions.length} />
         <CountStat label="Orders" value={snapshot.orders.length} />
         <CountStat label="Trades" value={snapshot.trades.length} />
+      </div>
+
+      {/* Historical Data & P&L Sync Card */}
+      <div className="rounded-sm border border-border bg-panel/30 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-text-dim" />
+            <span className="text-[11px] font-semibold text-text">Historical Data & P&L</span>
+          </div>
+          <button
+            onClick={handleImport}
+            disabled={importing || syncing || loading}
+            className="inline-flex items-center gap-1 h-5 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[9px] font-mono hover:bg-info/20 disabled:opacity-40"
+          >
+            <RefreshCw className={cn('w-2.5 h-2.5', importing && 'animate-spin')} />
+            {importing ? 'Importing...' : 'Import History'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+          <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
+            <div className="text-[8px] uppercase tracking-wider text-text-faint">Last History Import</div>
+            <div className="text-text font-medium mt-0.5 truncate" title={snapshot.last_history_import_time ? new Date(snapshot.last_history_import_time).toLocaleString() : 'Never'}>
+              {snapshot.last_history_import_time ? new Date(snapshot.last_history_import_time).toLocaleString() : 'Never'}
+            </div>
+          </div>
+          <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
+            <div className="text-[8px] uppercase tracking-wider text-text-faint">Last P&L Calculation</div>
+            <div className="text-text font-medium mt-0.5 truncate" title={snapshot.last_pnl_calculation_time ? new Date(snapshot.last_pnl_calculation_time).toLocaleString() : 'Never'}>
+              {snapshot.last_pnl_calculation_time ? new Date(snapshot.last_pnl_calculation_time).toLocaleString() : 'Never'}
+            </div>
+          </div>
+          <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
+            <div className="text-[8px] uppercase tracking-wider text-text-faint">Total Hist. Trades</div>
+            <div className="text-text font-medium mt-0.5">
+              {snapshot.total_historical_trades ?? 0}
+            </div>
+          </div>
+          <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
+            <div className="text-[8px] uppercase tracking-wider text-text-faint">Total Hist. Orders</div>
+            <div className="text-text font-medium mt-0.5">
+              {snapshot.total_historical_orders ?? 0}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Source + sync time */}

@@ -366,3 +366,27 @@ def test_snapshot_service_stale_cache_serving():
     assert len(snapshot_2.holdings) == 1
     assert snapshot_2.holdings[0].symbol == "INFY"
     assert "Served from stale cache" in snapshot_2.warning
+
+
+def test_snapshot_service_metadata_integration():
+    """Verify that snapshot integrates historical import and PnL metadata correctly."""
+    sm = _make_valid_session_manager()
+    service = BrokerAccountSnapshotService(session_manager=sm)
+    
+    # Mock metadata loaders
+    service._load_import_metadata = MagicMock(return_value={
+        "last_import_time": "2026-05-29T12:00:00Z",
+        "total_historical_trades": 15,
+        "total_historical_orders": 30
+    })
+    service._load_pnl_metadata = MagicMock(return_value={
+        "last_pnl_calculation_time": "2026-05-29T12:30:00Z"
+    })
+    
+    snapshot = service.get_snapshot()
+    
+    assert snapshot.status == "AVAILABLE"
+    assert snapshot.total_historical_trades == 15
+    assert snapshot.total_historical_orders == 30
+    assert snapshot.last_history_import_time == datetime.fromisoformat("2026-05-29T12:00:00+00:00")
+    assert snapshot.last_pnl_calculation_time == datetime.fromisoformat("2026-05-29T12:30:00+00:00")

@@ -1462,3 +1462,38 @@ export async function syncBrokerAccountReadOnly(
     return { ok: false, error: String(err) }
   }
 }
+
+/**
+ * POST /broker/historical-trades/import — trigger trade history import and PnL calculation.
+ * Admin-protected.
+ */
+export async function importHistoricalTrades(
+  adminToken?: string | null
+): Promise<
+  OmsResult<{
+    status: string
+    total_imported_trades: number
+    total_imported_orders: number
+    pnl_calculated: boolean
+  }>
+> {
+  try {
+    const data = await request<{
+      status: string
+      total_imported_trades: number
+      total_imported_orders: number
+      pnl_calculated: boolean
+    }>('/broker/historical-trades/import', {
+      method: 'POST',
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+

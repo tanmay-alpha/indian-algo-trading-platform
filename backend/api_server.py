@@ -388,6 +388,49 @@ def ready_check():
         "live_trading_enabled": settings.live_trading_enabled,
     })
 
+@app.get("/frontend/bootstrap")
+def frontend_bootstrap():
+    """
+    Expose app configuration, trading modes, safety locks, and active modules.
+    This is read-only and public, helping the frontend configure its UI accordingly.
+    """
+    from backend.core.live_build_policy import is_live_execution_build_enabled
+    
+    bootstrap_data = {
+        "app": {
+            "name": "MAET Terminal",
+            "version": "1.0.0",
+            "environment": settings.environment,
+            "status": "online"
+        },
+        "trading_mode": execution_mode,
+        "demo_mode": settings.demo_mode,
+        "safety_locks": {
+            "live_trading_locked": not is_live_execution_build_enabled(),
+            "live_execution_build_enabled": is_live_execution_build_enabled(),
+            "live_approval_sandbox_enabled": settings.live_approval_sandbox_enabled,
+            "broker_mutation_guard_active": True
+        },
+        "modules": [
+            "auth",
+            "broker_account",
+            "candles",
+            "discovery",
+            "indicators",
+            "live_execution",
+            "manual_order",
+            "observability",
+            "oms",
+            "patterns",
+            "portfolio",
+            "reconciliation",
+            "safety",
+            "strategies",
+            "watchlists"
+        ]
+    }
+    return sanitize_response(bootstrap_data)
+
 @app.get("/instruments/search")
 @limiter.limit("60/minute")
 def search_instruments(request: Request, q: str = Query(default=""), limit: int = Query(default=20, ge=1, le=100)):

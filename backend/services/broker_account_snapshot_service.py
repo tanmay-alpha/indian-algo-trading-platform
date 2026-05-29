@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
@@ -65,6 +66,10 @@ class BrokerAccountSnapshotResponse(BaseModel):
     holdings_status: str = "AVAILABLE"
     positions_status: str = "AVAILABLE"
     funds_status: str = "AVAILABLE"
+    last_history_import_time: Optional[datetime] = None
+    last_pnl_calculation_time: Optional[datetime] = None
+    total_historical_trades: Optional[int] = None
+    total_historical_orders: Optional[int] = None
 
 
 class BrokerAccountSnapshotService:
@@ -142,6 +147,29 @@ class BrokerAccountSnapshotService:
         """Fetch, normalize and return the full broker account snapshot."""
         now = datetime.now(timezone.utc)
         
+        # Load import metadata and PnL metadata
+        import_meta = self._load_import_metadata()
+        pnl_meta = self._load_pnl_metadata()
+
+        last_import = None
+        last_import_str = import_meta.get("last_import_time")
+        if last_import_str:
+            try:
+                last_import = datetime.fromisoformat(last_import_str.replace("Z", "+00:00"))
+            except Exception:
+                pass
+
+        last_pnl = None
+        last_pnl_str = pnl_meta.get("last_pnl_calculation_time")
+        if last_pnl_str:
+            try:
+                last_pnl = datetime.fromisoformat(last_pnl_str.replace("Z", "+00:00"))
+            except Exception:
+                pass
+
+        total_trades = import_meta.get("total_historical_trades") or import_meta.get("total_trades_count")
+        total_orders = import_meta.get("total_historical_orders") or import_meta.get("total_orders_count")
+
         # Check session availability
         session_valid = self.session_manager and getattr(self.session_manager, "is_valid", False)
         
@@ -171,7 +199,11 @@ class BrokerAccountSnapshotService:
                     warning=f"Served from stale cache (age: {age}s)",
                     holdings_status="STALE",
                     positions_status="STALE",
-                    funds_status="STALE" if funds else "UNAVAILABLE"
+                    funds_status="STALE" if funds else "UNAVAILABLE",
+                    last_history_import_time=last_import,
+                    last_pnl_calculation_time=last_pnl,
+                    total_historical_trades=total_trades,
+                    total_historical_orders=total_orders
                 )
                 
             return BrokerAccountSnapshotResponse(
@@ -189,7 +221,11 @@ class BrokerAccountSnapshotService:
                 warning="BROKER_SESSION_UNAVAILABLE",
                 holdings_status="UNAVAILABLE",
                 positions_status="UNAVAILABLE",
-                funds_status="UNAVAILABLE"
+                funds_status="UNAVAILABLE",
+                last_history_import_time=last_import,
+                last_pnl_calculation_time=last_pnl,
+                total_historical_trades=total_trades,
+                total_historical_orders=total_orders
             )
 
         # Fetch sections
@@ -271,7 +307,11 @@ class BrokerAccountSnapshotService:
             warning=warning_msg,
             holdings_status=holdings_status,
             positions_status=positions_status,
-            funds_status=funds_status
+            funds_status=funds_status,
+            last_history_import_time=last_import,
+            last_pnl_calculation_time=last_pnl,
+            total_historical_trades=total_trades,
+            total_historical_orders=total_orders
         )
 
     def _build_recon_summary(self) -> ReconciliationSummaryModel:
@@ -329,3 +369,23 @@ class BrokerAccountSnapshotService:
             account_report_age_seconds=acc_age,
             account_report_stale=acc_stale
         )
+
+    def _load_import_metadata(self) -> Dict[str, Any]:
+        path = Path("data/broker_history/import_metadata.json")
+        if not path.exists():
+            return {}
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def _load_pnl_metadata(self) -> Dict[str, Any]:
+        path = Path("data/pnl_history/pnl_metadata.json")
+        if not path.exists():
+            return {}
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
