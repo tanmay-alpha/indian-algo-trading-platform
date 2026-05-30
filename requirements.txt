@@ -21,3 +21,5 @@ aiosqlite
 SQLAlchemy
 alembic
 openpyxl
+PyJWT
+passlib
