@@ -61,6 +61,13 @@ extract_prompt_from_step.py
 extract_prompts.py
 extract_req.py
 clean_prompt.py
+get_headings.py
+print_tail.py
+read_recent_steps.py
+read_user_steps.py
+search_struct.py
+search_tasks.py
+search_user_input.py
 
 # Extracted prompt/log text artifacts (session forensics)
 clean_prompt.txt
@@ -76,3 +83,11 @@ temp_prompt.json
 untruncated_prompts.txt
 user_input_*.txt
 user_request*.txt
+
+# AI session folders/scratchpads
+.gemini/
+.antigravity/
+.antigravityignore
+scratchpad/
+scratch/
+*_scratch.py
