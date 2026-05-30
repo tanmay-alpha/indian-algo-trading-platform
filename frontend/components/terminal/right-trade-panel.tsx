@@ -3,13 +3,14 @@
 import { useTerminalStore } from '@/store/terminal-store'
 import { RIGHT_TABS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { X } from 'lucide-react'
 import { OrderTicket } from './order-ticket'
 import { SymbolDetails } from './symbol-details'
 import { RiskPreview } from './risk-preview'
 import { StrategySignalPanel } from './strategy-signal-panel'
 import { JournalNotesPanel } from './journal-notes-panel'
 
-export function RightTradePanel() {
+export function RightTradePanel({ className, onClose }: { className?: string; onClose?: () => void }) {
   const tab = useTerminalStore((s) => s.rightPanelTab)
   const setTab = useTerminalStore((s) => s.setRightPanelTab)
   const selected = useTerminalStore((s) => s.selectedSymbol)
@@ -17,12 +18,23 @@ export function RightTradePanel() {
   return (
     <aside
       aria-label="Symbol intelligence drawer"
-      className="w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col shadow-panel"
+      className={cn("w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col shadow-panel", className)}
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-text uppercase tracking-wider">Intelligence</span>
-          <span className="text-[10px] font-mono font-medium text-info">{selected ?? '---'}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-medium text-info">{selected ?? '---'}</span>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1 rounded hover:bg-white/5 text-text-faint hover:text-text transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex border-b border-border bg-bg h-8 shrink-0">

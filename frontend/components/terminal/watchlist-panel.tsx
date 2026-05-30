@@ -9,7 +9,7 @@ import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
 import { InstrumentSearch } from './instrument-search'
 
-export function WatchlistPanel() {
+export function WatchlistPanel({ className, onClose }: { className?: string; onClose?: () => void }) {
   const groups = useTerminalStore((s) => s.watchlistGroups)
   const groupId = useTerminalStore((s) => s.watchlistGroupId)
   const setGroup = useTerminalStore((s) => s.setWatchlistGroup)
@@ -66,7 +66,7 @@ export function WatchlistPanel() {
   return (
     <aside
       aria-label="Watchlist"
-      className="w-watchlist shrink-0 h-full bg-bg-2 border-r border-border flex flex-col"
+      className={cn("w-watchlist shrink-0 h-full bg-bg-2 border-r border-border flex flex-col", className)}
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
@@ -78,9 +78,20 @@ export function WatchlistPanel() {
               <span className="text-[9px] text-warn font-mono animate-pulse">●</span>
             )}
           </div>
-          <span className="text-[10px] font-mono text-text-faint">
-            {watchlistLoading ? '...' : `${symbols.length} items`}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-text-faint">
+              {watchlistLoading ? '...' : `${symbols.length} items`}
+            </span>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1 rounded hover:bg-white/5 text-text-faint hover:text-text transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-2 flex items-center gap-1.5">

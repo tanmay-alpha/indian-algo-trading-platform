@@ -28,7 +28,7 @@ export function StatusBar() {
   const netPnl = portfolioSummary?.net_pnl ?? null
 
   return (
-    <footer className="flex h-statusbar shrink-0 items-stretch border-t border-border bg-bg font-mono text-[10px]">
+    <footer className="hidden md:flex h-statusbar shrink-0 items-stretch border-t border-border bg-bg font-mono text-[10px]">
       <div
         className={cn(
           'flex shrink-0 items-center gap-1.5 border-r border-border px-3',

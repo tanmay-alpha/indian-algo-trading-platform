@@ -69,7 +69,7 @@ export const WORKSPACES: WorkspaceDef[] = [
   { id: 'strategy', label: 'Strategy Lab', short: 'STR', shortcut: '3' },
   { id: 'portfolio', label: 'Portfolio', short: 'PRT', shortcut: '4' },
   { id: 'oms', label: 'OMS Blotter', short: 'OMS', shortcut: '5' },
-  { id: 'journal', label: 'Journal', short: 'JNL', shortcut: '6' },
+  { id: 'journal', label: 'System Journal', short: 'SYS', shortcut: '6' },
 ]
 
 // ----- Presets -----

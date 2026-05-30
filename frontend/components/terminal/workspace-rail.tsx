@@ -28,6 +28,7 @@ const ICONS: Record<WorkspaceId, ReactNode> = {
 function railLabel(label: string) {
   if (label === 'Strategy Lab') return 'Lab'
   if (label === 'OMS Blotter') return 'OMS'
+  if (label === 'System Journal') return 'Journal'
   return label
 }
 
@@ -39,7 +40,7 @@ export function WorkspaceRail() {
 
   return (
     <nav
-      className="w-rail shrink-0 h-full border-r border-border bg-bg-2 flex flex-col items-stretch"
+      className="hidden md:flex w-rail shrink-0 h-full border-r border-border bg-bg-2 flex-col items-stretch"
       aria-label="Workspace navigation"
     >
       <div className="h-topbar flex items-center justify-center border-b border-border bg-panel/40">

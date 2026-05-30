@@ -8,14 +8,14 @@
 
   /* --- Surfaces (Broker-Grade Deeper Dark) --- */
   --bg: #05070a;
-  --bg-2: #080d12;
-  --panel: #0b1118;
-  --panel-2: #101720;
-  --panel-3: #151e2a;
+  --bg-2: #0c1117;
+  --panel: #0c1117;
+  --panel-2: #121820;
+  --panel-3: #18222d;
 
   /* --- Borders (Subtle, non-distracting) --- */
-  --border: #17202b;
-  --border-strong: #232e3b;
+  --border: #1d2128;
+  --border-strong: #2e343f;
   --border-accent: rgba(56, 189, 248, 0.25);
 
   /* --- Text (Optimized contrast) --- */
