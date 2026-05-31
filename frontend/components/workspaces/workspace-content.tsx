@@ -2,8 +2,12 @@
 
 import {
   RefreshCw,
+  LockKeyhole,
+  ShieldCheck,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
 import { TIMEFRAMES } from '@/lib/constants'
 import { cn, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
@@ -113,6 +117,48 @@ export function TradeWorkspace() {
 }
 
 export function PortfolioWorkspace() {
+  const adminToken = useTerminalStore((s) => s.omsAdminToken)
+  const setOmsAdminToken = useTerminalStore((s) => s.setOmsAdminToken)
+  const clearOmsAdminToken = useTerminalStore((s) => s.clearOmsAdminToken)
+  const fetchManualOrderTickets = useTerminalStore((s) => s.fetchManualOrderTickets)
+  const refreshPortfolio = useTerminalStore((s) => s.refreshPortfolio)
+
+  const [tokenInput, setTokenInput] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [unlockError, setUnlockError] = useState<string | null>(null)
+
+  const handleUnlock = async () => {
+    if (!tokenInput.trim()) return
+    setIsUnlocking(true)
+    setUnlockError(null)
+    try {
+      // Set the token first in order to test it
+      setOmsAdminToken(tokenInput.trim())
+      const res = await useTerminalStore.getState().fetchManualOrderTickets()
+      if (res.ok) {
+        setTokenInput('')
+        setTimeout(() => {
+          void useTerminalStore.getState().refreshPortfolio()
+        }, 50)
+      } else {
+        clearOmsAdminToken()
+        if ('adminRequired' in res && res.adminRequired) {
+          setUnlockError('Invalid administrator token')
+        } else if ('backendUnavailable' in res && res.backendUnavailable) {
+          setUnlockError('Validation backend offline')
+        } else {
+          setUnlockError(('error' in res && res.error) || 'Failed to authenticate')
+        }
+      }
+    } catch (err) {
+      clearOmsAdminToken()
+      setUnlockError(String(err))
+    } finally {
+      setIsUnlocking(false)
+    }
+  }
+
   const summary = useTerminalStore((s) => s.portfolioSummary)
   const positions = useTerminalStore((s) => s.positions)
   const holdings = useTerminalStore((s) => s.holdings)
@@ -120,9 +166,79 @@ export function PortfolioWorkspace() {
   const reconciliation = useTerminalStore((s) => s.reconciliationStatus)
   const loading = useTerminalStore((s) => s.portfolioLoading)
   const error = useTerminalStore((s) => s.portfolioError)
-  const refreshPortfolio = useTerminalStore((s) => s.refreshPortfolio)
   const quality = summary?.data_status === 'AVAILABLE' ? 'LIVE' : error ? 'BACKEND OFFLINE' : 'UNAVAILABLE'
   const source = summary?.source_of_truth || (summary?.trading_mode === 'LIVE' ? 'BROKER' : 'INTERNAL')
+
+  if (!adminToken) {
+    return (
+      <div className="h-full min-h-0 flex items-center justify-center p-4">
+        <div className="w-full max-w-md glass-card-3d rounded-lg p-6 border border-[#38bdf8]/10 text-center space-y-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex justify-center text-amber-500">
+            <LockKeyhole className="h-8 w-8 animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-mono font-bold uppercase tracking-tight text-amber-400">
+              Developer admin unlock
+            </h3>
+            <p className="text-xs text-text-faint font-mono leading-relaxed animate-in fade-in duration-300">
+              Required to view protected local/demo portfolio endpoints. Do not enter production secrets in public deployments.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <div className="relative">
+              <input
+                type={showToken ? 'text' : 'password'}
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleUnlock()
+                }}
+                placeholder="X-Admin-Token value"
+                autoComplete="off"
+                className="w-full h-9 rounded border border-[#38bdf8]/15 bg-bg/50 px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken(!showToken)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text"
+              >
+                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {unlockError && (
+              <p className="text-[10px] text-rose-400 font-mono text-left">{unlockError}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleUnlock}
+              disabled={isUnlocking || !tokenInput.trim()}
+              className="w-full h-9 rounded bg-info/20 border border-info/30 text-info text-xs font-mono font-bold hover:bg-info/30 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+            >
+              {isUnlocking && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+              Unlock Portfolio Data
+            </button>
+          </div>
+
+          <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-[10px] text-text-faint font-mono text-left">
+            <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-[9px]">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Read-Only Advisory Mode</span>
+            </div>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>All database queries are read-only.</li>
+              <li>Order placement routes are dry-run simulated.</li>
+              <li>Live build policy is globally locked.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full min-h-0 overflow-auto p-3 space-y-4">
       {/* 3D Glass Broker Terminal UI Cards */}

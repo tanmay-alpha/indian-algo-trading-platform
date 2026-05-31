@@ -105,10 +105,10 @@ function AdminTokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
       <div className="w-full max-w-sm rounded border border-amber-500/30 bg-amber-500/5 p-6 space-y-4">
         <div className="flex items-center gap-2 text-amber-400">
           <Shield className="w-4 h-4 shrink-0" />
-          <span className="text-xs font-semibold">Admin Token Required</span>
+          <span className="text-xs font-semibold">Developer admin unlock</span>
         </div>
         <p className="text-[11px] text-text-faint font-mono">
-          Trading Safety Engine endpoints are admin-protected. Enter your token to proceed.
+          Required to view protected local/demo portfolio endpoints and OMS status blotters. Do not enter production secrets in public deployments.
           The token is held in volatile memory only — never stored or persisted.
           <br /><br />
           Note: This dashboard is strictly READ-ONLY. Live trading remains locked.

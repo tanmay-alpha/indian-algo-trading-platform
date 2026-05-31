@@ -179,10 +179,10 @@ export function OrderTicket() {
               </div>
               <div className="space-y-1">
                 <h4 className="text-[11px] font-mono font-bold uppercase tracking-tight text-amber-400">
-                  Validation Engine Locked
+                  Developer admin unlock
                 </h4>
                 <p className="text-[10px] text-text-faint font-mono leading-relaxed">
-                  OMS manual order risk gates require administrator authentication to query holdings, calculate leverage, and validate margins.
+                  Required to view protected local/demo portfolio endpoints and unlock OMS manual order risk gates. Do not enter production secrets in public deployments.
                 </p>
               </div>
 
