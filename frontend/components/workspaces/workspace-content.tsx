@@ -47,7 +47,7 @@ export function WorkspaceContent() {
   )
 }
 
-function TradeWorkspace() {
+export function TradeWorkspace() {
   const tick = useTerminalStore((s) => s.currentTick)
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const market = useTerminalStore((s) => s.marketWatch)
@@ -112,7 +112,7 @@ function TradeWorkspace() {
   )
 }
 
-function PortfolioWorkspace() {
+export function PortfolioWorkspace() {
   const summary = useTerminalStore((s) => s.portfolioSummary)
   const positions = useTerminalStore((s) => s.positions)
   const holdings = useTerminalStore((s) => s.holdings)
@@ -343,16 +343,16 @@ function StrategyWorkspace() {
   )
 }
 
-function JournalWorkspace() {
+export function JournalWorkspace() {
   return <ObservabilityJournalWorkspace />
 }
 
-function OmsWorkspace() {
+export function OmsWorkspace() {
   return <OmsDashboard />
 }
 
 
-function PremiumChartPanel() {
+export function PremiumChartPanel() {
   const selected = useTerminalStore((s) => s.selectedSymbol)
   const timeframe = useTerminalStore((s) => s.chartTimeframe)
   const tick = useTerminalStore((s) => s.currentTick)
