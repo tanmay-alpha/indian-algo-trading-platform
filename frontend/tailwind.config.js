@@ -60,6 +60,9 @@ module.exports = {
         panel: '0 1px 0 rgba(255,255,255,0.02) inset',
         modal: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 1px var(--border-strong)',
       },
+      borderWidth: {
+        '3': '3px',
+      },
       animation: {
         'pulse-soft': 'pulseSoft 2.4s ease-in-out infinite',
         'flash-up': 'flashUp 0.45s ease-out',

@@ -230,7 +230,7 @@ export function PortfolioWorkspace() {
             </div>
             <ul className="list-disc pl-4 space-y-1">
               <li>All database queries are read-only.</li>
-              <li>Order placement routes are dry-run simulated.</li>
+              <li>Order validation is dry-run only — no exchange mutations.</li>
               <li>Live build policy is globally locked.</li>
             </ul>
           </div>

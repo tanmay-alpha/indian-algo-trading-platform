@@ -52,6 +52,14 @@ export function OrderTicket() {
   const [validationResult, setValidationResult] = useState<ManualOrderTicket | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
 
+  // Dry-run confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmChecked, setConfirmChecked] = useState(false)
+  const [pendingOrder, setPendingOrder] = useState<{
+    symbol: string; exchange: 'NSE' | 'BSE'; side: 'BUY' | 'SELL'
+    quantity: number; productType: string; orderType: string; priceOverride: string | null
+  } | null>(null)
+
   // Auto-fill symbol when selectedSymbol changes
   useEffect(() => {
     if (selectedSymbol) {
@@ -95,7 +103,7 @@ export function OrderTicket() {
     }
   }
 
-  const handleValidate = async (e: React.FormEvent) => {
+  const handleValidate = (e: React.FormEvent) => {
     e.preventDefault()
     if (!symbolInput.trim()) {
       setValidationError('Symbol is required')
@@ -105,19 +113,35 @@ export function OrderTicket() {
       setValidationError('Quantity must be greater than 0')
       return
     }
-
-    setIsValidating(true)
+    // Show the dry-run confirmation modal before submitting
     setValidationError(null)
     setValidationResult(null)
-
-    const requestBody = {
+    setPendingOrder({
       symbol: symbolInput.trim().toUpperCase(),
       exchange,
       side,
       quantity,
-      product_type: productType,
-      order_type: orderType,
-      price_override: priceOverride ? parseFloat(priceOverride) : null,
+      productType,
+      orderType,
+      priceOverride: priceOverride || null,
+    })
+    setConfirmChecked(false)
+    setShowConfirmModal(true)
+  }
+
+  const handleConfirmValidate = async () => {
+    if (!confirmChecked || !pendingOrder) return
+    setShowConfirmModal(false)
+    setIsValidating(true)
+
+    const requestBody = {
+      symbol: pendingOrder.symbol,
+      exchange: pendingOrder.exchange,
+      side: pendingOrder.side,
+      quantity: pendingOrder.quantity,
+      product_type: pendingOrder.productType,
+      order_type: pendingOrder.orderType,
+      price_override: pendingOrder.priceOverride ? parseFloat(pendingOrder.priceOverride) : null,
     }
 
     const result = await validateOrder(requestBody)
@@ -125,7 +149,6 @@ export function OrderTicket() {
 
     if (result.ok && result.ticket) {
       setValidationResult(result.ticket)
-      // Refresh the historical validation logs
       void fetchManualOrderTickets()
     } else {
       setValidationError(result.error ?? 'Validation request failed.')
@@ -368,7 +391,7 @@ export function OrderTicket() {
                     Validating Risk Gates...
                   </>
                 ) : (
-                  'VALIDATE TICKET (DRY-RUN)'
+                  'Validate Dry-Run Order'
                 )}
               </button>
             </form>
@@ -519,6 +542,112 @@ export function OrderTicket() {
         )}
 
       </div>
+
+      {/* ── Dry-Run Confirmation Modal ─────────────────────────────── */}
+      {showConfirmModal && pendingOrder && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Dry-run confirmation">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowConfirmModal(false)}
+          />
+          {/* Modal card */}
+          <div className="relative w-full max-w-sm rounded-lg border border-amber-500/30 bg-[#0c1117] shadow-2xl shadow-black/60 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+            {/* Modal header */}
+            <div className="flex items-center gap-2 border-b border-border/50 px-4 py-3 bg-amber-500/5">
+              <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
+              <div>
+                <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">Dry-Run Confirmation</div>
+                <div className="text-[9px] font-mono text-text-faint">VALIDATE ONLY — No broker order will be placed</div>
+              </div>
+            </div>
+
+            {/* Order summary */}
+            <div className="px-4 py-3 space-y-2">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono">
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Symbol</span>
+                  <span className="text-text font-semibold">{pendingOrder.symbol}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Side</span>
+                  <span className={cn('font-bold', pendingOrder.side === 'BUY' ? 'text-up' : 'text-down')}>
+                    {pendingOrder.side} (DRY-RUN)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Quantity</span>
+                  <span className="text-text">{pendingOrder.quantity.toLocaleString('en-IN')}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Exchange</span>
+                  <span className="text-text">{pendingOrder.exchange}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Product Type</span>
+                  <span className="text-text">{pendingOrder.productType}</span>
+                </div>
+                <div>
+                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Order Type</span>
+                  <span className="text-text">{pendingOrder.orderType}</span>
+                </div>
+                {pendingOrder.priceOverride && (
+                  <div>
+                    <span className="text-[8px] uppercase tracking-wider text-text-faint block">Price Override</span>
+                    <span className="text-text">₹{parseFloat(pendingOrder.priceOverride).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Safety state row */}
+              <div className="rounded border border-border/50 bg-bg/60 px-2 py-1.5 flex flex-wrap gap-1.5">
+                <span className="text-[8px] font-mono bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/25">DRY-RUN ONLY</span>
+                <span className="text-[8px] font-mono bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/25">LIVE EXECUTION LOCKED</span>
+                <span className="text-[8px] font-mono bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/25">BROKER MUTATION DISABLED</span>
+              </div>
+
+              {/* Safety disclaimer */}
+              <p className="text-[9px] font-mono text-text-faint leading-relaxed">
+                This will <strong className="text-text">not</strong> place a real broker order.
+                The backend will validate risk gates and return a simulation ticket only.
+              </p>
+
+              {/* Required acknowledgement checkbox */}
+              <label className="flex items-start gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={confirmChecked}
+                  onChange={(e) => setConfirmChecked(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-amber-400 cursor-pointer"
+                />
+                <span className="text-[10px] font-mono text-text-2 group-hover:text-text transition-colors leading-snug">
+                  I understand this is a <strong className="text-amber-400">dry-run validation only</strong>. No real order will be placed.
+                </span>
+              </label>
+            </div>
+
+            {/* Modal actions */}
+            <div className="flex gap-2 px-4 pb-4">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 h-8 rounded border border-border bg-bg/40 text-[11px] font-mono text-text-dim hover:text-text hover:bg-bg-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmValidate}
+                disabled={!confirmChecked}
+                className="flex-1 h-8 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Validate Dry-Run Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

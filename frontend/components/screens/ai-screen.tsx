@@ -39,6 +39,11 @@ export function AiScreen() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-1 space-y-4">
+          {/* DEMO PLACEHOLDER — these advisory cards are static layout examples only, not real signals */}
+          <div className="px-2 py-1 rounded border border-warn/20 bg-warn/5 text-[9px] font-mono text-warn tracking-wider uppercase flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-warn/60 shrink-0" />
+            Demo Placeholder — Not real signals
+          </div>
           <AIAdvisoryCard 
             symbol="NIFTY 50" 
             signal="BUY" 

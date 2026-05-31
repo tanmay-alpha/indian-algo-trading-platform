@@ -148,7 +148,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
         </div>
       )}
 
-      <div className="flex h-6 items-center border-b border-border bg-panel/50 px-2 mt-1">
+      <div className="flex h-7 items-center border-b border-border bg-panel/50 px-2 mt-1">
         <div className="flex-1 font-mono text-[9px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
         <div className="w-[68px] text-right font-mono text-[9px] tracking-wide text-text-faint">LTP</div>
         <div className="w-[48px] text-right font-mono text-[9px] tracking-wide text-text-faint">CHG%</div>
@@ -158,8 +158,10 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       <div className="flex-1 overflow-y-auto">
         {symbols.length === 0 ? (
           <EmptyState
-            title="Add symbols"
-            hint="Search NSE instruments to build a watchlist. Market feed required for live ticks."
+            title="Watchlist empty"
+            hint={watchlistSource === 'fallback' || watchlistSource === null || watchlistAdminRequired
+              ? 'Watchlist API not connected. Search NSE instruments to build a local watchlist.'
+              : 'Search NSE instruments to add symbols. Live ticks require market feed.'}
             icon={<Search className="w-6 h-6" />}
             compact
           />
@@ -204,7 +206,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                 key={symbol}
                 onClick={() => setSelected(symbol)}
                 className={cn(
-                  'wl-row group relative flex h-[26px] cursor-pointer select-none items-center border-b border-border/50 px-2',
+                  'wl-row group relative flex h-[36px] cursor-pointer select-none items-center border-b border-border/50 px-2',
                   isSelected && 'selected bg-info/[0.04]'
                 )}
               >
@@ -219,18 +221,18 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                   )}
                 />
 
-                <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                  <span className="shrink-0 font-mono text-[11px] font-semibold tracking-wide text-text">
+                <div className="flex min-w-0 flex-1 flex-col justify-center">
+                  <span className="shrink-0 font-mono text-[12px] font-semibold tracking-wide text-text leading-tight">
                     {cleanSymbol}
                   </span>
-                  <span className="min-w-0 truncate text-[10px] text-text-faint">
+                  <span className="min-w-0 truncate text-[9px] text-text-faint leading-tight">
                     {displayName || meta}
                   </span>
                 </div>
 
-                <div className="ml-1 flex shrink-0 items-baseline gap-2">
+                <div className="ml-1 flex shrink-0 items-center gap-2">
                   <span className={cn(
-                    'w-[68px] text-right font-mono text-[11px] font-medium tabular-nums',
+                    'w-[68px] text-right font-mono text-[12px] font-semibold tabular-nums',
                     displayLtp == null
                       ? 'text-text-faint/70 text-[9px]'
                       : displayChgPct != null && displayChgPct > 0

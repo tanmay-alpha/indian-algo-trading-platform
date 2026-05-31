@@ -22,14 +22,14 @@
   --text: #eef2f7;
   --text-2: #94a3b8;
   --text-dim: #64748b;
-  --text-faint: #334155;
+  --text-faint: #475569;
 
   /* --- Market state --- */
-  --up: #10b981;
-  --up-dim: rgba(16, 185, 129, 0.1);
-  --up-glow: rgba(16, 185, 129, 0.15);
-  --down: #ef4444;
-  --down-dim: rgba(239, 68, 68, 0.1);
+  --up: #16C784;
+  --up-dim: rgba(22, 199, 132, 0.1);
+  --up-glow: rgba(22, 199, 132, 0.15);
+  --down: #EA3943;
+  --down-dim: rgba(234, 57, 67, 0.1);
 
   /* --- Status colors --- */
   --warn: #f59e0b;
