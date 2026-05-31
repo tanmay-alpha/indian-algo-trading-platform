@@ -1011,3 +1011,52 @@ export interface BrokerAccountSnapshot {
   total_historical_trades: number | null
   total_historical_orders: number | null
 }
+
+// =====================================================
+// Manual Order Validation Types (Phase 3)
+// =====================================================
+
+export interface ManualOrderStatusResponse {
+  mode: string
+  validation_only: boolean
+  dry_run: boolean
+  live_execution_enabled: boolean
+  broker_mutation_allowed: boolean
+  creates_fill: boolean
+  creates_broker_order: boolean
+}
+
+export interface ManualOrderValidateRequest {
+  symbol: string
+  exchange: string
+  side: string
+  quantity: number
+  product_type: string
+  order_type: string
+  price_override?: number | null
+}
+
+export interface ManualOrderTicket {
+  ticket_id: string
+  created_at: string
+  symbol: string
+  exchange: string
+  side: string
+  quantity: number
+  product_type: string
+  order_type: string
+  price: number | null
+  estimated_notional: number | null
+  price_source: string
+  price_is_override: boolean
+  status: string
+  validation_summary: string
+  rejection_reason: string | null
+  validation_only: boolean
+  dry_run: boolean
+  live_execution_enabled: boolean
+  broker_mutation_allowed: boolean
+  creates_fill: boolean
+  creates_broker_order: boolean
+}
+

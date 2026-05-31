@@ -50,6 +50,8 @@ import type {
   OmsDataState,
   PersistentWatchlistItem,
   PersistentWatchlist,
+  ManualOrderTicket,
+  ManualOrderValidateRequest,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
 import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
@@ -77,6 +79,10 @@ import {
   getDefaultWatchlistItems,
   addWatchlistItem,
   removeWatchlistItem,
+  getManualOrderStatus,
+  validateManualOrder,
+  getManualOrderTickets,
+  OmsResult,
 } from '@/lib/api'
 
 export interface TerminalState {
@@ -193,6 +199,10 @@ export interface TerminalState {
   watchlistAdminRequired: boolean
   watchlistLastUpdatedAt: number | null
   bottomDockOpen: boolean
+
+  // Manual Orders (Phase 3)
+  manualOrderTickets: ManualOrderTicket[]
+  manualOrderStatus: { mode: string; dry_run: boolean } | null
 }
 
 export interface TerminalActions {
@@ -282,6 +292,11 @@ export interface TerminalActions {
 
   setChartLayoutMode: (mode: 'CLEAN' | 'ANALYSIS' | 'FOCUS') => void
   setShowPatternLabels: (show: boolean) => void
+
+  // Manual order actions (Phase 3)
+  fetchManualOrderStatus: () => Promise<void>
+  validateManualOrder: (body: Omit<ManualOrderValidateRequest, 'admin_token'>) => Promise<{ ok: boolean; ticket?: ManualOrderTicket; error?: string }>
+  fetchManualOrderTickets: () => Promise<OmsResult<ManualOrderTicket[]>>
 }
 
 export type TerminalStore = TerminalState & TerminalActions
@@ -416,6 +431,10 @@ const initialState: TerminalState = {
   chartLayoutMode: 'CLEAN',
   showPatternLabels: false,
   bottomDockOpen: true,
+
+  // Manual Orders (Phase 3)
+  manualOrderTickets: [],
+  manualOrderStatus: null,
 }
 
 const MAX_EVENTS = 200
@@ -625,26 +644,32 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   setBrokerStatus: (s) => set({ brokerStatus: s }),
   setPortfolio: (p) => set({ portfolio: p }),
   fetchPortfolioSummary: async () => {
-    const summary = await getPortfolioSummary()
+    const token = get().omsAdminToken
+    const summary = await getPortfolioSummary(token)
     set({ portfolioSummary: summary, portfolioLastUpdated: Date.now() })
   },
   fetchPositions: async () => {
-    const positions = await getPortfolioPositions()
+    const token = get().omsAdminToken
+    const positions = await getPortfolioPositions(token)
     set({ positions, portfolioLastUpdated: Date.now() })
   },
   fetchHoldings: async () => {
-    const holdings = await getPortfolioHoldings()
+    const token = get().omsAdminToken
+    const holdings = await getPortfolioHoldings(token)
     set({ holdings, portfolioLastUpdated: Date.now() })
   },
   fetchEquityCurve: async () => {
-    const equityCurve = await getPortfolioEquityCurve()
+    const token = get().omsAdminToken
+    const equityCurve = await getPortfolioEquityCurve(token)
     set({ equityCurve, portfolioLastUpdated: Date.now() })
   },
   fetchReconciliationStatus: async () => {
-    const reconciliationStatus = await getPortfolioReconciliationStatus()
+    const token = get().omsAdminToken
+    const reconciliationStatus = await getPortfolioReconciliationStatus(token)
     set({ reconciliationStatus, portfolioLastUpdated: Date.now() })
   },
   refreshPortfolio: async () => {
+    const token = get().omsAdminToken
     set({ portfolioLoading: true, portfolioError: null })
     try {
       const [
@@ -654,11 +679,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         equityCurve,
         reconciliationStatus,
       ] = await Promise.all([
-        getPortfolioSummary(),
-        getPortfolioPositions(),
-        getPortfolioHoldings(),
-        getPortfolioEquityCurve(),
-        getPortfolioReconciliationStatus(),
+        getPortfolioSummary(token),
+        getPortfolioPositions(token),
+        getPortfolioHoldings(token),
+        getPortfolioEquityCurve(token),
+        getPortfolioReconciliationStatus(token),
       ])
       set({
         portfolioSummary,
@@ -1259,6 +1284,38 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     } catch {
       set({ watchlistError: 'Backend unavailable — symbol removed locally only.' })
     }
+  },
+
+  fetchManualOrderStatus: async () => {
+    const token = get().omsAdminToken
+    const result = await getManualOrderStatus(token)
+    if (result.ok) {
+      set({ manualOrderStatus: result.data })
+    }
+  },
+
+  validateManualOrder: async (body) => {
+    const token = get().omsAdminToken
+    const requestBody = { ...body, admin_token: token || '' }
+    const result = await validateManualOrder(requestBody, token)
+    if (result.ok) {
+      set((s) => ({
+        manualOrderTickets: [result.data, ...s.manualOrderTickets].slice(0, 100),
+      }))
+      return { ok: true, ticket: result.data }
+    } else {
+      const errorStr = 'error' in result ? result.error : 'Validation failed'
+      return { ok: false, error: errorStr }
+    }
+  },
+
+  fetchManualOrderTickets: async () => {
+    const token = get().omsAdminToken
+    const result = await getManualOrderTickets(token)
+    if (result.ok) {
+      set({ manualOrderTickets: result.data })
+    }
+    return result
   },
 }))
 

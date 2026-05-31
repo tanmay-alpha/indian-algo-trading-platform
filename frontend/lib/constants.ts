@@ -50,6 +50,10 @@ export const ENDPOINTS = {
   omsFillsRecent: '/oms/fills/recent',
   omsOrderAudit: '/oms/orders', // + /{request_id}/audit
   omsReconciliationStatus: '/oms/reconciliation/status',
+  // Manual Order Dry-run (Phase 3)
+  manualOrderStatus: '/manual-order/status',
+  manualOrderValidate: '/manual-order/validate',
+  manualOrderTickets: '/manual-order/tickets',
 } as const
 
 export const STALE_THRESHOLD_MS = 8000

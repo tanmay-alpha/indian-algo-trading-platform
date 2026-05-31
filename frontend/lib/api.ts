@@ -53,6 +53,9 @@ import type {
   BrokerFunds,
   BrokerOrderRow,
   BrokerTradeRow,
+  ManualOrderStatusResponse,
+  ManualOrderValidateRequest,
+  ManualOrderTicket,
 } from './types'
 
 export class APIError extends Error {
@@ -587,9 +590,11 @@ const unavailableReconciliation: ReconciliationStatus = {
   data_status: 'UNAVAILABLE',
 }
 
-export async function getPortfolioSummary(): Promise<PortfolioSummary> {
+export async function getPortfolioSummary(adminToken?: string | null): Promise<PortfolioSummary> {
   try {
-    const data = await request<Partial<PortfolioSummary>>(ENDPOINTS.portfolioSummary)
+    const data = await request<Partial<PortfolioSummary>>(ENDPOINTS.portfolioSummary, {
+      headers: adminHeaders(adminToken),
+    })
     return {
       ...unavailablePortfolioSummary,
       ...data,
@@ -600,10 +605,11 @@ export async function getPortfolioSummary(): Promise<PortfolioSummary> {
   }
 }
 
-export async function getPortfolioPositions(): Promise<PortfolioPosition[]> {
+export async function getPortfolioPositions(adminToken?: string | null): Promise<PortfolioPosition[]> {
   try {
     const data = await request<{ positions?: Array<Record<string, unknown>> }>(
-      ENDPOINTS.portfolioPositions
+      ENDPOINTS.portfolioPositions,
+      { headers: adminHeaders(adminToken) }
     )
     return (data.positions || []).map(normalizePosition)
   } catch {
@@ -611,10 +617,11 @@ export async function getPortfolioPositions(): Promise<PortfolioPosition[]> {
   }
 }
 
-export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
+export async function getPortfolioHoldings(adminToken?: string | null): Promise<PortfolioHolding[]> {
   try {
     const data = await request<{ holdings?: Array<Record<string, unknown>> }>(
-      ENDPOINTS.portfolioHoldings
+      ENDPOINTS.portfolioHoldings,
+      { headers: adminHeaders(adminToken) }
     )
     return (data.holdings || []).map(normalizeHolding)
   } catch {
@@ -622,10 +629,11 @@ export async function getPortfolioHoldings(): Promise<PortfolioHolding[]> {
   }
 }
 
-export async function getPortfolioEquityCurve(): Promise<EquityCurvePoint[]> {
+export async function getPortfolioEquityCurve(adminToken?: string | null): Promise<EquityCurvePoint[]> {
   try {
     const data = await request<{ points?: EquityCurvePoint[] }>(
-      ENDPOINTS.portfolioEquityCurve
+      ENDPOINTS.portfolioEquityCurve,
+      { headers: adminHeaders(adminToken) }
     )
     return data.points || []
   } catch {
@@ -633,10 +641,11 @@ export async function getPortfolioEquityCurve(): Promise<EquityCurvePoint[]> {
   }
 }
 
-export async function getPortfolioReconciliationStatus(): Promise<ReconciliationStatus> {
+export async function getPortfolioReconciliationStatus(adminToken?: string | null): Promise<ReconciliationStatus> {
   try {
     const data = await request<Partial<ReconciliationStatus>>(
-      ENDPOINTS.portfolioReconciliation
+      ENDPOINTS.portfolioReconciliation,
+      { headers: adminHeaders(adminToken) }
     )
     return {
       positions: data.positions || [],
@@ -1496,4 +1505,69 @@ export async function importHistoricalTrades(
     return { ok: false, error: String(err) }
   }
 }
+
+// =====================================================
+// Manual Order Validation API Client (Phase 3)
+// DRY-RUN validation only. No live execution.
+// =====================================================
+
+/** GET /manual-order/status — admin-protected. */
+export async function getManualOrderStatus(
+  adminToken?: string | null
+): Promise<OmsResult<ManualOrderStatusResponse>> {
+  try {
+    const data = await request<ManualOrderStatusResponse>(ENDPOINTS.manualOrderStatus, {
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** POST /manual-order/validate — admin-protected. */
+export async function validateManualOrder(
+  body: ManualOrderValidateRequest,
+  adminToken?: string | null
+): Promise<OmsResult<ManualOrderTicket>> {
+  try {
+    const data = await request<ManualOrderTicket>(ENDPOINTS.manualOrderValidate, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: adminHeaders(adminToken),
+    })
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
+/** GET /manual-order/tickets — admin-protected. */
+export async function getManualOrderTickets(
+  adminToken?: string | null,
+  limit = 100
+): Promise<OmsResult<ManualOrderTicket[]>> {
+  try {
+    const data = await request<ManualOrderTicket[]>(
+      `${ENDPOINTS.manualOrderTickets}?limit=${limit}`,
+      { headers: adminHeaders(adminToken) }
+    )
+    return { ok: true, data }
+  } catch (err) {
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
+      if (err.status === 0) return { ok: false, backendUnavailable: true }
+    }
+    return { ok: false, error: String(err) }
+  }
+}
+
 
