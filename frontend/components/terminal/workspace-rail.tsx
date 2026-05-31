@@ -42,7 +42,7 @@ export function WorkspaceRail() {
 
   return (
     <nav
-      className="hidden md:flex w-rail shrink-0 h-full border-r border-border bg-bg-2 flex-col items-stretch"
+      className="hidden md:flex w-rail shrink-0 h-full border-r border-[#38bdf8]/10 bg-bg-2/80 backdrop-blur-md flex-col items-stretch glass-panel"
       aria-label="Workspace navigation"
     >
       <div className="h-topbar flex items-center justify-center border-b border-border bg-panel/40">

@@ -39,7 +39,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrains.variable} bg-bg`}
     >
-      <body className="bg-bg text-text antialiased overflow-hidden">
+      <body className="bg-bg text-text antialiased">
         {children}
       </body>
     </html>

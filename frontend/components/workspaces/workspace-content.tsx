@@ -27,6 +27,10 @@ import { BrokerAccountPanel } from '@/components/portfolio/broker-account-panel'
 import { MarketsWorkspace } from './markets-workspace'
 import { JournalWorkspace as ObservabilityJournalWorkspace } from './journal-workspace'
 import { OmsDashboard } from '@/components/oms/oms-dashboard'
+import { BrokerStatusCard } from '@/components/terminal/broker-status-card'
+import { AIAdvisoryCard } from '@/components/terminal/ai-advisory-card'
+import { PortfolioSummaryCard } from '@/components/terminal/portfolio-summary-card'
+import { OrderDryRunCard } from '@/components/terminal/order-dry-run-card'
 
 export function WorkspaceContent() {
   const active = useTerminalStore((s) => s.activeWorkspace)
@@ -120,7 +124,15 @@ function PortfolioWorkspace() {
   const quality = summary?.data_status === 'AVAILABLE' ? 'LIVE' : error ? 'BACKEND OFFLINE' : 'UNAVAILABLE'
   const source = summary?.source_of_truth || (summary?.trading_mode === 'LIVE' ? 'BROKER' : 'INTERNAL')
   return (
-    <div className="h-full min-h-0 overflow-auto p-3 space-y-3">
+    <div className="h-full min-h-0 overflow-auto p-3 space-y-4">
+      {/* 3D Glass Broker Terminal UI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <PortfolioSummaryCard />
+        <BrokerStatusCard />
+        <AIAdvisoryCard />
+        <OrderDryRunCard />
+      </div>
+
         <div className="flex items-center justify-between rounded-sm border border-border bg-panel/60 px-3 py-2">
           <div>
             <div className="text-xs font-semibold text-text">Portfolio Control</div>

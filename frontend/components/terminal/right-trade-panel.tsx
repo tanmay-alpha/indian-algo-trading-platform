@@ -19,7 +19,7 @@ export function RightTradePanel({ className, onClose }: { className?: string; on
   return (
     <aside
       aria-label="Symbol intelligence drawer"
-      className={cn("w-drawer shrink-0 h-full bg-bg-2 border-l border-border flex flex-col shadow-panel", className)}
+      className={cn("w-drawer shrink-0 h-full bg-bg-2/80 backdrop-blur-md border-l border-[#38bdf8]/10 flex flex-col shadow-panel glass-panel", className)}
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">

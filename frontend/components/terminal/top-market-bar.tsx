@@ -32,7 +32,7 @@ export function TopMarketBar() {
   }
 
   return (
-    <header className="flex h-topbar shrink-0 items-center border-b border-border bg-bg">
+    <header className="flex h-topbar shrink-0 items-center border-b border-[#38bdf8]/10 bg-bg/85 backdrop-blur-sm glass-panel">
       {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
         <div className="absolute left-1/2 top-[48px] -translate-x-1/2 z-40 rounded border border-info/20 bg-bg-2/95 px-4 py-1.5 text-[10px] font-mono text-info shadow-modal backdrop-blur-sm">
           <span className="mr-2 inline-block h-1 w-1 rounded-full bg-info animate-pulse-soft" />

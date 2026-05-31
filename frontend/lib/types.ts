@@ -924,9 +924,7 @@ export interface PendingSignal {
   created_at: string
 }
 
-export interface SignalHistoryItem extends PendingSignal {
-  // same as PendingSignal, all statuses included
-}
+export type SignalHistoryItem = PendingSignal
 
 // =====================================================
 // Broker Account Read-Only Types (Phase 22A)

@@ -67,7 +67,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
   return (
     <aside
       aria-label="Watchlist"
-      className={cn("w-watchlist shrink-0 h-full bg-bg-2 border-r border-border flex flex-col", className)}
+      className={cn("w-watchlist shrink-0 h-full bg-bg-2/80 backdrop-blur-md border-r border-[#38bdf8]/10 flex flex-col glass-panel", className)}
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
