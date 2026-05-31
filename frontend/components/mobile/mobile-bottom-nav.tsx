@@ -3,7 +3,7 @@
 import { Home, List, BarChart2, Briefcase, Brain } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type AppTab = 'home' | 'watchlist' | 'chart' | 'portfolio' | 'ai'
+export type AppTab = 'home' | 'watchlist' | 'chart' | 'portfolio' | 'ai' | 'system'
 
 const TABS: { id: AppTab; label: string; Icon: React.FC<{ className?: string }> }[] = [
   { id: 'home',      label: 'Home',      Icon: Home       },

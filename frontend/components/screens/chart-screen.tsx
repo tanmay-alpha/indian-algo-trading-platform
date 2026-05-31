@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { BarChart2, ChevronDown, Info, ShieldCheck } from 'lucide-react'
+import { BarChart2, ShieldCheck } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import { OrderTicket } from '@/components/terminal/order-ticket'
+import { MobilePage } from '@/components/mobile/mobile-page'
+import { SectionTitle } from '@/components/ui-maet/section-title'
+import { MobileActionSheet } from '@/components/mobile/mobile-action-sheet'
 
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '1D'
 const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1D']
@@ -19,6 +22,7 @@ export function ChartScreen() {
 
   const [timeframe, setTimeframe]         = useState<Timeframe>('15m')
   const [activeIndicators, setIndicators] = useState<Set<Indicator>>(new Set(['VWAP']))
+  const [showOrderSheet, setShowOrderSheet] = useState(false)
 
   const toggleIndicator = useCallback((ind: Indicator) => {
     setIndicators((prev) => {
@@ -36,164 +40,131 @@ export function ChartScreen() {
   const cleanSym = selectedSymbol?.split(':').pop()?.split('-')[0] ?? selectedSymbol
 
   return (
-    <div className="flex flex-col h-full">
+    <MobilePage className="flex flex-col h-full pb-24 space-y-4">
       {/* Symbol header */}
-      <div className="px-4 pt-3 pb-2 shrink-0">
+      <div className="shrink-0">
         {selectedSymbol ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-3 rounded-2xl">
             <div>
-              <div className="text-xl font-bold text-text tracking-wide leading-tight">
+              <h2 className="text-base font-extrabold text-text tracking-wide leading-tight">
                 {cleanSym}
+              </h2>
+              <div className="text-[10px] text-text-faint font-semibold uppercase tracking-wider mt-0.5">
+                {row?.exchange ?? 'NSE'} · {row?.name ?? 'INDEX / STOCK'}
               </div>
-              <div className="text-xs text-text-dim">{row?.exchange ?? 'NSE'} · {row?.name ?? ''}</div>
             </div>
             {ltp != null ? (
               <div className="text-right">
-                <div className={cn('text-2xl font-bold tabular-nums', isUp ? 'text-up' : 'text-down')}>
+                <div className={cn('text-lg font-bold font-mono tracking-tight leading-none', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
                   ₹{ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 {chgPct != null && (
-                  <div className={cn('text-sm font-medium tabular-nums', isUp ? 'text-up' : 'text-down')}>
+                  <div className={cn('text-[11px] font-bold font-mono mt-1', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
                     {isUp ? '+' : ''}{chgPct.toFixed(2)}%
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-right">
-                <div className="text-sm text-text-faint font-mono">No price data</div>
-                <div className="text-xs text-text-faint">Backend required</div>
+                <div className="text-[11px] text-text-faint font-semibold tracking-wider uppercase">No Real-Time Tick</div>
+                <div className="text-[10px] text-text-faint font-medium">Historical feeds only</div>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-sm text-text-dim">Select a symbol from Watchlist</div>
+          <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl text-center">
+            <span className="text-xs text-text-dim font-medium">Select a symbol from the Watchlist to view analysis</span>
+          </div>
         )}
       </div>
 
-      {/* Timeframe chips */}
-      <div className="px-4 pb-2 shrink-0 flex gap-2">
-        {TIMEFRAMES.map((tf) => (
-          <button
-            key={tf}
-            onClick={() => setTimeframe(tf)}
-            className={cn('filter-chip text-xs', timeframe === tf && 'active')}
-          >
-            {tf}
-          </button>
-        ))}
-      </div>
-
-      {/* Chart area */}
-      <div className="flex-1 mx-4 mb-2 rounded-2xl border border-border/60 bg-bg-card flex flex-col items-center justify-center relative overflow-hidden">
-        {!selectedSymbol ? (
-          <ChartEmptyState reason="select" />
-        ) : (
-          <ChartEmptyState reason="no-candles" symbol={cleanSym ?? ''} tf={timeframe} />
-        )}
-      </div>
-
-      {/* Indicator chips */}
-      <div className="px-4 pb-2 shrink-0 flex gap-2">
-        {INDICATORS.map((ind) => (
-          <button
-            key={ind}
-            onClick={() => toggleIndicator(ind)}
-            className={cn('filter-chip text-xs', activeIndicators.has(ind) && 'active')}
-          >
-            {ind}
-          </button>
-        ))}
-      </div>
-
-      {/* Sticky bottom — Dry-run action */}
-      <div className="px-4 pb-3 shrink-0">
-        <DryRunOrderButton symbol={selectedSymbol} />
-      </div>
-    </div>
-  )
-}
-
-function ChartEmptyState({ reason, symbol, tf }: { reason: 'select' | 'no-candles'; symbol?: string; tf?: string }) {
-  if (reason === 'select') {
-    return (
-      <div className="text-center px-6">
-        <BarChart2 className="w-10 h-10 text-text-faint mx-auto mb-3" />
-        <div className="text-sm font-semibold text-text-2">No symbol selected</div>
-        <div className="text-xs text-text-faint mt-1 leading-relaxed">
-          Go to Watchlist and tap a symbol to load the chart.
+      {/* Timeframe selector */}
+      <div className="shrink-0">
+        <SectionTitle title="Timeframe" />
+        <div className="flex gap-2">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={cn(
+                'px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+                timeframe === tf
+                  ? 'bg-[#22D3EE]/10 text-[#22D3EE] border-[#22D3EE]/30'
+                  : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+              )}
+              type="button"
+            >
+              {tf}
+            </button>
+          ))}
         </div>
       </div>
-    )
-  }
 
-  return (
-    <div className="text-center px-6">
-      <BarChart2 className="w-10 h-10 text-text-faint mx-auto mb-3" />
-      <div className="text-sm font-semibold text-text-2">Chart not yet connected</div>
-      <div className="text-xs text-text-faint mt-1 leading-relaxed">
-        Real candle data for <strong className="text-text">{symbol}</strong> ({tf}) will load when backend broker candle feed is available.
+      {/* Chart container */}
+      <div className="flex-1 rounded-2xl border border-white/[0.06] bg-white/[0.015] flex flex-col items-center justify-center relative overflow-hidden min-h-[180px] p-6 shadow-inner">
+        <BarChart2 className="w-10 h-10 text-text-faint mb-3 opacity-60 animate-pulse" />
+        <h3 className="text-xs font-bold text-text-dim uppercase tracking-wider">Historical Streams Locked</h3>
+        <p className="text-[11px] text-text-faint max-w-[240px] text-center mt-1.5 leading-normal font-medium">
+          Simulated candles for <span className="text-text font-bold">{cleanSym || 'INDEX'}</span> ({timeframe}) will connect once the broker feed poller resolves.
+        </p>
+        <span className="mt-3.5 text-[9px] font-mono font-bold tracking-wider uppercase bg-white/[0.04] border border-white/[0.08] text-text-faint px-2 py-0.5 rounded-full">
+          No live candles shown
+        </span>
       </div>
-      <div className="mt-3 text-[10px] font-mono text-text-faint bg-white/[0.03] border border-border/50 rounded-lg px-3 py-2">
-        No demo candles shown — real data only
+
+      {/* Indicators */}
+      <div className="shrink-0">
+        <SectionTitle title="Technical Indicators" />
+        <div className="flex flex-wrap gap-2">
+          {INDICATORS.map((ind) => {
+            const active = activeIndicators.has(ind)
+            return (
+              <button
+                key={ind}
+                onClick={() => toggleIndicator(ind)}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+                  active
+                    ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                    : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+                )}
+                type="button"
+              >
+                {ind}
+              </button>
+            )
+          })}
+        </div>
       </div>
-    </div>
-  )
-}
 
-function DryRunOrderButton({ symbol }: { symbol: string | null }) {
-  const [showSheet, setShowSheet] = useState(false)
+      {/* Action button */}
+      <div className="shrink-0 pt-2">
+        <button
+          onClick={() => selectedSymbol && setShowOrderSheet(true)}
+          disabled={!selectedSymbol}
+          className={cn(
+            "w-full h-12 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border transition-all duration-150",
+            selectedSymbol
+              ? "bg-[#F59E0B]/10 hover:bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B] shadow-[0_4px_16px_rgba(245,158,11,0.05)] active:scale-[0.985]"
+              : "bg-white/[0.02] border-white/[0.05] text-text-faint cursor-not-allowed opacity-50"
+          )}
+          type="button"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          {selectedSymbol ? `Validate Dry-Run Order · ${cleanSym}` : 'Select Symbol to Validate'}
+        </button>
+      </div>
 
-  if (!symbol) {
-    return (
-      <button disabled className="w-full maet-btn maet-btn-ghost opacity-40 h-12 rounded-xl text-sm">
-        <ShieldCheck className="w-4 h-4" />
-        Select symbol to validate dry-run
-      </button>
-    )
-  }
-
-  return (
-    <>
-      <button
-        onClick={() => setShowSheet(true)}
-        className="w-full h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold text-sm flex items-center justify-center gap-2 active:opacity-80 transition-opacity"
+      {/* Action sheet containing OrderTicket */}
+      <MobileActionSheet
+        isOpen={showOrderSheet}
+        onClose={() => setShowOrderSheet(false)}
+        title={`Dry-Run Order Ticket: ${cleanSym}`}
       >
-        <ShieldCheck className="w-4 h-4" />
-        Validate Dry-Run Order · {symbol.split(':').pop()?.split('-')[0]}
-      </button>
-
-      {showSheet && (
-        <DryRunOrderSheet symbol={symbol} onClose={() => setShowSheet(false)} />
-      )}
-    </>
-  )
-}
-
-function DryRunOrderSheet({ symbol, onClose }: { symbol: string; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#0B0F17] rounded-t-3xl border-t border-border/60 slide-in-bottom flex flex-col h-[75vh] overflow-hidden">
-        {/* Pull bar */}
-        <div className="pt-3 pb-2 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-border/60 mx-auto" />
-        </div>
-        
-        {/* Embed OrderTicket */}
-        <div className="flex-1 min-h-0">
+        <div className="h-[68vh]">
           <OrderTicket />
         </div>
-
-        {/* Close Button / Bottom spacing */}
-        <div className="p-3 border-t border-border/40 bg-bg/90 backdrop-blur-md shrink-0 flex gap-3">
-          <button
-            onClick={onClose}
-            className="w-full h-11 rounded-xl bg-white/5 border border-border/60 text-sm text-text-dim font-medium active:scale-95 transition-all"
-          >
-            Close Ticket
-          </button>
-        </div>
-      </div>
-    </div>
+      </MobileActionSheet>
+    </MobilePage>
   )
 }

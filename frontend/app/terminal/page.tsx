@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { TerminalLayout } from '@/components/terminal/terminal-layout'
+import { MobileAppShell } from '@/components/mobile/mobile-app-shell'
 import { MarketDataProvider } from '@/components/websocket/market-provider'
 import { useTerminalStore } from '@/store/terminal-store'
 import { fetchHealth, fetchIndices, fetchMarketWatch, fetchTerminalStatus } from '@/lib/api'
@@ -94,7 +94,7 @@ export default function TerminalPage() {
   return (
     <MarketDataProvider>
       <TerminalInitializer />
-      <TerminalLayout />
+      <MobileAppShell />
     </MarketDataProvider>
   )
 }

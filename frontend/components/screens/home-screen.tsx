@@ -2,11 +2,13 @@
 
 import {
   List, BarChart2, Briefcase, Brain,
-  ShieldCheck, Activity, ChevronRight, BookOpen
+  ChevronRight, BookOpen, Activity
 } from 'lucide-react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
-import { SafetyStatusCard } from '@/components/maet/safety-status-card'
+import { SafetyStatusCard } from '@/components/ui-maet/safety-status-card'
 import { MobilePage } from '@/components/mobile/mobile-page'
+import { PremiumCard } from '@/components/ui-maet/premium-card'
+import { SectionTitle } from '@/components/ui-maet/section-title'
 
 const QUICK_ACTIONS: {
   id: AppTab
@@ -21,32 +23,40 @@ const QUICK_ACTIONS: {
     label: 'Watchlist',
     sub: 'Track NSE/BSE instruments',
     Icon: List,
-    color: 'text-info',
-    bg: 'bg-info/10 border-info/20',
+    color: 'text-[#22D3EE]',
+    bg: 'bg-[#22D3EE]/10 border-[#22D3EE]/20',
   },
   {
     id: 'chart',
-    label: 'Chart',
-    sub: 'View candles & indicators',
+    label: 'Chart & Execution',
+    sub: 'Interactive visual trading',
     Icon: BarChart2,
-    color: 'text-up',
-    bg: 'bg-up/10 border-up/20',
+    color: 'text-[#16C784]',
+    bg: 'bg-[#16C784]/10 border-[#16C784]/20',
   },
   {
     id: 'portfolio',
-    label: 'Portfolio',
-    sub: 'Read-only broker snapshot',
+    label: 'Portfolio Snapshot',
+    sub: 'Read-only holdings & positions',
     Icon: Briefcase,
-    color: 'text-warn',
-    bg: 'bg-warn/10 border-warn/20',
+    color: 'text-[#F59E0B]',
+    bg: 'bg-[#F59E0B]/10 border-[#F59E0B]/20',
   },
   {
     id: 'ai',
-    label: 'AI Advisory',
-    sub: 'Research assistant, advisory only',
+    label: 'AI Advisory Desk',
+    sub: 'Co-pilot research advisory',
     Icon: Brain,
-    color: 'text-violet',
-    bg: 'bg-violet/10 border-violet/20',
+    color: 'text-[#A855F7]',
+    bg: 'bg-[#A855F7]/10 border-[#A855F7]/20',
+  },
+  {
+    id: 'system',
+    label: 'System Telemetry',
+    sub: 'Observability logs & diagnostics',
+    Icon: Activity,
+    color: 'text-[#38BDF8]',
+    bg: 'bg-[#38BDF8]/10 border-[#38BDF8]/20',
   },
 ]
 
@@ -56,14 +66,14 @@ interface HomeScreenProps {
 
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   return (
-    <MobilePage className="space-y-5">
+    <MobilePage className="space-y-6 pb-20">
       {/* Greeting */}
-      <div>
-        <h1 className="text-xl font-bold text-text leading-tight">
-          Good {getGreeting()}, Operator
+      <div className="pt-2">
+        <h1 className="text-xl font-extrabold text-text tracking-tight leading-tight">
+          Welcome back, Operator
         </h1>
-        <p className="text-sm text-text-dim mt-0.5">
-          MAET — Research & paper trading terminal
+        <p className="text-xs text-text-dim mt-1 font-medium">
+          Sandbox Trading &amp; Research Workspace
         </p>
       </div>
 
@@ -72,54 +82,44 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
       {/* Quick Actions */}
       <div>
-        <div className="section-label mb-3">Quick Access</div>
-        <div className="space-y-2">
+        <SectionTitle title="Terminal Modules" />
+        <div className="space-y-3">
           {QUICK_ACTIONS.map(({ id, label, sub, Icon, color, bg }) => (
-            <button
+            <PremiumCard
               key={id}
               onClick={() => onNavigate(id)}
-              className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-border/60 bg-bg-card hover:bg-bg-card-hover active:scale-[0.985] transition-all text-left"
+              className="flex items-center gap-3.5 p-3.5"
             >
               <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${bg}`}>
                 <Icon className={`w-5 h-5 ${color}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text">{label}</div>
-                <div className="text-xs text-text-dim truncate">{sub}</div>
+                <div className="text-xs font-bold text-text tracking-wide">{label}</div>
+                <div className="text-[11px] text-text-dim truncate mt-0.5 font-medium">{sub}</div>
               </div>
               <ChevronRight className="w-4 h-4 text-text-faint shrink-0" />
-            </button>
+            </PremiumCard>
           ))}
         </div>
       </div>
 
       {/* Product disclaimer */}
-      <div className="rounded-2xl border border-border/50 bg-bg-card p-4">
-        <div className="flex items-start gap-2.5">
-          <BookOpen className="w-4 h-4 text-text-faint mt-0.5 shrink-0" />
+      <PremiumCard className="border-white/[0.05] bg-white/[0.01] p-4">
+        <div className="flex items-start gap-3">
+          <BookOpen className="w-5 h-5 text-text-faint mt-0.5 shrink-0" />
           <div>
-            <div className="text-xs font-semibold text-text-2 mb-1">About this terminal</div>
-            <p className="text-xs text-text-faint leading-relaxed">
-              MAET is a research &amp; paper trading terminal for Indian NSE/BSE markets.
-              Live trading is permanently locked by backend build policy.
-              All order actions are dry-run validation only — no real broker orders are placed.
-              AI outputs are strictly advisory.
+            <div className="text-xs font-bold text-text mb-1 uppercase tracking-wider">About MAET Terminal</div>
+            <p className="text-2xs text-text-faint leading-relaxed font-medium">
+              MAET is an analytics, compliance, and dry-run execution assistant. Live order placement is permanently locked. Dry-run operations validate parameters locally and simulate fills against read-only market models.
             </p>
           </div>
         </div>
-      </div>
+      </PremiumCard>
 
       {/* Version note */}
-      <div className="text-center text-[11px] text-text-faint font-mono pb-4">
-        MAET Terminal v0.1.0 · PAPER MODE · LIVE EXECUTION LOCKED
+      <div className="text-center text-[10px] text-text-faint font-semibold tracking-wider uppercase">
+        MAET BUILD v0.1.0 · PAPER ONLY · LIVE LOCKED
       </div>
     </MobilePage>
   )
-}
-
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'morning'
-  if (h < 17) return 'afternoon'
-  return 'evening'
 }

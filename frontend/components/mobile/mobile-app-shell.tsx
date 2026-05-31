@@ -8,6 +8,7 @@ import { WatchlistScreen } from '@/components/screens/watchlist-screen'
 import { ChartScreen }     from '@/components/screens/chart-screen'
 import { PortfolioScreen } from '@/components/screens/portfolio-screen'
 import { AiScreen }        from '@/components/screens/ai-screen'
+import { SystemScreen }    from '@/components/screens/system-screen'
 
 const SCREEN_TITLES: Record<AppTab, string> = {
   home:      'MAET',
@@ -15,6 +16,7 @@ const SCREEN_TITLES: Record<AppTab, string> = {
   chart:     'Chart',
   portfolio: 'Portfolio',
   ai:        'AI Advisory',
+  system:    'Telemetry',
 }
 
 export function MobileAppShell() {
@@ -42,6 +44,9 @@ export function MobileAppShell() {
         </ScreenWrapper>
         <ScreenWrapper active={activeTab === 'ai'}>
           <AiScreen />
+        </ScreenWrapper>
+        <ScreenWrapper active={activeTab === 'system'}>
+          <SystemScreen />
         </ScreenWrapper>
       </div>
 
