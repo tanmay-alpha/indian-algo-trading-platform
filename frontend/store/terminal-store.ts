@@ -99,6 +99,8 @@ export interface TerminalState {
 
   // Selection
   selectedSymbol: string | null
+  selectedExchange: string | null
+  selectedInstrumentName: string | null
 
   // Watchlist
   watchlistGroupId: string
@@ -217,6 +219,7 @@ export interface TerminalActions {
   toggleShortcuts: (open?: boolean) => void
 
   setSelectedSymbol: (s: string | null) => void
+  setSelectedInstrument: (symbol: string, exchange: string, name?: string) => void
 
   setWatchlistGroup: (id: string) => void
   addToWatchlist: (symbol: string) => void
@@ -312,6 +315,8 @@ const initialState: TerminalState = {
   shortcutsOpen: false,
 
   selectedSymbol: null,
+  selectedExchange: null,
+  selectedInstrumentName: null,
 
   watchlistGroupId: 'nifty50',
   watchlistGroups: DEFAULT_WATCHLIST_GROUPS.map((g) => ({ ...g, symbols: [...g.symbols] })),
@@ -483,6 +488,17 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     if (s) {
       void get().fetchChartIndicators(s, chartTimeframe)
     }
+  },
+
+  setSelectedInstrument: (symbol, exchange, name) => {
+    set((state) => ({
+      selectedSymbol: symbol,
+      selectedExchange: exchange,
+      selectedInstrumentName: name ?? null,
+      backtestConfig: { ...state.backtestConfig, symbol },
+    }))
+    const { chartTimeframe } = get()
+    void get().fetchChartIndicators(symbol, chartTimeframe)
   },
 
   setWatchlistGroup: (id) => set({ watchlistGroupId: id }),
@@ -791,7 +807,8 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const key = indicatorKey(symbol, timeframe)
     let candles: Candle[] = []
     try {
-      const candleResponse = await fetchCandles(symbol, timeframe)
+      // Pass fetch=true so backend actively pulls historical candles from broker cache
+      const candleResponse = await fetchCandles(symbol, timeframe, true)
       candles = candleResponse.candles || []
     } catch {
       candles = []

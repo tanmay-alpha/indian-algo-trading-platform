@@ -17,9 +17,11 @@ import type { Timeframe } from '@/lib/types'
 const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1d']
 
 export function ChartScreen() {
-  const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
-  const currentTick    = useTerminalStore((s) => s.currentTick)
-  const marketWatch    = useTerminalStore((s) => s.marketWatch)
+  const selectedSymbol   = useTerminalStore((s) => s.selectedSymbol)
+  const selectedExchange  = useTerminalStore((s) => s.selectedExchange)
+  const selectedInstrumentName = useTerminalStore((s) => s.selectedInstrumentName)
+  const currentTick       = useTerminalStore((s) => s.currentTick)
+  const marketWatch       = useTerminalStore((s) => s.marketWatch)
 
   const chartTimeframe = useTerminalStore((s) => s.chartTimeframe)
   const setChartTimeframe = useTerminalStore((s) => s.setChartTimeframe)
@@ -55,6 +57,9 @@ export function ChartScreen() {
   const chgPct  = row?.change_pct ?? null
   const isUp    = (chgPct ?? 0) > 0
   const cleanSym = selectedSymbol?.split(':').pop()?.split('-')[0] ?? selectedSymbol
+  // Use store-level exchange/name (set on instrument select) or fall back to live tick data
+  const displayExchange = selectedExchange ?? row?.exchange ?? 'NSE'
+  const displayName     = selectedInstrumentName ?? row?.name ?? 'INDEX / STOCK'
 
   return (
     <MobilePage className="flex flex-col h-full pb-4 space-y-4">
@@ -67,7 +72,7 @@ export function ChartScreen() {
                 {cleanSym}
               </h2>
               <div className="text-[10px] text-text-faint font-semibold uppercase tracking-wider mt-0.5">
-                {row?.exchange ?? 'NSE'} · {row?.name ?? 'INDEX / STOCK'}
+                {displayExchange} · {displayName}
               </div>
             </div>
             {ltp != null ? (
@@ -122,6 +127,26 @@ export function ChartScreen() {
         {selectedSymbol ? (
           <div className="flex flex-col flex-grow min-h-0">
             <div className="flex-grow min-h-0 relative">
+              {candles.length === 0 && !indicatorLoading ? (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-3">
+                  <BarChart2 className="w-8 h-8 text-text-faint opacity-40" />
+                  <div>
+                    <div className="text-xs font-bold text-text-dim uppercase tracking-wider">No Candle Data</div>
+                    <div className="text-[11px] text-text-faint mt-1 leading-normal max-w-[200px]">
+                      {apiStatus === 'OFFLINE'
+                        ? 'Backend offline — cannot fetch historical data.'
+                        : `No ${chartTimeframe} candles found for ${cleanSym}. Market may be closed or data unavailable.`}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => selectedSymbol && void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                    className="text-[10px] px-3 py-1.5 rounded-lg bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-semibold hover:bg-[#22D3EE]/15 transition-all"
+                    type="button"
+                  >
+                    Retry Fetch
+                  </button>
+                </div>
+              ) : (
               <IndicatorChartShell
                 symbol={selectedSymbol}
                 timeframe={chartTimeframe}
@@ -140,6 +165,7 @@ export function ChartScreen() {
                     : undefined
                 }
               />
+              )}
             </div>
             {indicatorSubpanels.rsi && (
               <div className="shrink-0">
