@@ -8,6 +8,7 @@ import { useTerminalStore } from '@/store/terminal-store'
 import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
 import { InstrumentSearch } from './instrument-search'
+import { SafetyBadgeGroup } from './safety-badge'
 
 export function WatchlistPanel({ className, onClose }: { className?: string; onClose?: () => void }) {
   const groups = useTerminalStore((s) => s.watchlistGroups)
@@ -92,6 +93,10 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
               </button>
             )}
           </div>
+        </div>
+
+        <div className="mt-1.5 flex items-center justify-start gap-1 overflow-x-auto scrollbar-none select-none">
+          <SafetyBadgeGroup size="xs" className="flex-nowrap" />
         </div>
 
         <div className="mt-2 flex items-center gap-1.5">

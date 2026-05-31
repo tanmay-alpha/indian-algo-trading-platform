@@ -164,7 +164,7 @@ function HoldingsContent() {
         holding.data_status,
       ])}
       emptyTitle="No holdings connected"
-      emptyHint="Broker holdings sync has not returned data."
+      emptyHint="Broker holdings read-only reconciliation has not returned data."
     />
   )
 }

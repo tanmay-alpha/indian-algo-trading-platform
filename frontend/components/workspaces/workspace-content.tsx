@@ -172,11 +172,11 @@ function PortfolioWorkspace() {
             />
           </PortfolioPanel>
 
-          <PortfolioPanel title="Holdings" subtitle="Broker holdings snapshot when available">
+          <PortfolioPanel title="Holdings" subtitle="Broker holdings snapshot (Read-only reconciliation)">
             <PortfolioTable
               columns={['Symbol', 'Qty', 'Avg Price', 'LTP', 'Value', 'PnL', 'Status']}
               emptyTitle="No holdings connected"
-              emptyHint="Broker holdings sync has not returned data."
+              emptyHint="Broker holdings read-only reconciliation has not returned data."
               rows={holdings.map((holding) => [
                 holding.symbol,
                 String(holding.quantity),

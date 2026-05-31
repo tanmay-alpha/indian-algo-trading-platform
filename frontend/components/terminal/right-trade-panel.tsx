@@ -9,6 +9,7 @@ import { SymbolDetails } from './symbol-details'
 import { RiskPreview } from './risk-preview'
 import { StrategySignalPanel } from './strategy-signal-panel'
 import { JournalNotesPanel } from './journal-notes-panel'
+import { SafetyBadgeGroup } from './safety-badge'
 
 export function RightTradePanel({ className, onClose }: { className?: string; onClose?: () => void }) {
   const tab = useTerminalStore((s) => s.rightPanelTab)
@@ -35,6 +36,9 @@ export function RightTradePanel({ className, onClose }: { className?: string; on
               </button>
             )}
           </div>
+        </div>
+        <div className="mt-1.5 flex items-center justify-start gap-1 overflow-x-auto scrollbar-none select-none">
+          <SafetyBadgeGroup size="xs" className="flex-nowrap" />
         </div>
       </div>
       <div className="flex border-b border-border bg-bg h-8 shrink-0">

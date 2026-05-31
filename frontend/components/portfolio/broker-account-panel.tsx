@@ -136,7 +136,7 @@ export function BrokerAccountPanel() {
             className="inline-flex items-center gap-1 h-6 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[10px] font-mono hover:bg-info/20 disabled:opacity-40"
           >
             <RefreshCw className={cn('w-3 h-3', syncing && 'animate-spin')} />
-            {syncing ? 'Syncing…' : 'Sync'}
+            {syncing ? 'Reconciling…' : 'Reconcile (Read-only)'}
           </button>
           <button
             onClick={load}
@@ -267,7 +267,7 @@ function OverviewTab({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-text-dim" />
-            <span className="text-[11px] font-semibold text-text">Historical Data & P&L</span>
+            <span className="text-[11px] font-semibold text-text">Historical Data & P&L (Read-only)</span>
           </div>
           <button
             onClick={handleImport}
@@ -275,7 +275,7 @@ function OverviewTab({
             className="inline-flex items-center gap-1 h-5 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[9px] font-mono hover:bg-info/20 disabled:opacity-40"
           >
             <RefreshCw className={cn('w-2.5 h-2.5', importing && 'animate-spin')} />
-            {importing ? 'Importing...' : 'Import History'}
+            {importing ? 'Reconciling...' : 'Reconcile History (Read-only)'}
           </button>
         </div>
 
@@ -309,7 +309,7 @@ function OverviewTab({
 
       {/* Source + sync time */}
       <div className="text-[9px] font-mono text-text-faint opacity-60">
-        Source: {snapshot.source} · Synced: {new Date(snapshot.synced_at).toLocaleString()}
+        Source: {snapshot.source} · Read-only reconciliation status: {new Date(snapshot.synced_at).toLocaleString()}
       </div>
     </div>
   )

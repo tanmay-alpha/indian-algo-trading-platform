@@ -5,8 +5,10 @@ import {
   CandlestickChart,
   Command,
   Cpu,
+  Eye,
   Globe2,
   Keyboard,
+  Lock,
   Notebook,
   ShieldCheck,
 } from 'lucide-react'
@@ -86,6 +88,34 @@ export function WorkspaceRail() {
       </ul>
 
       <div className="border-t border-border py-2 flex flex-col gap-1">
+        {/* Safety Indicators */}
+        <div className="flex flex-col items-center gap-1.5 py-2 border-b border-border/40">
+          <div 
+            className="w-7 h-7 rounded flex items-center justify-center bg-locked/10 border border-locked/30 text-locked cursor-help"
+            title="LIVE LOCKED: Hardened code-level lock enabled. Real order execution is physically restricted."
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+          </div>
+          <div 
+            className="w-7 h-7 rounded flex items-center justify-center bg-info/10 border border-info/30 text-info cursor-help"
+            title="PAPER / READ ONLY: Simulated execution and read-only broker data sync."
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </div>
+          <div 
+            className="w-7 h-7 rounded flex items-center justify-center bg-[#a855f7]/10 border border-[#a855f7]/30 text-[#c084fc] cursor-help"
+            title="BROKER MUTATION DISABLED: Broker integrations are read-only; mutation actions are bypassed."
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </div>
+          <div 
+            className="w-7 h-7 rounded flex items-center justify-center bg-warn/10 border border-warn/30 text-warn cursor-help"
+            title="AI ADVISORY ONLY: AI models act in a passive advisory capacity. No automated executions."
+          >
+            <Cpu className="w-3.5 h-3.5" />
+          </div>
+        </div>
+
         <button
           onClick={() => togglePalette(true)}
           className="mx-1 h-10 rounded-md flex flex-col items-center justify-center gap-0.5 text-text-dim hover:text-info hover:bg-white/[0.04]"

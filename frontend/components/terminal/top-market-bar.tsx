@@ -9,6 +9,7 @@ import { useIstClock } from '@/lib/use-ist-clock'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
 import { ChartLayoutSelector } from './chart-layout-selector'
 import { OperatorStatusStrip } from './operator-status-strip'
+import { SafetyBadgeGroup } from './safety-badge'
 import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 
 export function TopMarketBar() {
@@ -78,10 +79,7 @@ export function TopMarketBar() {
           {istTime || '--:--:--'} IST
         </div>
         <SessionBadge session={session} />
-        <div className="inline-flex items-center gap-1.5 rounded border border-border bg-panel px-2 py-0.5 text-[9px] font-mono text-paper">
-          <LockKeyhole className="h-3 w-3" />
-          {mode === 'PAPER' ? 'PAPER LOCKED' : 'LIVE GATED'}
-        </div>
+        <SafetyBadgeGroup />
       </div>
     </header>
   )
