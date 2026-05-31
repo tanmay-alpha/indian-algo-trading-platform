@@ -1,37 +1,54 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { BarChart2, ShieldCheck } from 'lucide-react'
-import { useTerminalStore } from '@/store/terminal-store'
+import { useTerminalStore, indicatorKey } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import { OrderTicket } from '@/components/terminal/order-ticket'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { SectionTitle } from '@/components/ui-maet/section-title'
 import { MobileActionSheet } from '@/components/mobile/mobile-action-sheet'
+import { mapLineSeries, mapMacdSeries } from '@/lib/indicator-series'
+import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
+import { RsiPanel } from '@/components/chart/rsi-panel'
+import { MacdPanel } from '@/components/chart/macd-panel'
+import type { Timeframe } from '@/lib/types'
 
-type Timeframe = '1m' | '5m' | '15m' | '1h' | '1D'
-const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1D']
-
-type Indicator = 'VWAP' | 'RSI' | 'EMA' | 'MACD'
-const INDICATORS: Indicator[] = ['VWAP', 'RSI', 'EMA', 'MACD']
+const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1d']
 
 export function ChartScreen() {
   const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
   const currentTick    = useTerminalStore((s) => s.currentTick)
   const marketWatch    = useTerminalStore((s) => s.marketWatch)
 
-  const [timeframe, setTimeframe]         = useState<Timeframe>('15m')
-  const [activeIndicators, setIndicators] = useState<Set<Indicator>>(new Set(['VWAP']))
+  const chartTimeframe = useTerminalStore((s) => s.chartTimeframe)
+  const setChartTimeframe = useTerminalStore((s) => s.setChartTimeframe)
+  const chartOverlays = useTerminalStore((s) => s.chartOverlays)
+  const indicatorSubpanels = useTerminalStore((s) => s.indicatorSubpanels)
+  const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
+  const toggleIndicatorSubpanel = useTerminalStore((s) => s.toggleIndicatorSubpanel)
+  const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
+  const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
+  const indicatorLoading = useTerminalStore((s) => s.indicatorChartLoading)
+  const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const backendWakeState = useTerminalStore((s) => s.backendWakeState)
+  const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
+
   const [showOrderSheet, setShowOrderSheet] = useState(false)
 
-  const toggleIndicator = useCallback((ind: Indicator) => {
-    setIndicators((prev) => {
-      const next = new Set(prev)
-      if (next.has(ind)) next.delete(ind)
-      else next.add(ind)
-      return next
-    })
-  }, [])
+  // Fetch candles on symbol / timeframe change
+  useEffect(() => {
+    if (selectedSymbol) {
+      void fetchChartIndicators(selectedSymbol, chartTimeframe)
+    }
+  }, [selectedSymbol, chartTimeframe, fetchChartIndicators])
+
+  const chartKey = selectedSymbol ? indicatorKey(selectedSymbol, chartTimeframe) : null
+  const indicatorResults = chartKey ? indicatorResultsByKey[chartKey] : undefined
+  const candles = chartKey ? chartCandlesByKey[chartKey] || [] : []
+  const rsiPoints = mapLineSeries(candles, indicatorResults?.results.rsi)
+  const macdPoints = mapMacdSeries(candles, indicatorResults?.results.macd)
 
   const row     = selectedSymbol ? marketWatch[selectedSymbol] : null
   const ltp     = row?.ltp ?? currentTick?.ltp ?? null
@@ -40,7 +57,7 @@ export function ChartScreen() {
   const cleanSym = selectedSymbol?.split(':').pop()?.split('-')[0] ?? selectedSymbol
 
   return (
-    <MobilePage className="flex flex-col h-full pb-24 space-y-4">
+    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
       {/* Symbol header */}
       <div className="shrink-0">
         {selectedSymbol ? (
@@ -85,10 +102,10 @@ export function ChartScreen() {
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf}
-              onClick={() => setTimeframe(tf)}
+              onClick={() => setChartTimeframe(tf)}
               className={cn(
                 'px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-                timeframe === tf
+                chartTimeframe === tf
                   ? 'bg-[#22D3EE]/10 text-[#22D3EE] border-[#22D3EE]/30'
                   : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
               )}
@@ -101,39 +118,124 @@ export function ChartScreen() {
       </div>
 
       {/* Chart container */}
-      <div className="flex-1 rounded-2xl border border-white/[0.06] bg-white/[0.015] flex flex-col items-center justify-center relative overflow-hidden min-h-[180px] p-6 shadow-inner">
-        <BarChart2 className="w-10 h-10 text-text-faint mb-3 opacity-60 animate-pulse" />
-        <h3 className="text-xs font-bold text-text-dim uppercase tracking-wider">Historical Streams Locked</h3>
-        <p className="text-[11px] text-text-faint max-w-[240px] text-center mt-1.5 leading-normal font-medium">
-          Simulated candles for <span className="text-text font-bold">{cleanSym || 'INDEX'}</span> ({timeframe}) will connect once the broker feed poller resolves.
-        </p>
-        <span className="mt-3.5 text-[9px] font-mono font-bold tracking-wider uppercase bg-white/[0.04] border border-white/[0.08] text-text-faint px-2 py-0.5 rounded-full">
-          No live candles shown
-        </span>
+      <div className="flex-grow min-h-[320px] rounded-2xl border border-white/[0.06] bg-[#070b12] flex flex-col relative overflow-hidden shadow-inner">
+        {selectedSymbol ? (
+          <div className="flex flex-col flex-grow min-h-0">
+            <div className="flex-grow min-h-0 relative">
+              <IndicatorChartShell
+                symbol={selectedSymbol}
+                timeframe={chartTimeframe}
+                candles={candles}
+                result={indicatorResults}
+                overlays={chartOverlays}
+                signalMarkers={chartSignalMarkers}
+                apiStatus={apiStatus}
+                backendWakeState={backendWakeState}
+                isFetching={indicatorLoading}
+                onFetchCandles={
+                  selectedSymbol
+                    ? () => {
+                        void fetchChartIndicators(selectedSymbol, chartTimeframe)
+                      }
+                    : undefined
+                }
+              />
+            </div>
+            {indicatorSubpanels.rsi && (
+              <div className="shrink-0">
+                <RsiPanel points={rsiPoints} />
+              </div>
+            )}
+            {indicatorSubpanels.macd && (
+              <div className="shrink-0">
+                <MacdPanel points={macdPoints} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+            <BarChart2 className="w-10 h-10 text-text-faint mb-3 opacity-60" />
+            <h3 className="text-xs font-bold text-text-dim uppercase tracking-wider">No Symbol Selected</h3>
+            <p className="text-[11px] text-text-faint max-w-[200px] mt-1.5 leading-normal font-medium">
+              Select a symbol from the Watchlist tab to view candles and technical indicators.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Indicators */}
       <div className="shrink-0">
         <SectionTitle title="Technical Indicators" />
         <div className="flex flex-wrap gap-2">
-          {INDICATORS.map((ind) => {
-            const active = activeIndicators.has(ind)
-            return (
-              <button
-                key={ind}
-                onClick={() => toggleIndicator(ind)}
-                className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-                  active
-                    ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                    : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-                )}
-                type="button"
-              >
-                {ind}
-              </button>
-            )
-          })}
+          {/* EMA */}
+          <button
+            onClick={() => toggleChartOverlay('ema')}
+            className={cn(
+              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+              chartOverlays.ema
+                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+            )}
+            type="button"
+          >
+            EMA
+          </button>
+
+          {/* VWAP */}
+          <button
+            onClick={() => toggleChartOverlay('vwap')}
+            className={cn(
+              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+              chartOverlays.vwap
+                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+            )}
+            type="button"
+          >
+            VWAP
+          </button>
+
+          {/* Bollinger Bands */}
+          <button
+            onClick={() => toggleChartOverlay('bollinger_bands')}
+            className={cn(
+              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+              chartOverlays.bollinger_bands
+                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+            )}
+            type="button"
+          >
+            Bollinger Bands
+          </button>
+
+          {/* RSI */}
+          <button
+            onClick={() => toggleIndicatorSubpanel('rsi')}
+            className={cn(
+              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+              indicatorSubpanels.rsi
+                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+            )}
+            type="button"
+          >
+            RSI
+          </button>
+
+          {/* MACD */}
+          <button
+            onClick={() => toggleIndicatorSubpanel('macd')}
+            className={cn(
+              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
+              indicatorSubpanels.macd
+                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
+                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
+            )}
+            type="button"
+          >
+            MACD
+          </button>
         </div>
       </div>
 

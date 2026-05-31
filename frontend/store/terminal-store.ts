@@ -1249,7 +1249,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     if (persistentWatchlistId == null) return
 
     try {
-      const result = await addWatchlistItem(persistentWatchlistId, symbol, exchange)
+      const result = await addWatchlistItem(persistentWatchlistId, symbol, exchange, get().omsAdminToken)
       if (!result.ok && 'adminRequired' in result && result.adminRequired) {
         set({ watchlistAdminRequired: true })
       } else if (!result.ok && 'backendUnavailable' in result) {
@@ -1273,7 +1273,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     if (persistentWatchlistId == null) return
 
     try {
-      const result = await removeWatchlistItem(persistentWatchlistId, symbol)
+      const result = await removeWatchlistItem(persistentWatchlistId, symbol, get().omsAdminToken)
       if (!result.ok && 'adminRequired' in result && result.adminRequired) {
         set({ watchlistAdminRequired: true })
       } else if (!result.ok && 'backendUnavailable' in result) {

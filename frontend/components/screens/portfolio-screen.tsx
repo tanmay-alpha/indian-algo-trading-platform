@@ -12,12 +12,18 @@ import { MetricCard } from '@/components/ui-maet/metric-card'
 import { SectionTitle } from '@/components/ui-maet/section-title'
 import { EmptyState } from '@/components/ui-maet/empty-state'
 import { MobilePage } from '@/components/mobile/mobile-page'
+import { API_URL } from '@/lib/constants'
 
 export function PortfolioScreen() {
   const adminToken = useTerminalStore((s) => s.omsAdminToken)
   const setOmsAdminToken = useTerminalStore((s) => s.setOmsAdminToken)
   const clearOmsAdminToken = useTerminalStore((s) => s.clearOmsAdminToken)
   const refreshPortfolio = useTerminalStore((s) => s.refreshPortfolio)
+
+  // Connection info for diagnostics
+  const backendReachable = useTerminalStore((s) => s.backendReachable)
+  const connectionError = useTerminalStore((s) => s.connectionError)
+  const lastStatusError = useTerminalStore((s) => s.lastStatusError)
 
   const [tokenInput, setTokenInput] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -124,6 +130,37 @@ export function PortfolioScreen() {
             </button>
           </div>
 
+          {/* Connection Diagnostics (rendered when offline or when last fetch failed) */}
+          {(!backendReachable || connectionError || lastStatusError) && (
+            <div className="mt-4 p-3 rounded-2xl bg-[#EA3943]/5 border border-[#EA3943]/15 space-y-1.5 text-[10px] font-mono text-text-dim">
+              <div className="flex items-center justify-between border-b border-white/[0.03] pb-1 mb-1">
+                <span className="font-bold text-text text-[9px] uppercase">Connectivity Diagnostics</span>
+                <span className={cn(
+                  "px-1.5 py-0.25 rounded text-[8px] font-bold tracking-wider",
+                  backendReachable ? "bg-[#16C784]/20 text-[#16C784]" : "bg-[#EA3943]/20 text-[#EA3943]"
+                )}>
+                  {backendReachable ? "ONLINE" : "OFFLINE"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Target API:</span>
+                <span className="text-text truncate max-w-[160px]">{API_URL || 'Not Configured'}</span>
+              </div>
+              {connectionError && (
+                <div className="border-t border-white/[0.03] pt-1 mt-1">
+                  <span className="font-semibold text-text text-[9px] block">Connection Error:</span>
+                  <span className="text-[#EA3943] text-[9px] break-all">{connectionError}</span>
+                </div>
+              )}
+              {lastStatusError && !connectionError && (
+                <div className="border-t border-white/[0.03] pt-1 mt-1">
+                  <span className="font-semibold text-text text-[9px] block">Last Health Error:</span>
+                  <span className="text-[#EA3943] text-[9px] break-all">{lastStatusError}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 pt-5 border-t border-white/[0.06]">
             <div className="flex items-center gap-2 text-[#22D3EE] font-bold uppercase tracking-wider text-[10px] mb-3">
               <ShieldCheck className="h-4 w-4" />
@@ -142,7 +179,7 @@ export function PortfolioScreen() {
 
   // Active / Unlocked state
   return (
-    <MobilePage className="flex flex-col h-full pb-24 space-y-4">
+    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
       {/* Portfolio Header stats */}
       <div className="shrink-0 flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl">
         <div>

@@ -5,7 +5,7 @@ import { MobilePage } from '@/components/mobile/mobile-page'
 
 export function SystemScreen() {
   return (
-    <MobilePage className="flex flex-col h-full pb-24 space-y-4">
+    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
       {/* Symbol header */}
       <div className="shrink-0">
         <div className="flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-3.5 rounded-2xl">

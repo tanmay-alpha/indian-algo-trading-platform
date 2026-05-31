@@ -48,7 +48,7 @@ export function AiScreen() {
   }, [messages, isTyping])
 
   return (
-    <MobilePage className="flex flex-col h-full pb-24 space-y-4">
+    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
       {/* Sub tabs header */}
       <div className="shrink-0 flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-2 rounded-2xl">
         <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/[0.04] w-2/3">

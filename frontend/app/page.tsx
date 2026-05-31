@@ -134,30 +134,35 @@ export default function LandingPage() {
         </div>
 
         {/* Live Index Ticker Strip */}
-        <div className="max-w-3xl mx-auto mb-16 p-[1px] rounded-2xl bg-gradient-to-r from-transparent via-[#38bdf8]/25 to-transparent">
-          <div className="bg-[#0b1017]/85 backdrop-blur-md py-3.5 px-6 rounded-2xl flex flex-wrap items-center justify-around gap-4 text-xs font-mono border border-white/[0.04]">
-            <div className="flex items-center gap-2 select-none">
-              <span className="text-text-dim uppercase tracking-wider text-[10px]">NIFTY 50</span>
-              <span className="font-semibold tabular-nums text-text">{niftyPrice.toFixed(2)}</span>
-              <span className={`font-semibold tabular-nums ${niftyChange >= 0 ? 'text-up' : 'text-down'}`}>
-                {niftyChange >= 0 ? '+' : ''}{niftyChange.toFixed(2)} ({niftyPercent.toFixed(2)}%)
-              </span>
+        <div className="max-w-3xl mx-auto mb-16 space-y-3">
+          <div className="p-[1px] rounded-2xl bg-gradient-to-r from-transparent via-[#38bdf8]/25 to-transparent">
+            <div className="bg-[#0b1017]/85 backdrop-blur-md py-3.5 px-6 rounded-2xl flex flex-wrap items-center justify-around gap-4 text-xs font-mono border border-white/[0.04]">
+              <div className="flex items-center gap-2 select-none">
+                <span className="text-text-dim uppercase tracking-wider text-[10px]">NIFTY 50</span>
+                <span className="font-semibold tabular-nums text-text">{niftyPrice.toFixed(2)}</span>
+                <span className={`font-semibold tabular-nums ${niftyChange >= 0 ? 'text-up' : 'text-down'}`}>
+                  {niftyChange >= 0 ? '+' : ''}{niftyChange.toFixed(2)} ({niftyPercent.toFixed(2)}%)
+                </span>
+              </div>
+              <div className="h-4 w-[1px] bg-white/[0.08] hidden sm:block" />
+              <div className="flex items-center gap-2 select-none">
+                <span className="text-text-dim uppercase tracking-wider text-[10px]">RELIANCE</span>
+                <span className="font-semibold tabular-nums text-text">{reliancePrice.toFixed(2)}</span>
+                <span className={`font-semibold tabular-nums ${relianceChange >= 0 ? 'text-up' : 'text-down'}`}>
+                  {relianceChange >= 0 ? '+' : ''}{relianceChange.toFixed(2)}
+                </span>
+              </div>
+              <div className="h-4 w-[1px] bg-white/[0.08] hidden md:block" />
+              <div className="flex items-center gap-2 select-none">
+                <span className="text-text-dim uppercase tracking-wider text-[10px]">NSE FEED</span>
+                <span className="text-up font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse" /> DEMO FEED
+                </span>
+              </div>
             </div>
-            <div className="h-4 w-[1px] bg-white/[0.08] hidden sm:block" />
-            <div className="flex items-center gap-2 select-none">
-              <span className="text-text-dim uppercase tracking-wider text-[10px]">RELIANCE</span>
-              <span className="font-semibold tabular-nums text-text">{reliancePrice.toFixed(2)}</span>
-              <span className={`font-semibold tabular-nums ${relianceChange >= 0 ? 'text-up' : 'text-down'}`}>
-                {relianceChange >= 0 ? '+' : ''}{relianceChange.toFixed(2)}
-              </span>
-            </div>
-            <div className="h-4 w-[1px] bg-white/[0.08] hidden md:block" />
-            <div className="flex items-center gap-2 select-none">
-              <span className="text-text-dim uppercase tracking-wider text-[10px]">NSE FEED</span>
-              <span className="text-up font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse" /> LIVE SYNC
-              </span>
-            </div>
+          </div>
+          <div className="text-center text-[10px] font-mono text-text-dim px-4 leading-normal">
+            ⚠️ <strong>Visual demo — not live market data.</strong> MAET is currently in research/paper mode. Live execution is locked.
           </div>
         </div>
 

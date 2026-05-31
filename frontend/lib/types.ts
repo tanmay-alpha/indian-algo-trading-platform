@@ -780,7 +780,7 @@ export interface WsEnvelope<T = unknown> {
 }
 
 // ----- Chart timeframe -----
-export type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '1d'
+export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1d'
 
 // =====================================================
 // OMS / Order Blotter Types (Phase 18L)
@@ -1059,4 +1059,33 @@ export interface ManualOrderTicket {
   creates_fill: boolean
   creates_broker_order: boolean
 }
+
+// =====================================================
+// Phase 6 watchlists and candles
+// =====================================================
+
+export interface InstrumentSearchResult {
+  symbol: string
+  name: string
+  exchange: string
+  token?: string
+  instrument_token?: string
+  segment?: string
+}
+
+export type WatchlistDataStatus = 'loading' | 'error' | 'offline' | 'empty' | 'data'
+
+export interface WatchlistItem {
+  symbol: string
+  name: string
+  exchange: string
+  ltp?: number | null
+  change?: number | null
+  changePercent?: number | null
+  volume?: number | null
+  dataStatus?: WatchlistDataStatus
+}
+
+export type ChartDataState = 'loading' | 'error' | 'offline' | 'empty' | 'data'
+
 

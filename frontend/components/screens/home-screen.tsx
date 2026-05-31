@@ -66,7 +66,7 @@ interface HomeScreenProps {
 
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   return (
-    <MobilePage className="space-y-6 pb-20">
+    <MobilePage className="space-y-6 pb-4">
       {/* Greeting */}
       <div className="pt-2">
         <h1 className="text-xl font-extrabold text-text tracking-tight leading-tight">

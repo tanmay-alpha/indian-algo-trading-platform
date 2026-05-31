@@ -18,6 +18,7 @@ function TerminalInitializer() {
     ingestMarketWatchRows,
     ingestEvent,
     refreshPortfolio,
+    fetchPersistentWatchlist,
   } = useTerminalStore()
 
   useEffect(() => {
@@ -70,6 +71,12 @@ function TerminalInitializer() {
         // Indices endpoint can be unavailable; UI shows empty values.
       }
 
+      try {
+        await fetchPersistentWatchlist()
+      } catch {
+        // Watchlist fetch can fail gracefully
+      }
+
       await refreshPortfolio()
     }
 
@@ -85,6 +92,7 @@ function TerminalInitializer() {
     setPortfolio,
     setStatusSource,
     setTerminalStatus,
+    fetchPersistentWatchlist,
   ])
 
   return null

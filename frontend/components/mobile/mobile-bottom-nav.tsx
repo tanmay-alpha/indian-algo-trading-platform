@@ -21,7 +21,7 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
   return (
     <nav
-      className="bottom-nav fixed bottom-0 left-0 right-0 flex items-stretch justify-around px-1 z-40 shrink-0"
+      className="bottom-nav flex items-stretch justify-around px-1 z-40 shrink-0"
       aria-label="Main navigation"
     >
       {TABS.map(({ id, label, Icon }) => {
