@@ -3,6 +3,7 @@
 import { useTerminalStore } from '@/store/terminal-store'
 import { ShieldCheck, Wifi, WifiOff, Activity } from 'lucide-react'
 import { cn, getNseMarketSession } from '@/lib/utils'
+import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 
 interface MobileTopHeaderProps {
   title?: string
@@ -70,7 +71,7 @@ export function MobileTopHeader({ title }: MobileTopHeaderProps) {
             : 'bg-text-faint/10 text-text-dim border border-border'
         )}>
           {isConnected
-            ? <><Wifi className="w-3 h-3" /> WS</>
+            ? <><LivePulseDot color="emerald" size="sm" className="mr-1 inline-block shrink-0" /><Wifi className="w-3 h-3" /> WS</>
             : <><WifiOff className="w-3 h-3" /> OFF</>
           }
         </div>

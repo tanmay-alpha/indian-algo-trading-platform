@@ -3,6 +3,7 @@
 import { ShieldCheck, Lock, Eye, Brain } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn, getNseMarketSession } from '@/lib/utils'
+import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 
 export function SafetyStatusCard() {
   const wsStatus       = useTerminalStore((s) => s.wsStatus)
@@ -36,7 +37,10 @@ export function SafetyStatusCard() {
           <Lock className="w-4 h-4 text-[#EA3943] shrink-0" />
           <div>
             <div className="text-[10px] text-text-dim leading-none uppercase">Execution</div>
-            <div className="text-xs font-bold text-[#EA3943] mt-0.5">LOCKED</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <LivePulseDot color="rose" size="sm" />
+              <span className="text-xs font-bold text-[#EA3943]">LOCKED</span>
+            </div>
           </div>
         </div>
         
@@ -44,7 +48,10 @@ export function SafetyStatusCard() {
           <ShieldCheck className="w-4 h-4 text-[#22D3EE] shrink-0" />
           <div>
             <div className="text-[10px] text-text-dim leading-none uppercase">Trading Mode</div>
-            <div className="text-xs font-bold text-[#22D3EE] mt-0.5">PAPER MODE</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <LivePulseDot color="emerald" size="sm" />
+              <span className="text-xs font-bold text-[#22D3EE]">PAPER MODE</span>
+            </div>
           </div>
         </div>
 
@@ -52,7 +59,10 @@ export function SafetyStatusCard() {
           <Eye className="w-4 h-4 text-[#3B82F6] shrink-0" />
           <div>
             <div className="text-[10px] text-text-dim leading-none uppercase">Broker Sync</div>
-            <div className="text-xs font-bold text-[#3B82F6] mt-0.5">READ ONLY</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <LivePulseDot color="blue" size="sm" />
+              <span className="text-xs font-bold text-[#3B82F6]">READ ONLY</span>
+            </div>
           </div>
         </div>
 
@@ -60,7 +70,10 @@ export function SafetyStatusCard() {
           <Brain className="w-4 h-4 text-[#F59E0B] shrink-0" />
           <div>
             <div className="text-[10px] text-text-dim leading-none uppercase">AI Copilot</div>
-            <div className="text-xs font-bold text-[#F59E0B] mt-0.5">ADVISORY ONLY</div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <LivePulseDot color="amber" size="sm" />
+              <span className="text-xs font-bold text-[#F59E0B]">ADVISORY ONLY</span>
+            </div>
           </div>
         </div>
       </div>

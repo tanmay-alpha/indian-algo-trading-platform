@@ -9,6 +9,7 @@ import { SafetyStatusCard } from '@/components/ui-maet/safety-status-card'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { PremiumCard } from '@/components/ui-maet/premium-card'
 import { SectionTitle } from '@/components/ui-maet/section-title'
+import { TiltCard } from '@/components/effects/tilt-card'
 
 const QUICK_ACTIONS: {
   id: AppTab
@@ -85,20 +86,21 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         <SectionTitle title="Terminal Modules" />
         <div className="space-y-3">
           {QUICK_ACTIONS.map(({ id, label, sub, Icon, color, bg }) => (
-            <PremiumCard
-              key={id}
-              onClick={() => onNavigate(id)}
-              className="flex items-center gap-3.5 p-3.5"
-            >
-              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${bg}`}>
-                <Icon className={`w-5 h-5 ${color}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-text tracking-wide">{label}</div>
-                <div className="text-[11px] text-text-dim truncate mt-0.5 font-medium">{sub}</div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-text-faint shrink-0" />
-            </PremiumCard>
+            <TiltCard key={id} intensity={5}>
+              <PremiumCard
+                onClick={() => onNavigate(id)}
+                className="flex items-center gap-3.5 p-3.5"
+              >
+                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${bg}`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-text tracking-wide">{label}</div>
+                  <div className="text-[11px] text-text-dim truncate mt-0.5 font-medium">{sub}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-text-faint shrink-0" />
+              </PremiumCard>
+            </TiltCard>
           ))}
         </div>
       </div>

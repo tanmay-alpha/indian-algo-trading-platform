@@ -10,6 +10,7 @@ import { StockRow } from '@/components/ui-maet/stock-row'
 import { EmptyState } from '@/components/ui-maet/empty-state'
 import { SectionTitle } from '@/components/ui-maet/section-title'
 import { searchInstruments } from '@/lib/api'
+import { ShimmerSkeleton } from '@/components/effects/shimmer-skeleton'
 
 const FILTERS = ['All', 'NSE', 'BSE'] as const
 type Filter = typeof FILTERS[number]
@@ -232,9 +233,22 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
 
       {/* Loading state */}
       {watchlistLoading && (
-        <div className="flex items-center justify-center py-8 text-text-dim gap-2 text-xs font-semibold">
-          <Loader2 className="w-4 h-4 animate-spin text-[#22D3EE]" />
-          Loading watchlist from server…
+        <div className="mx-4 space-y-2.5 py-2 flex-1 overflow-y-auto">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="p-3.5 rounded-xl border border-white/[0.04] bg-white/[0.015] flex justify-between items-center">
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center gap-2">
+                  <ShimmerSkeleton width="w-24" height="h-3.5" />
+                  <ShimmerSkeleton width="w-8" height="h-3" />
+                </div>
+                <ShimmerSkeleton width="w-32" height="h-2.5" />
+              </div>
+              <div className="text-right space-y-2 shrink-0">
+                <ShimmerSkeleton width="w-16" height="h-3.5" />
+                <ShimmerSkeleton width="w-12" height="h-2.5" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -246,9 +260,22 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
           {showSearchResults ? (
             <div className="space-y-2">
               {isSearching && (
-                <div className="flex items-center justify-center py-8 text-text-dim gap-2 text-xs font-semibold">
-                  <Loader2 className="w-4 h-4 animate-spin text-[#22D3EE]" />
-                  Searching instrument universe...
+                <div className="space-y-2.5 py-1">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="p-3.5 rounded-xl border border-white/[0.04] bg-white/[0.015] flex justify-between items-center">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <ShimmerSkeleton width="w-24" height="h-3.5" />
+                          <ShimmerSkeleton width="w-8" height="h-3" />
+                        </div>
+                        <ShimmerSkeleton width="w-32" height="h-2.5" />
+                      </div>
+                      <div className="text-right space-y-2 shrink-0">
+                        <ShimmerSkeleton width="w-16" height="h-3.5" />
+                        <ShimmerSkeleton width="w-12" height="h-2.5" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

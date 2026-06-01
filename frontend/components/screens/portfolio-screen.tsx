@@ -13,6 +13,7 @@ import { SectionTitle } from '@/components/ui-maet/section-title'
 import { EmptyState } from '@/components/ui-maet/empty-state'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { API_URL } from '@/lib/constants'
+import { ShimmerSkeleton } from '@/components/effects/shimmer-skeleton'
 
 export function PortfolioScreen() {
   const adminToken = useTerminalStore((s) => s.omsAdminToken)
@@ -217,8 +218,23 @@ export function PortfolioScreen() {
       <div className="flex-1 overflow-y-auto space-y-5 pr-0.5">
         {/* Positions Section */}
         <div>
-          <SectionTitle title={`Open Positions (${positions.length})`} />
-          {positions.length === 0 ? (
+          <SectionTitle title={loading ? "Open Positions" : `Open Positions (${positions.length})`} />
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="p-3.5 rounded-2xl border border-white/[0.04] bg-white/[0.015] flex justify-between items-center">
+                  <div className="space-y-2 flex-1">
+                    <ShimmerSkeleton width="w-24" height="h-3.5" />
+                    <ShimmerSkeleton width="w-32" height="h-2.5" />
+                  </div>
+                  <div className="text-right space-y-2 shrink-0">
+                    <ShimmerSkeleton width="w-16" height="h-3.5" />
+                    <ShimmerSkeleton width="w-12" height="h-2.5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : positions.length === 0 ? (
             <EmptyState
               title="No Positions Found"
               hint="Submit order ticket validation requests to instantiate paper positions."
@@ -236,8 +252,23 @@ export function PortfolioScreen() {
 
         {/* Holdings Section */}
         <div>
-          <SectionTitle title={`Broker Holdings (${holdings.length})`} />
-          {holdings.length === 0 ? (
+          <SectionTitle title={loading ? "Broker Holdings" : `Broker Holdings (${holdings.length})`} />
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-3.5 rounded-2xl border border-white/[0.04] bg-white/[0.015] flex justify-between items-center">
+                  <div className="space-y-2 flex-1">
+                    <ShimmerSkeleton width="w-28" height="h-3.5" />
+                    <ShimmerSkeleton width="w-36" height="h-2.5" />
+                  </div>
+                  <div className="text-right space-y-2 shrink-0">
+                    <ShimmerSkeleton width="w-16" height="h-3.5" />
+                    <ShimmerSkeleton width="w-12" height="h-2.5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : holdings.length === 0 ? (
             <EmptyState
               title="No Holdings Synced"
               hint="Broker snapshot is currently empty or offline."
