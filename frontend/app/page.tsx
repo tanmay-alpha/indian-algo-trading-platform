@@ -15,6 +15,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { LiquidBackground } from '@/components/effects/liquid-background'
+import { AuroraField } from '@/components/effects/aurora-field'
+import { MagneticCard } from '@/components/effects/magnetic-card'
 import { ReflectionCard } from '@/components/effects/reflection-card'
 import { GlassPanel } from '@/components/effects/glass-panel'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
@@ -51,6 +53,7 @@ export default function LandingPage() {
   return (
     <main className="relative min-h-[calc(100dvh-var(--safety-strip-h))] overflow-hidden bg-maet-bg-deep text-maet-text">
       <LiquidBackground intensity="strong" />
+      <AuroraField intensity="strong" tone="cyan" />
 
       <section className="relative isolate border-b border-maet-glass-border">
         <header className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
@@ -126,7 +129,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <ProductPreview />
+          <MagneticCard strength={5}>
+            <ProductPreview />
+          </MagneticCard>
         </div>
       </section>
 
@@ -144,7 +149,7 @@ export default function LandingPage() {
               <ReflectionCard key={row.symbol} className="p-4 hover-glass">
                 <div className="font-mono text-sm font-extrabold text-maet-text">{row.symbol}</div>
                 <div className="mt-1 text-xs text-maet-text-muted">{row.name}</div>
-                <div className={row.tone === 'up' ? 'mt-4 font-mono text-2xl font-extrabold text-maet-green' : row.tone === 'down' ? 'mt-4 font-mono text-2xl font-extrabold text-maet-red' : 'mt-4 font-mono text-2xl font-extrabold text-maet-text-muted'}>
+                <div className={row.tone === 'up' ? 'tabular-market-number mt-4 font-mono text-2xl font-extrabold text-maet-green' : row.tone === 'down' ? 'tabular-market-number mt-4 font-mono text-2xl font-extrabold text-maet-red' : 'tabular-market-number mt-4 font-mono text-2xl font-extrabold text-maet-text-muted'}>
                   {row.value}
                 </div>
               </ReflectionCard>
@@ -213,7 +218,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <GlassPanel className="overflow-hidden">
+          <GlassPanel className="overflow-hidden" strength="strong">
             {[
               ['live_execution_enabled', 'false'],
               ['broker_mutation_allowed', 'false'],
@@ -277,7 +282,7 @@ function ProductPreview() {
                       <div className="truncate font-mono text-xs font-bold text-maet-text">{row.symbol}</div>
                       <div className="truncate text-xs text-maet-text-muted">{row.name}</div>
                     </div>
-                    <div className={row.tone === 'up' ? 'font-mono text-xs font-bold text-maet-green' : row.tone === 'down' ? 'font-mono text-xs font-bold text-maet-red' : 'font-mono text-xs font-bold text-maet-text-muted'}>
+                    <div className={row.tone === 'up' ? 'tabular-market-number font-mono text-xs font-bold text-maet-green' : row.tone === 'down' ? 'tabular-market-number font-mono text-xs font-bold text-maet-red' : 'tabular-market-number font-mono text-xs font-bold text-maet-text-muted'}>
                       {row.value}
                     </div>
                   </div>
@@ -293,7 +298,7 @@ function ProductPreview() {
                 </div>
                 <div className="flex gap-1">
                   {['1m', '5m', '15m', '1h', 'D'].map((item) => (
-                    <span key={item} className={item === '5m' ? 'rounded-full border border-maet-cyan/40 bg-maet-cyan/15 px-2 py-1 font-mono text-[10px] text-maet-cyan' : 'rounded-full border border-maet-glass-border px-2 py-1 font-mono text-[10px] text-maet-text-muted'}>
+                    <span key={item} className={item === '5m' ? 'rounded-full border border-maet-cyan/40 bg-maet-cyan/15 px-2 py-1 font-mono text-xs text-maet-cyan' : 'rounded-full border border-maet-glass-border px-2 py-1 font-mono text-xs text-maet-text-muted'}>
                       {item}
                     </span>
                   ))}

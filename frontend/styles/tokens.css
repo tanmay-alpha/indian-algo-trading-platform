@@ -3,13 +3,14 @@
   --maet-bg-night: #06111f;
   --maet-bg-ink: #09111f;
   --maet-bg-panel: #0f172a;
-  --maet-bg-panel-strong: #111827;
+  --maet-bg-soft: #111827;
+  --maet-bg-panel-strong: var(--maet-bg-soft);
   --maet-bg-raised: #172033;
 
-  --maet-glass-1: rgba(255,255,255,0.06);
-  --maet-glass-2: rgba(255,255,255,0.10);
-  --maet-glass-3: rgba(255,255,255,0.14);
-  --maet-glass-border: rgba(255,255,255,0.18);
+  --maet-glass-1: rgba(255,255,255,0.055);
+  --maet-glass-2: rgba(255,255,255,0.085);
+  --maet-glass-3: rgba(255,255,255,0.13);
+  --maet-glass-border: rgba(255,255,255,0.16);
   --maet-glass-border-strong: rgba(125,211,252,0.38);
   --maet-glass-edge: rgba(255,255,255,0.34);
 
@@ -27,10 +28,10 @@
   --maet-violet: #8b5cf6;
 
   --maet-glow-cyan: rgba(34,211,238,0.28);
-  --maet-glow-blue: rgba(37,99,235,0.26);
+  --maet-glow-blue: rgba(37,99,235,0.24);
   --maet-glow-violet: rgba(139,92,246,0.22);
-  --maet-glow-green: rgba(22,199,132,0.22);
-  --maet-glow-red: rgba(234,57,67,0.20);
+  --maet-glow-green: rgba(22,199,132,0.18);
+  --maet-glow-red: rgba(234,57,67,0.16);
   --maet-glow-amber: rgba(245,158,11,0.22);
 
   --maet-shadow-glass: 0 24px 80px rgba(0,0,0,0.45);

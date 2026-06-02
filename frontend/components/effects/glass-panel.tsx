@@ -8,6 +8,7 @@ interface GlassPanelProps {
   className?: string
   as?: ElementType
   glow?: boolean
+  strength?: 'default' | 'strong'
 }
 
 export function GlassPanel({
@@ -15,9 +16,12 @@ export function GlassPanel({
   className,
   as: Component = 'div',
   glow = false,
+  strength = 'default',
 }: GlassPanelProps) {
+  const panelClass = strength === 'strong' ? 'glass-panel-strong' : 'glass-panel'
+
   return (
-    <Component className={cn(glow ? 'glass-panel glass-glow-border' : 'glass-panel', className)}>
+    <Component className={cn(glow ? `${panelClass} glass-glow-border` : panelClass, className)}>
       {children}
     </Component>
   )

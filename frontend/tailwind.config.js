@@ -11,6 +11,7 @@ module.exports = {
         'maet-bg-night': 'var(--maet-bg-night)',
         'maet-bg-ink': 'var(--maet-bg-ink)',
         'maet-bg-panel': 'var(--maet-bg-panel)',
+        'maet-bg-soft': 'var(--maet-bg-soft)',
         'maet-glass-1': 'var(--maet-glass-1)',
         'maet-glass-2': 'var(--maet-glass-2)',
         'maet-glass-3': 'var(--maet-glass-3)',
