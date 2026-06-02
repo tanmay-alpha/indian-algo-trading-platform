@@ -7,7 +7,7 @@ export function StrategySignalFeed({ signals }: { signals: StrategySignal[] }) {
     <section className="rounded-sm border border-border bg-panel/60">
       <div className="border-b border-border bg-bg/60 px-3 py-2">
         <div className="text-xs font-semibold text-text">Signal Preview</div>
-        <div className="text-[9px] font-mono text-text-faint">Research signals only, not routed to execution</div>
+        <div className="text-[10px] font-mono text-text-faint">Research signals only, not routed to execution</div>
       </div>
       {signals.length === 0 ? (
         <div className="p-3">

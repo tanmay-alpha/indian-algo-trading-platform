@@ -1,60 +1,97 @@
 :root {
-  --bg-void: #060810;
-  --bg-base: #0c0f1a;
-  --bg-surface: #111827;
-  --bg-elevated: #1a2235;
-  --bg-overlay: #1f2d44;
+  --maet-bg-deep: #020617;
+  --maet-bg-night: #06111f;
+  --maet-bg-ink: #09111f;
+  --maet-bg-panel: #0f172a;
+  --maet-bg-panel-strong: #111827;
+  --maet-bg-raised: #172033;
 
-  --border-subtle: #1e2d45;
-  --border-strong: #2a3f5f;
+  --maet-glass-1: rgba(255,255,255,0.06);
+  --maet-glass-2: rgba(255,255,255,0.10);
+  --maet-glass-3: rgba(255,255,255,0.14);
+  --maet-glass-border: rgba(255,255,255,0.18);
+  --maet-glass-border-strong: rgba(125,211,252,0.38);
+  --maet-glass-edge: rgba(255,255,255,0.34);
 
-  --text-primary: #e8edf5;
-  --text-secondary: #8a9ab8;
-  --text-muted: #4a5a72;
+  --maet-text-main: #f8fafc;
+  --maet-text-soft: #cbd5e1;
+  --maet-text-muted: #94a3b8;
+  --maet-text-faint: #64748b;
 
-  --accent-green: #00d68f;
-  --accent-red: #ff4d6a;
-  --accent-amber: #f5a623;
-  --accent-blue: #4d9cf8;
-  --accent-violet: #7c5cbf;
+  --maet-blue: #38bdf8;
+  --maet-blue-strong: #2563eb;
+  --maet-cyan: #22d3ee;
+  --maet-green: #16c784;
+  --maet-red: #ea3943;
+  --maet-amber: #f59e0b;
+  --maet-violet: #8b5cf6;
 
-  --safety-locked: #ff4d6a;
-  --safety-paper: #f5a623;
-  --safety-read: #4d9cf8;
+  --maet-glow-cyan: rgba(34,211,238,0.28);
+  --maet-glow-blue: rgba(37,99,235,0.26);
+  --maet-glow-violet: rgba(139,92,246,0.22);
+  --maet-glow-green: rgba(22,199,132,0.22);
+  --maet-glow-red: rgba(234,57,67,0.20);
+  --maet-glow-amber: rgba(245,158,11,0.22);
 
-  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-raised: 0 16px 48px rgba(0, 0, 0, 0.38);
+  --maet-shadow-glass: 0 24px 80px rgba(0,0,0,0.45);
+  --maet-shadow-card: 0 14px 40px rgba(15,23,42,0.45);
+  --maet-shadow-inner: inset 0 1px 0 rgba(255,255,255,0.12);
+  --maet-shadow-rail: 0 18px 64px rgba(0,0,0,0.52);
 
-  --bottom-nav-h: 56px;
-  --top-header-h: 56px;
-  --safety-strip-h: 28px;
+  --safety-locked: var(--maet-red);
+  --safety-paper: var(--maet-amber);
+  --safety-read: var(--maet-blue);
+  --safety-ai: var(--maet-violet);
+  --safety-broker: var(--maet-cyan);
+
+  --bottom-nav-h: 64px;
+  --top-header-h: 62px;
+  --safety-strip-h: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* Backwards-compatible aliases used by older MAET components. */
+  --bg-void: var(--maet-bg-deep);
+  --bg-base: var(--maet-bg-night);
+  --bg-surface: rgba(15,23,42,0.78);
+  --bg-elevated: rgba(23,32,51,0.86);
+  --bg-overlay: rgba(9,17,31,0.88);
+  --border-subtle: rgba(148,163,184,0.18);
+  --border-strong: var(--maet-glass-border-strong);
+  --text-primary: var(--maet-text-main);
+  --text-secondary: var(--maet-text-soft);
+  --text-muted: var(--maet-text-muted);
+  --accent-green: var(--maet-green);
+  --accent-red: var(--maet-red);
+  --accent-amber: var(--maet-amber);
+  --accent-blue: var(--maet-blue);
+  --accent-violet: var(--maet-violet);
+  --shadow-panel: var(--maet-shadow-card);
+  --shadow-raised: var(--maet-shadow-glass);
+
   --bg: var(--bg-base);
   --bg-2: var(--bg-surface);
   --panel: var(--bg-surface);
-  --panel-2: var(--bg-base);
+  --panel-2: rgba(2,6,23,0.72);
   --panel-3: var(--bg-elevated);
   --border: var(--border-subtle);
-  --border-accent: rgba(77, 156, 248, 0.28);
+  --border-accent: rgba(56,189,248,0.32);
   --border-card: var(--border-subtle);
   --text: var(--text-primary);
   --text-2: var(--text-secondary);
   --text-dim: var(--text-secondary);
-  --text-faint: var(--text-muted);
+  --text-faint: var(--maet-text-faint);
   --up: var(--accent-green);
-  --up-dim: rgba(0, 214, 143, 0.12);
-  --up-glow: rgba(0, 214, 143, 0.2);
+  --up-dim: rgba(22,199,132,0.12);
+  --up-glow: var(--maet-glow-green);
   --down: var(--accent-red);
-  --down-dim: rgba(255, 77, 106, 0.12);
+  --down-dim: rgba(234,57,67,0.12);
   --warn: var(--accent-amber);
-  --warn-dim: rgba(245, 166, 35, 0.12);
+  --warn-dim: rgba(245,158,11,0.12);
   --info: var(--accent-blue);
-  --info-dim: rgba(77, 156, 248, 0.12);
+  --info-dim: rgba(56,189,248,0.12);
   --locked: var(--safety-locked);
   --violet: var(--accent-violet);
-  --violet-dim: rgba(124, 92, 191, 0.12);
+  --violet-dim: rgba(139,92,246,0.12);
   --paper: var(--safety-paper);
   --live: var(--safety-locked);
 }

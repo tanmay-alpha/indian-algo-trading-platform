@@ -7,7 +7,7 @@ export function BacktestTradesTable({ trades }: { trades: BacktestTrade[] }) {
     <section className="rounded-sm border border-border bg-panel/60">
       <div className="border-b border-border bg-bg/60 px-3 py-2">
         <div className="text-xs font-semibold text-text">Trades</div>
-        <div className="text-[9px] font-mono text-text-faint">Simulated long-only fills</div>
+        <div className="text-[10px] font-mono text-text-faint">Simulated long-only fills</div>
       </div>
       <TableHeader />
       {trades.length === 0 ? (
@@ -41,7 +41,7 @@ export function BacktestTradesTable({ trades }: { trades: BacktestTrade[] }) {
 function TableHeader() {
   const columns = ['Entry', 'Exit', 'Side', 'Qty', 'Entry Px', 'Exit Px', 'Net PnL', 'Return', 'Reason']
   return (
-    <div className="grid grid-cols-9 gap-2 border-b border-border bg-bg px-2 py-1.5 text-[9px] font-mono uppercase text-text-faint">
+    <div className="grid grid-cols-9 gap-2 border-b border-border bg-bg px-2 py-1.5 text-[10px] font-mono uppercase text-text-faint">
       {columns.map((column) => <span key={column}>{column}</span>)}
     </div>
   )

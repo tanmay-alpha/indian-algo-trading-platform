@@ -27,7 +27,7 @@ export function StrategyTemplateCards({
           >
             <div className="flex items-start justify-between gap-2">
               <div className="text-xs font-semibold text-text">{template.display_name}</div>
-              <span className="rounded border border-warn/25 bg-warn-dim px-1.5 py-0.5 text-[9px] font-mono text-warn">
+              <span className="rounded border border-warn/25 bg-warn-dim px-1.5 py-0.5 text-[10px] font-mono text-warn">
                 RESEARCH
               </span>
             </div>
@@ -38,13 +38,13 @@ export function StrategyTemplateCards({
               {template.required_indicators.map((indicator) => (
                 <span
                   key={indicator}
-                  className="rounded border border-border bg-bg px-1.5 py-0.5 text-[9px] font-mono uppercase text-text-faint"
+                  className="rounded border border-border bg-bg px-1.5 py-0.5 text-[10px] font-mono uppercase text-text-faint"
                 >
                   {indicator.replace('_', ' ')}
                 </span>
               ))}
               {!template.live_execution_enabled && (
-                <span className="rounded border border-border bg-bg px-1.5 py-0.5 text-[9px] font-mono text-text-faint">
+                <span className="rounded border border-border bg-bg px-1.5 py-0.5 text-[10px] font-mono text-text-faint">
                   LIVE OFF
                 </span>
               )}

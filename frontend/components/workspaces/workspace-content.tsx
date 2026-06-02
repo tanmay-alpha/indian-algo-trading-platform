@@ -224,7 +224,7 @@ export function PortfolioWorkspace() {
           </div>
 
           <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-[10px] text-text-faint font-mono text-left">
-            <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-[9px]">
+            <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-[10px]">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Read-Only Advisory Mode</span>
             </div>
@@ -381,7 +381,7 @@ function PortfolioPanel({
       <div className="h-9 px-3 flex items-center justify-between border-b border-border bg-bg/60">
         <div>
           <div className="text-xs font-semibold text-text">{title}</div>
-          <div className="text-[9px] font-mono text-text-faint">{subtitle}</div>
+          <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
         </div>
       </div>
       {children}
@@ -403,7 +403,7 @@ function PortfolioTable({
   return (
     <div className="h-full min-h-[160px] flex flex-col">
       <div
-        className="grid gap-2 px-2 py-1.5 border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint"
+        className="grid gap-2 px-2 py-1.5 border-b border-border bg-bg text-[10px] font-mono uppercase tracking-wider text-text-faint"
         style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
       >
         {columns.map((column) => (
@@ -548,7 +548,7 @@ export function PremiumChartPanel() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-panel/40 border border-border/40">
-      <span className="text-text-dim uppercase text-[9px] tracking-tight">{label}</span>
+      <span className="text-text-dim uppercase text-[10px] tracking-tight">{label}</span>
       <span className="text-text font-medium tabular-nums">{value}</span>
     </span>
   )
@@ -557,7 +557,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Stat({ title, value }: { title: string; value: string }) {
   return (
     <div className="border border-border bg-panel/50 p-2.5 rounded-sm">
-      <div className="text-[9px] font-mono uppercase tracking-widest text-text-faint">{title}</div>
+      <div className="text-[10px] font-mono uppercase tracking-widest text-text-faint">{title}</div>
       <div className="mt-1 text-sm font-mono text-text tabular-nums">{value}</div>
     </div>
   )

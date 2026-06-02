@@ -120,7 +120,7 @@ export function BrokerAccountPanel() {
           <span className="text-xs font-semibold text-text">Broker Account</span>
           {sessionStatus && (
             <span className={cn(
-              'px-1.5 py-0.5 rounded-sm border text-[9px] font-mono font-semibold',
+              'px-1.5 py-0.5 rounded-sm border text-[10px] font-mono font-semibold',
               sessionStatus.is_valid
                 ? 'text-up border-up/30 bg-up/10'
                 : 'text-text-faint border-border bg-panel'
@@ -153,11 +153,11 @@ export function BrokerAccountPanel() {
         <div className="m-3 rounded-sm border border-border bg-panel/40 p-4 flex flex-col items-center gap-2 text-center">
           <WifiOff className="w-6 h-6 text-text-faint opacity-50" />
           <div className="text-xs font-mono text-text-faint">Broker session not available</div>
-          <div className="text-[9px] text-text-faint opacity-70">
+          <div className="text-[10px] text-text-faint opacity-70">
             Authenticate via the broker login flow to enable account monitoring
           </div>
           {sessionStatus?.last_error && (
-            <div className="text-[9px] font-mono text-down mt-1">{sessionStatus.last_error}</div>
+            <div className="text-[10px] font-mono text-down mt-1">{sessionStatus.last_error}</div>
           )}
         </div>
       )}
@@ -199,8 +199,8 @@ export function BrokerAccountPanel() {
 
       {/* Footer */}
       {lastRefreshed && (
-        <div className="px-3 py-1 border-t border-border text-[9px] font-mono text-text-faint opacity-60 flex items-center justify-between">
-          <span className="text-[8px] opacity-70">READ-ONLY · NO ORDER PLACEMENT</span>
+        <div className="px-3 py-1 border-t border-border text-[10px] font-mono text-text-faint opacity-60 flex items-center justify-between">
+          <span className="text-[10px] opacity-70">READ-ONLY · NO ORDER PLACEMENT</span>
           <span>
             <Clock className="inline w-2.5 h-2.5 mr-1" />
             {new Date(lastRefreshed).toLocaleTimeString()}
@@ -272,7 +272,7 @@ function OverviewTab({
           <button
             onClick={handleImport}
             disabled={importing || syncing || loading}
-            className="inline-flex items-center gap-1 h-5 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[9px] font-mono hover:bg-info/20 disabled:opacity-40"
+            className="inline-flex items-center gap-1 h-5 px-2 rounded-sm border border-info/30 bg-info/10 text-info text-[10px] font-mono hover:bg-info/20 disabled:opacity-40"
           >
             <RefreshCw className={cn('w-2.5 h-2.5', importing && 'animate-spin')} />
             {importing ? 'Reconciling...' : 'Reconcile History (Read-only)'}
@@ -281,25 +281,25 @@ function OverviewTab({
 
         <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
           <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
-            <div className="text-[8px] uppercase tracking-wider text-text-faint">Last History Import</div>
+            <div className="text-[10px] uppercase tracking-wider text-text-faint">Last History Import</div>
             <div className="text-text font-medium mt-0.5 truncate" title={snapshot.last_history_import_time ? new Date(snapshot.last_history_import_time).toLocaleString() : 'Never'}>
               {snapshot.last_history_import_time ? new Date(snapshot.last_history_import_time).toLocaleString() : 'Never'}
             </div>
           </div>
           <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
-            <div className="text-[8px] uppercase tracking-wider text-text-faint">Last P&L Calculation</div>
+            <div className="text-[10px] uppercase tracking-wider text-text-faint">Last P&L Calculation</div>
             <div className="text-text font-medium mt-0.5 truncate" title={snapshot.last_pnl_calculation_time ? new Date(snapshot.last_pnl_calculation_time).toLocaleString() : 'Never'}>
               {snapshot.last_pnl_calculation_time ? new Date(snapshot.last_pnl_calculation_time).toLocaleString() : 'Never'}
             </div>
           </div>
           <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
-            <div className="text-[8px] uppercase tracking-wider text-text-faint">Total Hist. Trades</div>
+            <div className="text-[10px] uppercase tracking-wider text-text-faint">Total Hist. Trades</div>
             <div className="text-text font-medium mt-0.5">
               {snapshot.total_historical_trades ?? 0}
             </div>
           </div>
           <div className="rounded-sm border border-border/40 bg-panel/20 p-2">
-            <div className="text-[8px] uppercase tracking-wider text-text-faint">Total Hist. Orders</div>
+            <div className="text-[10px] uppercase tracking-wider text-text-faint">Total Hist. Orders</div>
             <div className="text-text font-medium mt-0.5">
               {snapshot.total_historical_orders ?? 0}
             </div>
@@ -308,7 +308,7 @@ function OverviewTab({
       </div>
 
       {/* Source + sync time */}
-      <div className="text-[9px] font-mono text-text-faint opacity-60">
+      <div className="text-[10px] font-mono text-text-faint opacity-60">
         Source: {snapshot.source} · Read-only reconciliation status: {new Date(snapshot.synced_at).toLocaleString()}
       </div>
     </div>
@@ -320,7 +320,7 @@ function FundCard({ label, value, icon }: { label: string; value: number | null;
     <div className="rounded-sm border border-border bg-panel/50 px-3 py-2 flex items-center gap-2">
       <div className="text-text-faint">{icon}</div>
       <div>
-        <div className="text-[8px] uppercase tracking-wider text-text-faint">{label}</div>
+        <div className="text-[10px] uppercase tracking-wider text-text-faint">{label}</div>
         <div className="text-xs font-mono text-text font-semibold">
           {value != null ? `₹${fmtPrice(value)}` : '—'}
         </div>
@@ -336,7 +336,7 @@ function PnlCard({ label, value }: { label: string; value: number }) {
       'rounded-sm border px-3 py-2',
       pos ? 'border-up/20 bg-up/5' : 'border-down/20 bg-down/5'
     )}>
-      <div className="text-[8px] uppercase tracking-wider text-text-faint">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-text-faint">{label}</div>
       <div className={cn('text-xs font-mono font-semibold', pos ? 'text-up' : 'text-down')}>
         {pos ? '+' : ''}₹{fmtPrice(value)}
       </div>
@@ -348,7 +348,7 @@ function CountStat({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="text-sm font-mono font-bold text-text">{value}</div>
-      <div className="text-[8px] text-text-faint uppercase tracking-wider">{label}</div>
+      <div className="text-[10px] text-text-faint uppercase tracking-wider">{label}</div>
     </div>
   )
 }
@@ -362,7 +362,7 @@ function HoldingsTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
   return (
     <table className="w-full text-[10px] font-mono">
       <thead>
-        <tr className="text-[8px] uppercase tracking-wider text-text-faint border-b border-border">
+        <tr className="text-[10px] uppercase tracking-wider text-text-faint border-b border-border">
           {['Symbol', 'Qty', 'Avg Price', 'LTP', 'P&L', 'Exchange'].map((h) => (
             <th key={h} className="text-left py-1 pr-2 font-medium">{h}</th>
           ))}
@@ -400,7 +400,7 @@ function PositionsTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
   return (
     <table className="w-full text-[10px] font-mono">
       <thead>
-        <tr className="text-[8px] uppercase tracking-wider text-text-faint border-b border-border">
+        <tr className="text-[10px] uppercase tracking-wider text-text-faint border-b border-border">
           {['Symbol', 'Net Qty', 'Avg Price', 'LTP', 'Unr. P&L', 'Realised P&L', 'Exchange'].map((h) => (
             <th key={h} className="text-left py-1 pr-2 font-medium">{h}</th>
           ))}
@@ -438,7 +438,7 @@ function OrdersTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
   return (
     <table className="w-full text-[10px] font-mono">
       <thead>
-        <tr className="text-[8px] uppercase tracking-wider text-text-faint border-b border-border">
+        <tr className="text-[10px] uppercase tracking-wider text-text-faint border-b border-border">
           {['ID', 'Symbol', 'Side', 'Qty', 'Price', 'Status', 'Type', 'Time'].map((h) => (
             <th key={h} className="text-left py-1 pr-2 font-medium">{h}</th>
           ))}
@@ -473,7 +473,7 @@ function TradesTab({ snapshot }: { snapshot: BrokerAccountSnapshot }) {
   return (
     <table className="w-full text-[10px] font-mono">
       <thead>
-        <tr className="text-[8px] uppercase tracking-wider text-text-faint border-b border-border">
+        <tr className="text-[10px] uppercase tracking-wider text-text-faint border-b border-border">
           {['ID', 'Symbol', 'Side', 'Qty', 'Price', 'Exchange', 'Time'].map((h) => (
             <th key={h} className="text-left py-1 pr-2 font-medium">{h}</th>
           ))}
@@ -503,7 +503,7 @@ function TabPill({ label, active, onClick }: { label: string; active: boolean; o
     <button
       onClick={onClick}
       className={cn(
-        'h-5 px-2 rounded-sm text-[9px] font-mono capitalize font-medium transition-colors',
+        'h-5 px-2 rounded-sm text-[10px] font-mono capitalize font-medium transition-colors',
         active ? 'bg-info/15 text-info border border-info/30' : 'text-text-dim hover:text-text border border-transparent'
       )}
     >

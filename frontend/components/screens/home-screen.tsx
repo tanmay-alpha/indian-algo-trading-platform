@@ -25,7 +25,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
   return (
     <MobilePage className="space-y-5 pb-4">
-      <section className="rounded-card border border-maet-border bg-maet-surface p-4 shadow-card">
+      <section className="reflection-card p-4 shadow-card">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-heading text-2xl font-bold leading-tight text-maet-text">Market desk</h1>
@@ -50,7 +50,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           <button
             type="button"
             onClick={() => onNavigate('watchlist')}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-maet-border bg-maet-surface px-3 text-xs font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+            className="glass-button h-9 px-3 text-xs"
           >
             <Search className="h-3.5 w-3.5" />
             Add Symbol
@@ -86,13 +86,13 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
             )
           })}
           {topSymbols.length === 0 && (
-            <div className="rounded-card border border-maet-border bg-maet-surface p-6 text-center">
+            <div className="reflection-card p-6 text-center">
               <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
               <div className="mt-3 text-sm font-bold text-maet-text">Add symbols to your watchlist</div>
               <button
                 type="button"
                 onClick={() => onNavigate('watchlist')}
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-maet-blue px-4 text-xs font-bold text-white"
+                className="maet-btn maet-btn-primary mt-4 h-10 px-4 text-xs"
               >
                 <Plus className="h-4 w-4" />
                 Add Symbol
@@ -112,7 +112,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
 function StateTile({ label, value, good }: { label: string; value: string; good: boolean }) {
   return (
-    <div className="rounded-md border border-maet-border bg-maet-base px-3 py-2">
+    <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/38 px-3 py-2 shadow-inner">
       <div className="text-xs text-maet-text-muted">{label}</div>
       <div className="mt-1 flex items-center gap-2 font-mono text-xs font-bold text-maet-text">
         <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-red'} />
@@ -127,7 +127,7 @@ function QuickAction({ label, icon, onClick }: { label: string; icon: React.Reac
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-12 items-center justify-center gap-2 rounded-card border border-maet-border bg-maet-surface text-sm font-bold text-maet-text-secondary hover:border-maet-border-strong hover:bg-maet-elevated hover:text-maet-text"
+      className="reflection-card flex min-h-12 items-center justify-center gap-2 text-sm font-bold text-maet-text-secondary hover-glass"
     >
       <span className="text-maet-blue">{icon}</span>
       {label}

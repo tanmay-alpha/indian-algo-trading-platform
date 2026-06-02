@@ -125,7 +125,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
           <button
             type="button"
             onClick={() => setQuery((current) => current || 'RELIANCE')}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-maet-border px-3 text-xs font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+            className="glass-button h-9 px-3 text-xs"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Symbol
@@ -163,13 +163,13 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
       </div>
 
       {!showSearchResults && isBackendOffline && (
-        <div className="mx-4 mb-3 shrink-0 rounded-md border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber">
-          Backend offline - prices unavailable. Showing symbol names only.
+        <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
+          Backend offline - values show -- until quotes arrive.
         </div>
       )}
 
       {watchlistError && (
-        <div className="mx-4 mb-3 shrink-0 rounded-md border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber">
+        <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
           {watchlistError}
         </div>
       )}
@@ -188,7 +188,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
             {!isSearching && !searchError && searchResults.map((instrument) => {
               const alreadyAdded = rows.some((row) => row.symbol === instrument.symbol)
               return (
-                <div key={`${instrument.exchange}-${instrument.token}-${instrument.symbol}`} className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-card border border-maet-border bg-maet-surface px-3 py-2">
+                <div key={`${instrument.exchange}-${instrument.token}-${instrument.symbol}`} className="reflection-card grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2">
                   <button
                     type="button"
                     onClick={() => openChart(instrument.symbol, instrument.exchange, instrument.name)}
@@ -219,7 +219,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         ) : watchlistLoading ? (
           <SkeletonRows count={6} />
         ) : rows.length === 0 ? (
-          <div className="grid min-h-[260px] place-items-center rounded-card border border-maet-border bg-maet-surface p-6 text-center">
+          <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
             <div>
               <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
               <div className="mt-3 text-sm font-bold text-maet-text">Add symbols to your watchlist</div>
@@ -261,7 +261,7 @@ function SkeletonRows({ count }: { count: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="grid h-14 grid-cols-[minmax(0,1fr)_92px] items-center gap-3 rounded-card border border-maet-border bg-maet-surface px-3">
+        <div key={index} className="reflection-card grid h-14 grid-cols-[minmax(0,1fr)_92px] items-center gap-3 px-3">
           <div className="space-y-2">
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="h-2.5 w-36" />
@@ -278,7 +278,7 @@ function SkeletonRows({ count }: { count: number }) {
 
 function EmptySearch({ message }: { message: string }) {
   return (
-    <div className="rounded-card border border-maet-border bg-maet-surface p-6 text-center">
+    <div className="reflection-card p-6 text-center">
       <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
       <div className="mt-3 text-sm font-bold text-maet-text">{message}</div>
     </div>

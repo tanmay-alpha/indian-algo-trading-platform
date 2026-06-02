@@ -30,7 +30,7 @@ export function SectionHeader({
           {title}
         </span>
         {subtitle && (
-          <span className="text-[8px] font-mono text-text-faint truncate hidden xs:inline-block">
+          <span className="text-[10px] font-mono text-text-faint truncate hidden xs:inline-block">
             {subtitle}
           </span>
         )}

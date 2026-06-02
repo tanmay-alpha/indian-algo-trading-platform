@@ -26,7 +26,7 @@ export function BacktestControlPanel({
     <section className="rounded-sm border border-border bg-panel/60">
       <div className="border-b border-border bg-bg/60 px-3 py-2">
         <div className="text-xs font-semibold text-text">Backtest Controls</div>
-        <div className="text-[9px] font-mono text-text-faint">
+        <div className="text-[10px] font-mono text-text-faint">
           Research only - does not place orders
         </div>
       </div>

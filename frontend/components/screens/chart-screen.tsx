@@ -72,14 +72,14 @@ export function ChartScreen() {
 
   return (
     <MobilePage className="flex h-full flex-col space-y-3 pb-4">
-      <div className="shrink-0 overflow-hidden rounded-card border border-maet-border bg-maet-surface">
-        <div className="flex min-h-10 items-center gap-2 border-b border-maet-border px-2 py-2">
+      <div className="reflection-card shrink-0 overflow-hidden">
+        <div className="flex min-h-10 items-center gap-2 border-b border-maet-glass-border px-2 py-2">
           <label className="relative min-w-[144px] flex-1 sm:max-w-[220px]">
             <span className="sr-only">Select chart symbol</span>
             <select
               value={selectedSymbol ?? ''}
               onChange={(event) => setSelectedSymbol(event.target.value || null)}
-              className="h-9 w-full appearance-none rounded-md border border-maet-border bg-maet-base px-3 pr-8 font-mono text-sm font-bold text-maet-text"
+              className="h-9 w-full appearance-none rounded-xl border border-maet-glass-border bg-maet-bg-deep/48 px-3 pr-8 font-mono text-sm font-bold text-maet-text"
             >
               <option value="">Select symbol</option>
               {symbolOptions.map((symbol) => (
@@ -96,7 +96,7 @@ export function ChartScreen() {
                 type="button"
                 onClick={() => setChartTimeframe(item.value)}
                 className={cn(
-                  'h-8 shrink-0 rounded-md border px-2.5 font-mono text-[11px] font-bold',
+                  'h-8 shrink-0 rounded-full border px-2.5 font-mono text-[11px] font-bold transition-colors',
                   chartTimeframe === item.value
                     ? 'border-maet-blue bg-maet-blue/20 text-maet-blue'
                     : 'border-maet-border text-maet-text-muted hover:bg-maet-elevated hover:text-maet-text'
@@ -110,7 +110,7 @@ export function ChartScreen() {
           <button
             type="button"
             onClick={() => setDrawerOpen((current) => !current)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-maet-border text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text"
             aria-label="Toggle indicator drawer"
           >
             <PanelRightOpen className="h-4 w-4" />
@@ -124,7 +124,7 @@ export function ChartScreen() {
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={!selectedSymbol}
-            className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[11px] font-bold', selectedSymbol ? 'border-[#2962ff]/40 bg-[#2962ff]/10 text-[#7ca0ff]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
+            className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[11px] font-bold shadow-inner', selectedSymbol ? 'border-[#2962ff]/40 bg-[#2962ff]/10 text-[#7ca0ff]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
           >
             TradingView
             <ExternalLink className="h-3 w-3" />
@@ -134,7 +134,7 @@ export function ChartScreen() {
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={!selectedSymbol}
-            className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[11px] font-bold', selectedSymbol ? 'border-[#f05822]/40 bg-[#f05822]/10 text-[#ff8b61]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
+            className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[11px] font-bold shadow-inner', selectedSymbol ? 'border-[#f05822]/40 bg-[#f05822]/10 text-[#ff8b61]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
           >
             Angel One
             <ExternalLink className="h-3 w-3" />
@@ -147,7 +147,7 @@ export function ChartScreen() {
         <ChartFrame className="flex min-h-[360px] flex-col">
           {selectedSymbol ? (
             <div className="flex min-h-0 flex-1 flex-col">
-              <div className="flex items-center justify-between border-b border-maet-border px-4 py-3">
+                <div className="flex items-center justify-between border-b border-maet-glass-border px-4 py-3">
                 <div>
                   <div className="font-mono text-lg font-extrabold text-maet-text">{cleanSymbol}</div>
                   <div className="text-xs text-maet-text-muted">{displayExchange} / {displayName}</div>
@@ -210,7 +210,7 @@ export function ChartScreen() {
         className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-maet-blue text-sm font-bold text-white disabled:opacity-40 lg:hidden"
       >
         <ShieldCheck className="h-4 w-4" />
-        Validate Order
+        Validate Dry-Run Order
       </button>
 
       <MobileActionSheet
@@ -228,17 +228,17 @@ export function ChartScreen() {
 
 function OfflineChartState({ symbol, apiStatus, onRetry }: { symbol: string; apiStatus: string; onRetry: () => void }) {
   return (
-    <div className="grid h-full min-h-[320px] place-items-center bg-maet-void p-6 text-center" aria-label={`Price chart for ${symbol}`}>
-      <div>
+    <div className="grid h-full min-h-[320px] place-items-center bg-maet-bg-deep/48 p-6 text-center" aria-label={`Price chart diagnostics for ${symbol}`}>
+      <div className="reflection-card max-w-md p-5">
         <BarChart2 className="mx-auto h-8 w-8 text-maet-text-muted" />
-        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">No candle data</h2>
+        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">Candle diagnostics unavailable</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">
           Connect backend to load candles for {symbol}. Current backend status: {apiStatus.toLowerCase()}.
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="mt-4 h-10 rounded-md border border-maet-blue/40 bg-maet-blue/12 px-4 font-mono text-xs font-bold text-maet-blue hover:bg-maet-blue/20"
+          className="glass-button mt-4 h-10 px-4 font-mono text-xs text-maet-blue"
         >
           Retry Fetch
         </button>
@@ -261,14 +261,14 @@ function IndicatorDrawer({
   onSubpanel: (name: 'rsi' | 'macd') => void
 }) {
   return (
-    <aside className={cn('rounded-card border border-maet-border bg-maet-surface p-3 lg:block', open ? 'block' : 'hidden')}>
+    <aside className={cn('reflection-card p-3 lg:block', open ? 'block' : 'hidden')}>
       <div className="mb-3 flex items-center gap-2">
         <ListChecks className="h-4 w-4 text-maet-violet" />
         <h2 className="font-heading text-base font-bold text-maet-text">Indicators</h2>
       </div>
       <div className="space-y-2">
         <IndicatorToggle label="EMA" checked={overlays.ema} onClick={() => onOverlay('ema')} />
-        <div className="rounded-md border border-maet-border bg-maet-base px-3 py-2">
+        <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/42 px-3 py-2">
           <div className="mb-1 text-xs text-maet-text-muted">EMA period</div>
           <input type="number" defaultValue={20} min={1} className="maet-input h-9 font-mono" />
         </div>
@@ -287,7 +287,7 @@ function IndicatorToggle({ label, checked, onClick }: { label: string; checked: 
       type="button"
       onClick={onClick}
       className={cn(
-        'flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm font-bold',
+        'flex h-10 w-full items-center justify-between rounded-xl border px-3 text-sm font-bold transition-colors',
         checked ? 'border-maet-violet bg-maet-violet/15 text-maet-violet' : 'border-maet-border bg-maet-base text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text'
       )}
     >

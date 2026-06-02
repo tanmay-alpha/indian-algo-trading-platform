@@ -514,11 +514,11 @@ export function IndicatorChartShell({
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-text">{cleanSymbol || 'NO SYMBOL'}</span>
           {exchange && (
-            <span className="rounded bg-panel px-1.5 py-0.5 text-[9px] font-bold text-text-dim border border-border/40">
+            <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] font-bold text-text-dim border border-border/40">
               {exchange}
             </span>
           )}
-          <span className="rounded bg-info/10 text-info px-1.5 py-0.5 text-[9px] font-mono border border-info/25 font-semibold">
+          <span className="rounded bg-info/10 text-info px-1.5 py-0.5 text-[10px] font-mono border border-info/25 font-semibold">
             {timeframe}
           </span>
         </div>
@@ -545,7 +545,7 @@ export function IndicatorChartShell({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              'rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wide border',
+              'rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide border',
               sourceBadge === 'LIVE TICKS'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 : sourceBadge === 'REAL CANDLES'
@@ -555,7 +555,7 @@ export function IndicatorChartShell({
           >
             {sourceBadge}
           </span>
-          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-1">
+          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
             <Database size={10} />
             <span>ENGINE: PYTHON</span>
           </span>
@@ -759,7 +759,7 @@ export function IndicatorChartShell({
       {layoutMode === 'ANALYSIS' && (
         <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-[10px] font-mono text-text-dim select-none z-10">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="text-text-faint font-semibold uppercase tracking-wider text-[9px]">Markers:</span>
+            <span className="text-text-faint font-semibold uppercase tracking-wider text-[10px]">Markers:</span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
               <span>Bullish / BUY</span>
@@ -775,17 +775,17 @@ export function IndicatorChartShell({
           </div>
           <div className="flex items-center gap-3">
             {showPatterns && (
-              <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[9px] font-semibold">
+              <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-semibold">
                 <Sparkles size={10} />
                 <span>Patterns: {patterns.length}</span>
               </span>
             )}
             {!isVolumeAvailable && (
-              <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[9px]">
+              <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[10px]">
                 Volume Unavailable
               </span>
             )}
-            <span className="text-text-faint text-[9px]">Chart Engine: Lightweight Charts v5</span>
+            <span className="text-text-faint text-[10px]">Chart Engine: Lightweight Charts v5</span>
           </div>
         </div>
       )}
@@ -823,7 +823,7 @@ export function IndicatorChartShell({
                 {hoveredData.signal && (
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded text-[9px] font-bold border',
+                      'px-1.5 py-0.5 rounded text-[10px] font-bold border',
                       hoveredData.signal.includes('BUY')
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                         : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -833,7 +833,7 @@ export function IndicatorChartShell({
                   </span>
                 )}
                 {hoveredData.pattern && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
                     {hoveredData.pattern}
                   </span>
                 )}

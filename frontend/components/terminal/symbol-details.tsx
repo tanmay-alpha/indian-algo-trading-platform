@@ -31,7 +31,7 @@ export function SymbolDetails() {
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-[14px] font-bold text-text tracking-wide font-mono uppercase">{selected}</span>
-          <span className="px-1.5 py-0.5 rounded-sm bg-panel border border-border text-[9px] font-mono text-text-faint">
+          <span className="px-1.5 py-0.5 rounded-sm bg-panel border border-border text-[10px] font-mono text-text-faint">
             {row?.exchange ?? 'NSE'}
           </span>
         </div>
@@ -86,7 +86,7 @@ export function SymbolDetails() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 bg-bg-2 p-2 min-w-0">
-      <span className="text-[9px] uppercase tracking-wider text-text-faint font-mono">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-text-faint font-mono">{label}</span>
       <span className="text-[11px] text-text font-mono truncate tabular-nums">{value}</span>
     </div>
   )
@@ -95,7 +95,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function AnalyticCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-panel/30 border border-border p-2 rounded-sm">
-      <div className="text-[9px] uppercase tracking-widest text-text-faint font-mono">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-text-faint font-mono">{label}</div>
       <div className="mt-1 text-[13px] font-bold text-info font-mono tabular-nums">{value}</div>
     </div>
   )

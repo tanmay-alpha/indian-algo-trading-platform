@@ -27,7 +27,7 @@ export function ConnectionStatusPill({
     <div
       title={detail ? `${label}: ${displayStatus} — ${detail}` : `${label}: ${displayStatus}`}
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border border-border/80 bg-panel/30 text-[9px] font-mono uppercase tracking-wider',
+        'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border border-border/80 bg-panel/30 text-[10px] font-mono uppercase tracking-wider',
         className
       )}
     >

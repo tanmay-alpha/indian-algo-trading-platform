@@ -261,7 +261,7 @@ function CommandPaletteDialog() {
           <span className="text-[10px] font-mono text-text-faint">
             {searching ? 'searching...' : `${commands.length} results`}
           </span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-[18px] rounded-sm border border-border text-[9px] font-mono text-text-dim">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-[18px] rounded-sm border border-border text-[10px] font-mono text-text-dim">
             ESC
           </kbd>
         </div>
@@ -296,7 +296,7 @@ function CommandPaletteDialog() {
                     </span>
                   )}
                   {c.shortcut && (
-                    <kbd className="px-1 h-[16px] rounded-sm border border-border text-[9px] font-mono text-text-dim">
+                    <kbd className="px-1 h-[16px] rounded-sm border border-border text-[10px] font-mono text-text-dim">
                       {c.shortcut}
                     </kbd>
                   )}
@@ -341,7 +341,7 @@ function CmdKindBadge({ kind }: { kind: CommandKind }) {
   return (
     <span
       className={cn(
-        'px-1.5 h-[16px] rounded-sm border text-[9px] font-mono uppercase tracking-wider inline-flex items-center',
+        'px-1.5 h-[16px] rounded-sm border text-[10px] font-mono uppercase tracking-wider inline-flex items-center',
         cls[kind]
       )}
     >

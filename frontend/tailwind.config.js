@@ -7,6 +7,20 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        'maet-bg-deep': 'var(--maet-bg-deep)',
+        'maet-bg-night': 'var(--maet-bg-night)',
+        'maet-bg-ink': 'var(--maet-bg-ink)',
+        'maet-bg-panel': 'var(--maet-bg-panel)',
+        'maet-glass-1': 'var(--maet-glass-1)',
+        'maet-glass-2': 'var(--maet-glass-2)',
+        'maet-glass-3': 'var(--maet-glass-3)',
+        'maet-glass-border': 'var(--maet-glass-border)',
+        'maet-glass-border-strong': 'var(--maet-glass-border-strong)',
+        'maet-text-main': 'var(--maet-text-main)',
+        'maet-text-soft': 'var(--maet-text-soft)',
+        'maet-text-faint': 'var(--maet-text-faint)',
+        'maet-cyan': 'var(--maet-cyan)',
+
         'maet-void': 'var(--bg-void)',
         'maet-base': 'var(--bg-base)',
         'maet-surface': 'var(--bg-surface)',
@@ -21,10 +35,13 @@ module.exports = {
         'maet-red': 'var(--accent-red)',
         'maet-amber': 'var(--accent-amber)',
         'maet-blue': 'var(--accent-blue)',
+        'maet-blue-strong': 'var(--maet-blue-strong)',
         'maet-violet': 'var(--accent-violet)',
         'safety-locked': 'var(--safety-locked)',
         'safety-paper': 'var(--safety-paper)',
         'safety-read': 'var(--safety-read)',
+        'safety-ai': 'var(--safety-ai)',
+        'safety-broker': 'var(--safety-broker)',
 
         // Existing aliases kept for legacy components.
         bg: 'var(--bg)',
@@ -79,17 +96,19 @@ module.exports = {
         'safe-b': 'env(safe-area-inset-bottom, 0px)',
       },
       borderRadius: {
-        card: '10px',
-        card2: '12px',
+        card: '16px',
+        card2: '20px',
         pill: '100px',
       },
       boxShadow: {
-        card: 'var(--shadow-panel)',
+        card: 'var(--maet-shadow-card)',
+        glass: 'var(--maet-shadow-glass)',
         raised: 'var(--shadow-raised)',
-        modal: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px var(--border-strong)',
-        up: '0 0 16px rgba(0, 214, 143, 0.24)',
-        down: '0 0 16px rgba(255, 77, 106, 0.24)',
-        cyan: '0 0 20px rgba(77, 156, 248, 0.24)',
+        inner: 'var(--maet-shadow-inner)',
+        modal: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px var(--maet-glass-border-strong)',
+        up: '0 0 16px rgba(22, 199, 132, 0.24)',
+        down: '0 0 16px rgba(234, 57, 67, 0.24)',
+        cyan: '0 0 20px rgba(34, 211, 238, 0.24)',
       },
       borderWidth: {
         3: '3px',
@@ -107,11 +126,11 @@ module.exports = {
           '50%': { opacity: '1' },
         },
         tickUp: {
-          '0%': { backgroundColor: 'rgba(0,214,143,0.24)' },
+          '0%': { backgroundColor: 'rgba(22,199,132,0.24)' },
           '100%': { backgroundColor: 'transparent' },
         },
         tickDown: {
-          '0%': { backgroundColor: 'rgba(255,77,106,0.22)' },
+          '0%': { backgroundColor: 'rgba(234,57,67,0.22)' },
           '100%': { backgroundColor: 'transparent' },
         },
         slideInBottom: {

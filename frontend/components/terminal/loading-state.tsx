@@ -29,11 +29,11 @@ export function LoadingState({
       <div className="flex flex-col gap-1">
         <span className={cn(
           'uppercase tracking-widest text-info font-medium',
-          compact ? 'text-[9px]' : 'text-2xs'
+          compact ? 'text-[10px]' : 'text-2xs'
         )}>
           {message}
         </span>
-        <span className="text-[9px] text-text-faint animate-pulse-soft">
+        <span className="text-[10px] text-text-faint animate-pulse-soft">
           ESTABLISHING CONTEXT...
         </span>
       </div>

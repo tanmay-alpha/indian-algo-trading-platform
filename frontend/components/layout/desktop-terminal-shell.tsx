@@ -13,6 +13,7 @@ import { SystemScreen } from '@/components/screens/system-screen'
 import { OrderTicket } from '@/components/screens/order-ticket'
 import { AppCard } from '@/components/ui-maet/app-card'
 import { SectionHeader } from '@/components/ui-maet/section-header'
+import { ReflectionCard } from '@/components/effects/reflection-card'
 import { useTerminalStore } from '@/store/terminal-store'
 
 interface DesktopTerminalShellProps {
@@ -22,11 +23,11 @@ interface DesktopTerminalShellProps {
 
 export function DesktopTerminalShell({ activeTab, onNavigate }: DesktopTerminalShellProps) {
   return (
-    <div className="desktop-app flex h-full overflow-hidden bg-maet-base text-maet-text">
+    <div className="desktop-app flex h-full overflow-hidden bg-transparent text-maet-text">
       <DesktopSidebar active={activeTab} onNavigate={onNavigate} />
       <div className="flex min-w-0 flex-1 flex-col">
         <DesktopTopBar activeTab={activeTab} />
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(77,156,248,0.10),transparent_34%),var(--bg-base)] p-4 xl:p-5">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 xl:p-5">
           <DesktopWorkspace activeTab={activeTab} onNavigate={onNavigate} />
         </main>
       </div>
@@ -120,7 +121,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
   return (
     <div className="grid min-h-[calc(100dvh-112px)] grid-cols-[minmax(0,1fr)_360px] gap-4">
       <div className="space-y-4">
-        <AppCard className="p-6">
+        <AppCard className="p-6 hover-glass">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="max-w-3xl">
               <h2 className="font-heading text-3xl font-bold leading-tight text-maet-text xl-heading">
@@ -155,7 +156,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
               key={tab}
               type="button"
               onClick={() => onNavigate(tab)}
-              className="rounded-card border border-maet-border bg-maet-surface p-5 text-left transition-all hover:border-maet-border-strong hover:bg-maet-elevated active:scale-[0.99]"
+              className="reflection-card p-5 text-left transition-all hover-glass active:scale-[0.985]"
             >
               <div className="mb-4 grid h-11 w-11 place-items-center rounded-md border border-maet-blue/25 bg-maet-blue/10 text-maet-blue">
                 <Icon className="h-5 w-5" />
@@ -190,12 +191,12 @@ function DesktopPane({
   compact?: boolean
 }) {
   return (
-    <section className="desktop-pane flex min-h-0 flex-col overflow-hidden rounded-card border border-maet-border bg-maet-surface shadow-card">
+    <ReflectionCard as="section" className="desktop-pane flex min-h-0 flex-col overflow-hidden shadow-card">
       <SectionHeader title={title} icon={icon} className="shrink-0 px-4 py-3" />
       <div className={primary ? 'min-h-0 flex-1' : compact ? 'min-h-0' : 'min-h-0 flex-1'}>
         {children}
       </div>
-    </section>
+    </ReflectionCard>
   )
 }
 

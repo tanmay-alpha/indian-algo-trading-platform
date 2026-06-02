@@ -18,9 +18,9 @@ function StatusPill({ label, status, detail, value }: PillProps) {
       title={detail ? `${label}: ${status} — ${detail}` : `${label}: ${status}`}
       className="flex h-full shrink-0 items-center gap-1 border-r border-border/60 px-2"
     >
-      <span className="font-mono text-[9px] text-text-faint">{label}</span>
+      <span className="font-mono text-[10px] text-text-faint">{label}</span>
       <span className={cn('h-[5px] w-[5px] shrink-0 rounded-full', meta.dotClass)} />
-      <span className={cn('shrink-0 font-mono text-[9px] font-medium', meta.textClass)}>
+      <span className={cn('shrink-0 font-mono text-[10px] font-medium', meta.textClass)}>
         {value ?? meta.shortLabel}
       </span>
     </div>

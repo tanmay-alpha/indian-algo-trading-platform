@@ -29,7 +29,7 @@ export function SystemScreen() {
 
   return (
     <MobilePage className="flex h-full flex-col space-y-4 pb-4">
-      <div className="shrink-0 rounded-card border border-maet-border bg-maet-surface p-4">
+      <div className="reflection-card shrink-0 p-4">
         <h1 className="font-heading text-xl font-bold text-maet-text">System Health</h1>
         <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Operational telemetry for the MAET frontend, backend, broker session, and market stream.</p>
       </div>
@@ -71,7 +71,7 @@ export function SystemScreen() {
           ]}
         />
 
-        <div className="rounded-card border border-maet-red/40 bg-maet-red/10 p-4">
+        <div className="reflection-card border-maet-red/40 bg-maet-red/10 p-4">
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-red/40 bg-maet-red/12 text-maet-red">
               <ShieldCheck className="h-5 w-5" />
@@ -80,6 +80,13 @@ export function SystemScreen() {
               <div className="font-heading text-base font-bold text-maet-text">Execution Safety</div>
               <div className="mt-2 rounded-md border border-maet-red/40 bg-maet-base px-3 py-2 font-mono text-xs font-bold text-maet-red">
                 BUILD_LIVE_EXECUTION_ALLOWED = false
+              </div>
+              <div className="mt-3 grid gap-2 font-mono text-xs">
+                <SafetyLine label="LIVE LOCKED" value="true" />
+                <SafetyLine label="PAPER MODE" value="true" />
+                <SafetyLine label="READ ONLY" value="broker context" />
+                <SafetyLine label="AI ADVISORY ONLY" value="true" />
+                <SafetyLine label="BROKER MUTATION DISABLED" value="true" />
               </div>
               <p className="mt-2 text-xs leading-5 text-maet-text-secondary">Live order placement is permanently locked in this build.</p>
             </div>
@@ -99,7 +106,7 @@ export function SystemScreen() {
         />
 
         {(connectionError || lastStatusError) && (
-          <div className="rounded-card border border-maet-red/30 bg-maet-red/10 p-3">
+          <div className="reflection-card border-maet-red/30 bg-maet-red/10 p-3">
             <div className="font-heading text-sm font-bold text-maet-red">Current connection issue</div>
             <p className="mt-2 break-words font-mono text-xs leading-5 text-maet-text-secondary">{connectionError || lastStatusError}</p>
           </div>
@@ -125,7 +132,7 @@ function TelemetryCard({
   rows: [string, string][]
 }) {
   return (
-    <div className="rounded-card border border-maet-border bg-maet-surface p-4">
+    <div className="reflection-card p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md border', toneClass(tone).box)}>
@@ -148,6 +155,15 @@ function TelemetryCard({
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function SafetyLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-xl border border-maet-red/20 bg-maet-bg-deep/36 px-3 py-2">
+      <span className="text-maet-red">{label}</span>
+      <span className="text-maet-text">{value}</span>
     </div>
   )
 }

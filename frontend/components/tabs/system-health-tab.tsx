@@ -116,7 +116,7 @@ export function SystemHealthTab() {
         <div className="flex h-10 items-center justify-between border-b border-border bg-bg/70 px-3">
           <div>
             <div className="text-xs font-semibold text-text">Event Log</div>
-            <div className="text-[9px] font-mono text-text-faint">Last 50 entries</div>
+            <div className="text-[10px] font-mono text-text-faint">Last 50 entries</div>
           </div>
           <select
             value={filter}
@@ -148,7 +148,7 @@ function PanelHeader({ title, subtitle, compact = false }: { title: string; subt
   return (
     <div className={cn('border-b border-border bg-bg/70 px-3', compact ? 'py-1.5' : 'py-2')}>
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[9px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }
@@ -156,9 +156,9 @@ function PanelHeader({ title, subtitle, compact = false }: { title: string; subt
 function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-sm border border-border bg-bg p-2 font-mono">
-      <div className="text-[9px] uppercase text-text-faint">{label}</div>
+      <div className="text-[10px] uppercase text-text-faint">{label}</div>
       <div className="mt-1 text-xs text-text">{value}</div>
-      {sub && <div className="mt-0.5 text-[9px] text-text-faint">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[10px] text-text-faint">{sub}</div>}
     </div>
   )
 }
@@ -189,7 +189,7 @@ function EventRow({ entry }: { entry: ObservabilityEventEntry }) {
   return (
     <div className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
       <div className="flex items-center gap-2">
-        <span className={cn('rounded border px-1.5 py-0.5 text-[9px]', eventTypeClass(entry.event_type))}>{entry.event_type}</span>
+        <span className={cn('rounded border px-1.5 py-0.5 text-[10px]', eventTypeClass(entry.event_type))}>{entry.event_type}</span>
         <span className="text-text-faint">{fmtTime(entry.ts)}</span>
       </div>
       <div className="mt-1 truncate text-text-2">{entry.summary}</div>

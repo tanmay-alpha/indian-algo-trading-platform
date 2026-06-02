@@ -52,9 +52,9 @@ function sideColor(side: string): string {
 function OmsStatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded border border-border bg-panel/70 px-3 py-2">
-      <div className="text-[9px] font-mono uppercase tracking-wider text-text-faint">{label}</div>
+      <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint">{label}</div>
       <div className="mt-1 text-sm font-mono font-semibold text-text">{value}</div>
-      {sub && <div className="mt-0.5 text-[9px] font-mono text-text-faint truncate">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[10px] font-mono text-text-faint truncate">{sub}</div>}
     </div>
   )
 }
@@ -72,7 +72,7 @@ function BlotterTable({
   return (
     <div className="flex flex-col min-h-0 flex-1">
       <div
-        className="grid gap-2 px-3 py-1.5 border-b border-border bg-bg text-[9px] font-mono uppercase tracking-wider text-text-faint sticky top-0"
+        className="grid gap-2 px-3 py-1.5 border-b border-border bg-bg text-[10px] font-mono uppercase tracking-wider text-text-faint sticky top-0"
         style={colStyle}
       >
         {columns.map((c) => <span key={c} className="truncate">{c}</span>)}
@@ -184,7 +184,7 @@ function SummaryTab() {
         <span className="text-[10px] font-mono text-text">
           Trading Safety Engine {health?.oms_initialized ? 'Online' : 'Offline'}
         </span>
-        <span className="ml-auto text-[9px] font-mono text-text-faint">
+        <span className="ml-auto text-[10px] font-mono text-text-faint">
           {status?.trading_mode ?? '—'} mode · {status?.in_memory_active_orders ?? 0} active in-memory
         </span>
       </div>
@@ -210,13 +210,13 @@ function SummaryTab() {
             <OmsStatCard label="Rebuilt Positions" value={String(rebuild.rebuilt_positions?.length ?? 0)} />
             <OmsStatCard label="Warnings" value={String(rebuild.warnings_count)} />
           </div>
-          <div className="text-[9px] font-mono text-text-faint">
+          <div className="text-[10px] font-mono text-text-faint">
             Source: {rebuild.source} · Last: {fmtTs(rebuild.last_rebuild_at)}
           </div>
           {(rebuild.rebuilt_positions?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {rebuild.rebuilt_positions.map((sym) => (
-                <span key={sym} className="rounded px-1.5 py-0.5 bg-info/10 border border-info/20 text-[9px] font-mono text-info">
+                <span key={sym} className="rounded px-1.5 py-0.5 bg-info/10 border border-info/20 text-[10px] font-mono text-info">
                   {sym}
                 </span>
               ))}
@@ -272,18 +272,18 @@ function OrdersTab() {
         <div className="h-1/2 border-t border-border overflow-auto p-3 space-y-2 bg-bg/60">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-info">Audit: {selected}</span>
-            <button onClick={() => { setSelected(null); clearAudit() }} className="text-[9px] text-text-dim hover:text-text font-mono">× Close</button>
+            <button onClick={() => { setSelected(null); clearAudit() }} className="text-[10px] text-text-dim hover:text-text font-mono">× Close</button>
           </div>
           <div className="space-y-1">
             {audit.events.map((ev, i) => (
-              <div key={i} className="grid grid-cols-4 gap-2 text-[9px] font-mono border-b border-border/40 py-0.5">
+              <div key={i} className="grid grid-cols-4 gap-2 text-[10px] font-mono border-b border-border/40 py-0.5">
                 <span className="text-text-faint">{fmtTs(ev.created_at)}</span>
                 <span className="text-text">{ev.event_type}</span>
                 <span className={statusColor(ev.status ?? '')}>{ev.status ?? '—'}</span>
                 <span className="text-text-faint truncate">{ev.reason ?? '—'}</span>
               </div>
             ))}
-            {audit.events.length === 0 && <span className="text-[9px] text-text-faint font-mono">No events.</span>}
+            {audit.events.length === 0 && <span className="text-[10px] text-text-faint font-mono">No events.</span>}
           </div>
         </div>
       )}
@@ -360,17 +360,17 @@ function ReconciliationTab() {
           Status: {recon.status.toUpperCase()}
         </span>
         {recon.message && (
-          <span className="ml-2 text-[9px] font-mono text-text-faint">{recon.message}</span>
+          <span className="ml-2 text-[10px] font-mono text-text-faint">{recon.message}</span>
         )}
-        <span className="ml-auto text-[9px] font-mono text-text-faint">
+        <span className="ml-auto text-[10px] font-mono text-text-faint">
           Last run: {fmtTs(recon.last_run_at)}
         </span>
       </div>
 
       {recon.report && Object.keys(recon.report).length > 0 && (
         <div className="rounded border border-border bg-panel/60 p-3">
-          <div className="text-[9px] font-mono text-text-faint mb-2 uppercase tracking-wider">Reconciliation Report</div>
-          <pre className="text-[9px] font-mono text-text-2 whitespace-pre-wrap break-all">
+          <div className="text-[10px] font-mono text-text-faint mb-2 uppercase tracking-wider">Reconciliation Report</div>
+          <pre className="text-[10px] font-mono text-text-2 whitespace-pre-wrap break-all">
             {JSON.stringify(recon.report, null, 2)}
           </pre>
         </div>
@@ -425,7 +425,7 @@ export function OmsDashboard() {
       <div className="h-10 px-4 flex items-center gap-3 border-b border-border bg-bg-2 shrink-0">
         <Shield className="w-3.5 h-3.5 text-info shrink-0" />
         <span className="text-[11px] font-mono uppercase tracking-wider text-text">OMS Blotter</span>
-        <span className="text-[9px] font-mono text-text-faint">READ-ONLY · ADMIN PROTECTED · NO TRADING ACTIONS</span>
+        <span className="text-[10px] font-mono text-text-faint">READ-ONLY · ADMIN PROTECTED · NO TRADING ACTIONS</span>
 
         <div className="ml-auto flex items-center gap-2">
           {/* Data state badge */}
@@ -433,7 +433,7 @@ export function OmsDashboard() {
 
           {/* Last updated */}
           {lastUpdated && (
-            <span className="text-[9px] font-mono text-text-faint">
+            <span className="text-[10px] font-mono text-text-faint">
               {new Date(lastUpdated).toLocaleTimeString('en-IN', { hour12: false })}
             </span>
           )}
@@ -442,7 +442,7 @@ export function OmsDashboard() {
           {resolvedState === 'ONLINE' && (
             <button
               onClick={clearOmsAdminToken}
-              className="h-6 px-2 rounded border border-border text-[9px] font-mono text-text-dim hover:text-rose-400 hover:border-rose-400/30 transition-colors"
+              className="h-6 px-2 rounded border border-border text-[10px] font-mono text-text-dim hover:text-rose-400 hover:border-rose-400/30 transition-colors"
             >
               Lock
             </button>
@@ -511,7 +511,7 @@ function DataStateBadge({ state }: { state: OmsDataState }) {
   }
   const { label, cls } = map[state] ?? map.ERROR
   return (
-    <span className={cn('rounded border px-2 py-0.5 text-[9px] font-mono uppercase', cls)}>
+    <span className={cn('rounded border px-2 py-0.5 text-[10px] font-mono uppercase', cls)}>
       {label}
     </span>
   )

@@ -81,8 +81,8 @@ export function WatchlistRow({
         onClick={onOpen}
         aria-label={`Open chart for ${cleanSymbol}`}
         className={cn(
-          'wl-row relative z-10 grid h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border bg-maet-surface px-3 text-left transition-transform',
-          selected ? 'selected border-maet-blue/40' : 'border-maet-border hover:border-maet-border-strong hover:bg-maet-elevated',
+          'wl-row reflection-card relative z-10 grid h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 text-left transition-transform',
+          selected ? 'selected border-maet-blue/40' : 'hover-glass',
           revealed && onRemove ? '-translate-x-24' : 'translate-x-0',
           flash
         )}
@@ -92,7 +92,7 @@ export function WatchlistRow({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="truncate font-mono text-sm font-extrabold text-maet-text">{cleanSymbol}</span>
-              <span className="shrink-0 rounded border border-maet-border bg-maet-elevated px-1.5 py-0.5 font-mono text-[10px] font-bold text-maet-text-secondary">
+              <span className="shrink-0 rounded-full border border-maet-glass-border bg-maet-glass-1 px-1.5 py-0.5 font-mono text-[10px] font-bold text-maet-text-secondary">
                 {exchange}
               </span>
             </div>
@@ -113,16 +113,19 @@ export function WatchlistRow({
               )}
             </div>
           ) : (
-            <StatusBadge tone={offline ? 'warning' : 'muted'} className="min-w-[84px] justify-center">
-              {offline ? (
-                <>
-                  <WifiOff className="h-3 w-3" />
-                  Offline
-                </>
-              ) : (
-                'Awaiting'
-              )}
-            </StatusBadge>
+            <div className="text-right">
+              <div className="font-mono text-base font-extrabold text-maet-text-muted">--</div>
+              <StatusBadge tone={offline ? 'warning' : 'muted'} className="mt-1 min-w-[84px] justify-center">
+                {offline ? (
+                  <>
+                    <WifiOff className="h-3 w-3" />
+                    Offline
+                  </>
+                ) : (
+                  'Awaiting'
+                )}
+              </StatusBadge>
+            </div>
           )}
           <BarChart2 className="hidden h-4 w-4 text-maet-blue sm:block" />
         </div>

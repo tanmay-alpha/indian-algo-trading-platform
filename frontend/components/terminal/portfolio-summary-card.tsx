@@ -44,10 +44,10 @@ export function PortfolioSummaryCard() {
           </div>
           <div>
             <h4 className="text-[11px] font-semibold text-white tracking-wider uppercase">Portfolio Summary</h4>
-            <p className="text-[9px] font-mono text-text-dim">Read-only status</p>
+            <p className="text-[10px] font-mono text-text-dim">Read-only status</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full border border-info/30 bg-info/10 text-info font-mono text-[9px] font-semibold tracking-wider">
+        <span className="px-2 py-0.5 rounded-full border border-info/30 bg-info/10 text-info font-mono text-[10px] font-semibold tracking-wider">
           READ-ONLY / PAPER
         </span>
       </div>
@@ -57,13 +57,13 @@ export function PortfolioSummaryCard() {
         {/* Net Value */}
         <div className="bg-white/[0.01] p-2.5 rounded border border-white/[0.02] flex items-center justify-between">
           <div>
-            <span className="text-[9px] text-text-faint block uppercase font-mono">Net Portfolio Value</span>
+            <span className="text-[10px] text-text-faint block uppercase font-mono">Net Portfolio Value</span>
             <span className="text-sm font-bold text-white font-mono tracking-wider block mt-0.5">
               {formattedValue}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[9px] text-text-faint block uppercase font-mono">Total PnL</span>
+            <span className="text-[10px] text-text-faint block uppercase font-mono">Total PnL</span>
             <span className={cn(
               "text-xs font-bold font-mono block mt-0.5",
               isPositive ? 'text-up text-glow-green' : 'text-down text-glow-red'
@@ -76,11 +76,11 @@ export function PortfolioSummaryCard() {
         {/* Marginal / Collateral */}
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           <div className="bg-white/[0.01] p-2 rounded border border-white/[0.02]">
-            <span className="text-[9px] text-text-faint block uppercase">Available Margin</span>
+            <span className="text-[10px] text-text-faint block uppercase">Available Margin</span>
             <span className="font-semibold text-white block truncate mt-0.5">{formattedMargin}</span>
           </div>
           <div className="bg-white/[0.01] p-2 rounded border border-white/[0.02]">
-            <span className="text-[9px] text-text-faint block uppercase">Reconciliation</span>
+            <span className="text-[10px] text-text-faint block uppercase">Reconciliation</span>
             <span className="font-semibold text-info block truncate mt-0.5">SECURE PASS</span>
           </div>
         </div>

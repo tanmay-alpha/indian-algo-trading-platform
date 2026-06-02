@@ -33,10 +33,10 @@ export function OrderDryRunCard() {
           </div>
           <div>
             <h4 className="text-[11px] font-semibold text-white tracking-wider uppercase">Order Sandbox</h4>
-            <p className="text-[9px] font-mono text-text-dim">Simulated execution lab</p>
+            <p className="text-[10px] font-mono text-text-dim">Simulated execution lab</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full border border-down/30 bg-down/10 text-down font-mono text-[9px] font-semibold tracking-wider flex items-center gap-1">
+        <span className="px-2 py-0.5 rounded-full border border-down/30 bg-down/10 text-down font-mono text-[10px] font-semibold tracking-wider flex items-center gap-1">
           <Lock className="w-3 h-3" />
           LIVE LOCKED
         </span>
@@ -46,7 +46,7 @@ export function OrderDryRunCard() {
       <form onSubmit={handleDryRun} className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] text-text-dim uppercase font-mono block">Instrument</label>
+            <label className="text-[10px] text-text-dim uppercase font-mono block">Instrument</label>
             <input 
               type="text" 
               value={symbol}
@@ -56,7 +56,7 @@ export function OrderDryRunCard() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] text-text-dim uppercase font-mono block">Quantity</label>
+            <label className="text-[10px] text-text-dim uppercase font-mono block">Quantity</label>
             <input 
               type="number" 
               value={qty}

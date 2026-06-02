@@ -122,7 +122,7 @@ export function StrategyControlPanel() {
           <Bot className={cn('w-3.5 h-3.5', scheduler?.running ? 'text-up' : 'text-text-faint')} />
           <div>
             <div className="text-xs font-semibold text-text">Autopilot Scheduler</div>
-            <div className="text-[9px] font-mono text-text-faint mt-0.5">
+            <div className="text-[10px] font-mono text-text-faint mt-0.5">
               {scheduler?.running
                 ? `Tracking ${scheduler.strategies_tracked} strategies · ticks every ${scheduler.tick_interval_seconds}s`
                 : 'Scheduler stopped — strategies evaluated manually only'}
@@ -131,12 +131,12 @@ export function StrategyControlPanel() {
         </div>
         <div className="flex items-center gap-2">
           {scheduler?.running ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[9px] font-mono font-semibold text-up border-up/30 bg-up/10">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[10px] font-mono font-semibold text-up border-up/30 bg-up/10">
               <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse inline-block" />
               AUTOPILOT ON
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[9px] font-mono text-text-faint border-border bg-panel">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[10px] font-mono text-text-faint border-border bg-panel">
               AUTOPILOT OFF
             </span>
           )}
@@ -175,7 +175,7 @@ export function StrategyControlPanel() {
         <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
           <Layers className="w-7 h-7 text-text-faint opacity-60" />
           <div className="text-xs font-mono text-text-faint">No strategy configurations found</div>
-          <div className="text-[9px] text-text-faint opacity-70">
+          <div className="text-[10px] text-text-faint opacity-70">
             Create a strategy config via API to manage it here
           </div>
         </div>
@@ -197,7 +197,7 @@ export function StrategyControlPanel() {
 
       {/* Last refreshed footer */}
       {lastRefreshed && (
-        <div className="text-[9px] font-mono text-text-faint opacity-60 text-right">
+        <div className="text-[10px] font-mono text-text-faint opacity-60 text-right">
           <Clock className="inline w-2.5 h-2.5 mr-1" />
           Last refreshed {new Date(lastRefreshed).toLocaleTimeString()}
         </div>
@@ -238,17 +238,17 @@ function StrategyCard({
           <span className={cn('w-2 h-2 rounded-full', STATUS_DOT[config.status] ?? 'bg-text-faint', isRunning && 'animate-pulse')} />
           <div>
             <div className="text-xs font-semibold text-text">{config.name}</div>
-            <div className="text-[9px] font-mono text-text-faint mt-0.5">
+            <div className="text-[10px] font-mono text-text-faint mt-0.5">
               {config.template_id} · {config.timeframe} · {config.mode}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={cn('px-1.5 py-0.5 rounded-sm border text-[9px] font-mono font-semibold', STATUS_COLOR[config.status] ?? STATUS_COLOR.STOPPED)}>
+          <span className={cn('px-1.5 py-0.5 rounded-sm border text-[10px] font-mono font-semibold', STATUS_COLOR[config.status] ?? STATUS_COLOR.STOPPED)}>
             {config.status}
           </span>
           {config.auto_paper_enabled && (
-            <span className="px-1.5 py-0.5 rounded-sm border border-info/30 bg-info/10 text-info text-[9px] font-mono">
+            <span className="px-1.5 py-0.5 rounded-sm border border-info/30 bg-info/10 text-info text-[10px] font-mono">
               AUTO
             </span>
           )}
@@ -367,7 +367,7 @@ function ActionButton({
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[8px] uppercase tracking-widest text-text-faint">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-text-faint">{label}</div>
       <div className="text-[10px] font-mono text-text truncate" title={value}>{value || '—'}</div>
     </div>
   )

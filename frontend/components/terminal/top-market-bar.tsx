@@ -49,9 +49,9 @@ export function TopMarketBar() {
       <div className="flex h-full shrink-0 items-center gap-2 border-r border-border px-3">
         <div>
           <div className="text-[11px] font-semibold leading-tight text-text">MAET Terminal</div>
-          <div className="text-[9px] font-mono text-text-faint">Market Analytics · Paper Demo</div>
+          <div className="text-[10px] font-mono text-text-faint">Market Analytics · Paper Demo</div>
         </div>
-        <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[9px] font-mono text-text-faint">
+        <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-faint">
           {BUILD_ENV}
         </span>
       </div>
@@ -96,7 +96,7 @@ function IndexTile({
   const change = snapshot?.change_pct ?? null
   return (
     <div className="flex h-full min-w-[120px] flex-col items-start justify-center border-r border-border px-4">
-      <div className="font-mono text-[9px] text-text-faint">{label}</div>
+      <div className="font-mono text-[10px] text-text-faint">{label}</div>
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-[12px] font-semibold tabular-nums text-text">
           {value != null ? value.toLocaleString('en-IN') : '—'}
@@ -133,7 +133,7 @@ function SessionBadge({ session }: { session: NseMarketSession }) {
   return (
     <div
       className={cn(
-        'rounded border px-2 py-0.5 text-[9px] font-mono font-semibold tracking-widest',
+        'rounded border px-2 py-0.5 text-[10px] font-mono font-semibold tracking-widest',
         session === 'OPEN' || session === 'LIVE'
           ? 'border-up/20 bg-up/15 text-up'
           : 'border-border bg-panel-3 text-text-faint'

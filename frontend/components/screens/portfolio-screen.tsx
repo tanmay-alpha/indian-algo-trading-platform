@@ -64,11 +64,11 @@ export function PortfolioScreen() {
 
   return (
     <MobilePage className="flex h-full flex-col space-y-4 pb-4">
-      <div className="shrink-0 rounded-card border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber">
+      <div className="shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
         Broker data is read-only. No mutations possible.
       </div>
 
-      <div className="shrink-0 rounded-card border border-maet-border bg-maet-surface p-4">
+      <div className="reflection-card shrink-0 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-heading text-xl font-bold text-maet-text">Portfolio</h1>
@@ -79,7 +79,7 @@ export function PortfolioScreen() {
             onClick={() => void refreshPortfolio()}
             disabled={!adminToken || loading}
             aria-label="Refresh read-only portfolio snapshot"
-            className="grid h-10 w-10 place-items-center rounded-md border border-maet-border text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text disabled:opacity-40"
+            className="grid h-10 w-10 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text disabled:opacity-40"
           >
             <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
           </button>
@@ -94,7 +94,7 @@ export function PortfolioScreen() {
       </div>
 
       {!adminToken && (
-        <div className="shrink-0 rounded-card border border-maet-border bg-maet-overlay p-4">
+        <div className="reflection-card shrink-0 p-4">
           <div className="mb-3 flex items-start gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
               <LockKeyhole className="h-5 w-5" />
@@ -129,7 +129,7 @@ export function PortfolioScreen() {
               type="button"
               onClick={handleUnlock}
               disabled={isUnlocking || !tokenInput.trim()}
-              className="flex h-11 items-center justify-center gap-2 rounded-md bg-maet-blue px-4 text-sm font-bold text-white disabled:opacity-40"
+              className="maet-btn maet-btn-primary h-11 px-4 text-sm disabled:opacity-40"
             >
               {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
               Unlock
@@ -170,11 +170,11 @@ function Overview({
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Total Invested" value={locked ? 'Offline' : formatCurrency(summary?.total_open_notional)} caption="Read-only broker snapshot" />
-        <StatCard label="Current Value" value={locked ? 'Offline' : formatCurrency(summary?.equity)} caption="Read-only broker snapshot" />
-        <StatCard label="Unrealized P&L" value={locked ? 'Offline' : formatCurrency(pnl)} caption="Paper mode - indicative" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
+        <StatCard label="Total Invested" value={locked ? 'Unavailable' : formatCurrency(summary?.total_open_notional)} caption="Read-only broker snapshot" />
+        <StatCard label="Current Value" value={locked ? 'Unavailable' : formatCurrency(summary?.equity)} caption="Read-only broker snapshot" />
+        <StatCard label="Unrealized P&L" value={locked ? 'Unavailable' : formatCurrency(pnl)} caption="Paper mode - indicative" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
       </div>
-      <div className="rounded-card border border-maet-border bg-maet-surface p-4">
+      <div className="reflection-card p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="font-heading text-base font-bold text-maet-text">Reconciliation</div>
           <StatusBadge tone={reconciliationLabel === 'Synced' ? 'success' : reconciliationLabel === 'Mismatch' ? 'warning' : 'muted'}>{reconciliationLabel}</StatusBadge>
@@ -248,7 +248,7 @@ function EquityCurve({ points, locked }: { points: EquityCurvePoint[]; locked: b
   const fillPath = `${path} L ${width} ${height} L 0 ${height} Z`
 
   return (
-    <div className="rounded-card border border-maet-border bg-maet-void p-4">
+    <div className="reflection-card bg-maet-bg-deep/52 p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[260px] w-full" role="img" aria-label="Portfolio equity curve">
         <path d={fillPath} fill="rgba(77,156,248,0.20)" />
         <path d={path} fill="none" stroke="#4d9cf8" strokeWidth="3" />
@@ -259,7 +259,7 @@ function EquityCurve({ points, locked }: { points: EquityCurvePoint[]; locked: b
 
 function StatCard({ label, value, caption, tone = 'muted' }: { label: string; value: string; caption: string; tone?: 'up' | 'down' | 'muted' }) {
   return (
-    <div className="rounded-card border border-maet-border bg-maet-surface p-4">
+    <div className="reflection-card p-4">
       <div className="text-xs font-bold text-maet-text-muted">{label}</div>
       <div className={cn('mt-2 font-mono text-xl font-extrabold', tone === 'up' ? 'text-maet-green' : tone === 'down' ? 'text-maet-red' : 'text-maet-text')}>
         {value}
@@ -271,9 +271,9 @@ function StatCard({ label, value, caption, tone = 'muted' }: { label: string; va
 
 function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-auto rounded-card border border-maet-border bg-maet-surface">
+    <div className="reflection-card overflow-auto">
       <table className="min-w-[620px] w-full text-left text-xs">
-        <thead className="bg-maet-elevated text-maet-text-muted">
+        <thead className="bg-maet-bg-deep/48 text-maet-text-muted">
           <tr>
             {headers.map((header) => <th key={header} className="px-3 py-3 font-mono font-bold">{header}</th>)}
           </tr>
@@ -296,7 +296,7 @@ function TableSkeleton() {
   return (
     <div className="space-y-2">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div key={index} className="grid h-12 grid-cols-[1fr_80px_90px] items-center gap-3 rounded-card border border-maet-border bg-maet-surface px-3">
+        <div key={index} className="reflection-card grid h-12 grid-cols-[1fr_80px_90px] items-center gap-3 px-3">
           <Skeleton className="h-3 w-28" />
           <Skeleton className="h-3 w-16" />
           <Skeleton className="h-3 w-20" />
@@ -308,9 +308,9 @@ function TableSkeleton() {
 
 function EmptyPanel({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="grid min-h-[260px] place-items-center rounded-card border border-maet-border bg-maet-surface p-6 text-center">
+    <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
       <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-md border border-maet-border bg-maet-elevated text-maet-text-muted">{icon}</div>
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-muted">{icon}</div>
         <div className="mt-4 font-heading text-base font-bold text-maet-text">{title}</div>
         <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-secondary">{body}</p>
       </div>

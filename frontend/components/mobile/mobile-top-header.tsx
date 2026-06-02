@@ -37,12 +37,12 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
 
   return (
     <header
-      className="flex items-center justify-between px-4 bg-bg/95 backdrop-blur-md border-b border-border/60 shrink-0"
+      className="mx-3 mt-3 flex items-center justify-between rounded-2xl border border-maet-glass-border bg-maet-bg-deep/62 px-3 shadow-card backdrop-blur-2xl shrink-0"
       style={{ height: 'var(--top-header-h)' }}
     >
       {/* Logo / Title */}
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-info to-blue-600 flex items-center justify-center text-bg font-bold text-sm shadow-cyan shrink-0">
+        <div className="w-8 h-8 rounded-2xl border border-maet-glass-border bg-gradient-to-br from-maet-cyan to-maet-blue-strong flex items-center justify-center text-bg font-bold text-sm shadow-cyan shrink-0">
           M
         </div>
         <div>
@@ -61,7 +61,7 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
         </span>
 
         <div className={cn(
-          'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium',
+          'flex min-h-7 items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium shadow-inner',
           isConnected
             ? 'bg-up/10 text-up border border-up/20'
             : 'bg-text-faint/10 text-text-dim border border-border'
@@ -76,7 +76,7 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
           type="button"
           onClick={() => onNavigate?.('system')}
           aria-label="Open System screen"
-          className="grid h-9 w-9 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-text-dim transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
+          className="grid h-10 w-10 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-text-dim transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
         >
           <Activity className="h-4 w-4" />
         </button>

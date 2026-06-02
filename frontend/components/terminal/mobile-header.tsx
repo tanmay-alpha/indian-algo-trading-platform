@@ -62,7 +62,7 @@ export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeader
                 </span>
                 {ltp != null && (
                   <span className={cn(
-                    'text-[9px] font-mono leading-none',
+                    'text-[10px] font-mono leading-none',
                     chg != null && chg > 0 ? 'text-up' : chg != null && chg < 0 ? 'text-down' : 'text-text-faint'
                   )}>
                     {fmtPrice(ltp)} ({chg != null ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : '—'})
@@ -83,7 +83,7 @@ export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeader
             'w-1.5 h-1.5 rounded-full',
             wsConnected && apiStatus === 'ONLINE' ? 'bg-up animate-pulse-soft' : 'bg-warn'
           )} />
-          <span className="text-[8px] font-mono text-text-faint leading-none tracking-tight">
+          <span className="text-[10px] font-mono text-text-faint leading-none tracking-tight">
             {istTime?.substring(0, 5) || '--:--'}
           </span>
         </div>
@@ -93,14 +93,14 @@ export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeader
           {isTradeWorkspace ? (
             <button
               onClick={onOpenRightPanel}
-              className="h-8 px-2 flex items-center justify-center gap-1 rounded-md bg-info/10 border border-info/20 hover:bg-info/15 active:scale-95 transition-all text-info font-mono text-[9px] font-semibold"
+              className="h-8 px-2 flex items-center justify-center gap-1 rounded-md bg-info/10 border border-info/20 hover:bg-info/15 active:scale-95 transition-all text-info font-mono text-[10px] font-semibold"
               title="Trade & Intelligence"
             >
               <Zap className="w-3.5 h-3.5" />
               <span>ORDER</span>
             </button>
           ) : (
-            <div className="flex items-center gap-1 rounded border border-border bg-panel px-1.5 py-0.5 text-[8px] font-mono text-paper leading-none">
+            <div className="flex items-center gap-1 rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-paper leading-none">
               <LockKeyhole className="h-2.5 w-2.5" />
               <span>{executionMode === 'PAPER' ? 'PAPER' : 'LIVE'}</span>
             </div>

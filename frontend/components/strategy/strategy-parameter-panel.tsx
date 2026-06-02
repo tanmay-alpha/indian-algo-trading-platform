@@ -49,7 +49,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="border-b border-border bg-bg/60 px-3 py-2">
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[9px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }

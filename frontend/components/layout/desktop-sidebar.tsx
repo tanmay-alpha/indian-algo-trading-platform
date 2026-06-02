@@ -32,9 +32,9 @@ export function DesktopSidebar({ active, onNavigate }: DesktopSidebarProps) {
   const backendOnline = apiStatus === 'ONLINE'
 
   return (
-    <aside className="group flex h-full w-14 shrink-0 flex-col border-r border-maet-border bg-maet-void px-2 py-3 transition-[width] duration-150 hover:w-[200px]">
+    <aside className="group m-3 mr-0 flex h-[calc(100%-24px)] w-16 shrink-0 flex-col rounded-2xl border border-maet-glass-border bg-maet-bg-deep/70 px-2 py-3 shadow-glass backdrop-blur-2xl transition-[width] duration-200 hover:w-[204px]">
       <div className="mb-5 flex h-10 items-center gap-3 overflow-hidden px-1">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-maet-blue font-heading text-base font-extrabold text-white shadow-cyan">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-maet-glass-border bg-maet-blue/80 font-heading text-base font-extrabold text-white shadow-cyan">
           M
         </div>
         <div className="min-w-0 opacity-0 transition-opacity duration-100 group-hover:opacity-100">
@@ -54,10 +54,10 @@ export function DesktopSidebar({ active, onNavigate }: DesktopSidebarProps) {
               aria-label={`Open ${label} section`}
               aria-current={selected ? 'page' : undefined}
               className={cn(
-                'relative flex h-11 w-full items-center gap-3 overflow-hidden rounded-md border border-transparent px-2 text-left transition-colors',
+                'relative flex h-11 w-full items-center gap-3 overflow-hidden rounded-xl border border-transparent px-2 text-left transition-all',
                 selected
-                  ? 'bg-maet-elevated text-maet-text before:absolute before:left-0 before:top-1 before:h-9 before:w-0.5 before:rounded-full before:bg-maet-blue'
-                  : 'text-maet-text-secondary hover:bg-maet-surface hover:text-maet-text'
+                  ? 'border-maet-glass-border-strong bg-maet-glass-2 text-maet-text shadow-inner before:absolute before:left-0 before:top-1 before:h-9 before:w-0.5 before:rounded-full before:bg-maet-cyan'
+                  : 'text-maet-text-secondary hover:border-maet-glass-border hover:bg-maet-glass-1 hover:text-maet-text'
               )}
             >
               <Icon className={cn('h-5 w-5 shrink-0', selected ? 'text-maet-blue' : 'text-maet-text-muted')} />
@@ -67,7 +67,7 @@ export function DesktopSidebar({ active, onNavigate }: DesktopSidebarProps) {
         })}
       </nav>
 
-      <div className="mt-auto overflow-hidden rounded-md border border-maet-border bg-maet-surface p-2">
+      <div className="mt-auto overflow-hidden rounded-2xl border border-maet-glass-border bg-maet-glass-1 p-2 shadow-inner">
         <div className="flex items-center gap-2">
           <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', backendOnline ? 'bg-maet-green shadow-[0_0_10px_rgba(0,214,143,0.7)]' : 'bg-maet-red')} />
           <div className="min-w-0 opacity-0 transition-opacity duration-100 group-hover:opacity-100">
@@ -77,7 +77,7 @@ export function DesktopSidebar({ active, onNavigate }: DesktopSidebarProps) {
         </div>
       </div>
 
-      <div className="mt-2 grid h-8 place-items-center rounded-md text-maet-text-muted opacity-100 transition-opacity group-hover:opacity-0">
+      <div className="mt-2 grid h-8 place-items-center rounded-xl text-maet-text-muted opacity-100 transition-opacity group-hover:opacity-0">
         <Menu className="h-4 w-4" />
       </div>
     </aside>

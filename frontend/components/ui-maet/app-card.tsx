@@ -10,7 +10,7 @@ interface AppCardProps {
 
 export function AppCard({ children, className }: AppCardProps) {
   return (
-    <div className={cn('rounded-card border border-maet-border bg-maet-surface shadow-card', className)}>
+    <div className={cn('reflection-card', className)}>
       {children}
     </div>
   )

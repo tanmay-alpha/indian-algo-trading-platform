@@ -38,8 +38,8 @@ export function AiScreen() {
         {
           role: 'assistant',
           content:
-            `Research note for "${trimmed}": review price context, indicator agreement, and downside risk before any paper validation. ` +
-            'This interface can explain context only. It cannot route or authorize a broker order.',
+            `Advisory interface preview for "${trimmed}": review price context, indicator agreement, and downside risk before any paper validation. ` +
+            'execution_allowed=false. This interface cannot route or authorize a broker order.',
         },
       ])
     }, 750)
@@ -47,7 +47,7 @@ export function AiScreen() {
 
   return (
     <MobilePage className="flex h-full flex-col pb-4">
-      <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-card border border-maet-border bg-maet-surface p-4">
+      <div className="reflection-card mb-3 flex shrink-0 items-center justify-between gap-3 p-4 shadow-[0_18px_60px_rgba(139,92,246,0.10)]">
         <div>
           <h1 className="font-heading text-xl font-bold text-maet-text">AI Advisory</h1>
           <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Ask for market context, indicator explanations, and risk framing.</p>
@@ -55,7 +55,7 @@ export function AiScreen() {
         <StatusBadge tone="ai">Advisory only - no execution</StatusBadge>
       </div>
 
-      <div className="min-h-0 flex-1 rounded-card border border-maet-border bg-maet-base">
+      <div className="reflection-card min-h-0 flex-1 overflow-hidden border-maet-violet/25 bg-maet-bg-deep/58">
         <div className="flex h-full flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {messages.length === 0 ? (
@@ -65,14 +65,14 @@ export function AiScreen() {
                     <Bot className="h-6 w-6" />
                   </div>
                   <h2 className="mt-4 font-heading text-lg font-bold text-maet-text">Start with a research question</h2>
-                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">Example prompts are advisory-only and return explanatory notes.</p>
+                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">Example prompts are advisory-only interface previews. execution_allowed=false.</p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {EXAMPLE_PROMPTS.map((prompt) => (
                       <button
                         key={prompt}
                         type="button"
                         onClick={() => sendPrompt(prompt)}
-                        className="rounded-md border border-maet-border bg-maet-surface px-3 py-2 text-xs font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+                        className="glass-button px-3 py-2 text-xs"
                       >
                         {prompt}
                       </button>
@@ -88,8 +88,8 @@ export function AiScreen() {
                       className={cn(
                         'max-w-[86%] rounded-xl border px-3 py-2 text-sm leading-6',
                         message.role === 'user'
-                          ? 'rounded-tr-sm border-maet-border-strong bg-maet-elevated text-maet-text'
-                          : 'rounded-tl-sm border-maet-border border-l-maet-violet bg-maet-surface text-maet-text-secondary'
+                          ? 'rounded-tr-sm border-maet-border-strong bg-maet-glass-2 text-maet-text'
+                          : 'rounded-tl-sm border-maet-violet/35 border-l-maet-violet bg-maet-violet/10 text-maet-text-secondary'
                       )}
                     >
                       {message.role === 'assistant' && (
@@ -114,7 +114,7 @@ export function AiScreen() {
             )}
           </div>
 
-          <div className="shrink-0 border-t border-maet-border bg-maet-surface p-3">
+          <div className="shrink-0 border-t border-maet-glass-border bg-maet-bg-deep/42 p-3">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -130,7 +130,7 @@ export function AiScreen() {
                 type="button"
                 onClick={() => sendPrompt()}
                 aria-label="Send advisory prompt"
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-maet-blue text-white hover:bg-[#6fb2ff]"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-maet-violet text-white hover:bg-maet-violet/90"
               >
                 <Send className="h-4 w-4" />
               </button>

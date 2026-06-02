@@ -72,13 +72,13 @@ export function WorkspaceRail() {
                 {ICONS[workspace.id]}
                 <span
                   className={cn(
-                    'max-w-[58px] truncate text-[9px] font-medium leading-none',
+                    'max-w-[58px] truncate text-[10px] font-medium leading-none',
                     active ? 'text-info' : 'text-text-dim group-hover:text-text-2'
                   )}
                 >
                   {railLabel(workspace.label)}
                 </span>
-                <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded border border-border bg-bg text-[8px] font-mono text-text-faint">
+                <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded border border-border bg-bg text-[10px] font-mono text-text-faint">
                   {workspace.shortcut}
                 </span>
               </button>

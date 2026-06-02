@@ -32,6 +32,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
   const [orderType, setOrderType] = useState<OrderKind>('MARKET')
   const [price, setPrice] = useState('')
   const [trigger, setTrigger] = useState('')
+  const [acknowledged, setAcknowledged] = useState(false)
   const [isValidating, setIsValidating] = useState(false)
   const [ticket, setTicket] = useState<ManualOrderTicket | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +77,10 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
       setError('Price is required for LIMIT and SL validation.')
       return
     }
+    if (!acknowledged) {
+      setError('Confirm dry-run safety before validation.')
+      return
+    }
 
     setError(null)
     setTicket(null)
@@ -104,7 +109,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
 
   if (!adminToken) {
     return (
-      <div className={cn('flex h-full flex-col bg-maet-overlay/65', compact ? 'p-3' : 'rounded-card border border-maet-border p-4')}>
+      <div className={cn('reflection-card flex h-full flex-col bg-maet-overlay/65', compact ? 'p-3' : 'p-4')}>
         <div className="mb-4 flex items-start gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
             <LockKeyhole className="h-5 w-5" />
@@ -141,7 +146,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
             type="button"
             onClick={handleUnlock}
             disabled={isUnlocking || !tokenInput.trim()}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-maet-blue text-sm font-bold text-white disabled:opacity-40"
+            className="maet-btn maet-btn-primary h-11 w-full disabled:opacity-40"
           >
             {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
             Unlock Validation
@@ -152,16 +157,16 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className={cn('flex h-full flex-col overflow-hidden bg-maet-overlay/65', compact ? '' : 'rounded-card border border-maet-border')}>
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-maet-border bg-maet-surface px-4 py-3">
+    <div className={cn('reflection-card flex h-full flex-col overflow-hidden bg-maet-overlay/65', compact ? '' : '')}>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-maet-glass-border bg-maet-bg-deep/38 px-4 py-3">
         <div>
           <h2 className="font-heading text-base font-bold text-maet-text">Dry-Run Validation</h2>
-          <StatusBadge tone="paper" className="mt-1">Paper validation . no execution</StatusBadge>
+          <StatusBadge tone="paper" className="mt-1">validation_only=true</StatusBadge>
         </div>
         <button
           type="button"
           onClick={clearOmsAdminToken}
-          className="rounded-md border border-maet-border px-2.5 py-1.5 font-mono text-[11px] font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+          className="rounded-full border border-maet-glass-border bg-maet-glass-1 px-2.5 py-1.5 font-mono text-[11px] font-bold text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text"
         >
           Lock
         </button>
@@ -232,15 +237,27 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
             </Field>
           )}
 
+          <label className="flex min-h-12 items-start gap-3 rounded-2xl border border-maet-amber/30 bg-maet-amber/10 p-3 text-xs leading-5 text-maet-text-soft">
+            <input
+              type="checkbox"
+              checked={acknowledged}
+              onChange={(event) => setAcknowledged(event.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 accent-maet-amber"
+            />
+            <span>
+              I understand this validates a dry-run order only. live_execution_enabled=false and broker_mutation_allowed=false.
+            </span>
+          </label>
+
           {error && <div className="rounded-md border border-maet-red/25 bg-maet-red/10 px-3 py-2 text-xs text-maet-red">{error}</div>}
 
           <button
             type="submit"
-            disabled={isValidating || !symbol.trim()}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-maet-blue text-sm font-bold text-white hover:bg-[#6fb2ff] disabled:opacity-40"
+            disabled={isValidating || !symbol.trim() || !acknowledged}
+            className="maet-btn maet-btn-primary h-11 w-full disabled:opacity-40"
           >
             {isValidating && <RefreshCw className="h-4 w-4 animate-spin" />}
-            Validate Dry-Run
+            Validate Dry-Run Order
           </button>
         </div>
 
@@ -255,6 +272,9 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               <Result label="Status" value={ticket.status} />
               <Result label="Notional" value={fmtPrice(ticket.estimated_notional)} />
               <Result label="Price" value={fmtPrice(ticket.price)} />
+              <Result label="validation_only" value="true" />
+              <Result label="live_execution_enabled" value="false" />
+              <Result label="broker_mutation_allowed" value="false" />
             </div>
             <p className="mt-3 text-xs leading-5 text-maet-text-secondary">{ticket.validation_summary}</p>
           </div>

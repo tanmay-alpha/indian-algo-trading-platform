@@ -40,7 +40,7 @@ export function WorkspacePresetSelector() {
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] bg-panel-2 border border-border-strong rounded-sm shadow-modal py-1">
-          <div className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider text-text-faint border-b border-border">
+          <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-text-faint border-b border-border">
             Workspace Presets
           </div>
           {PRESETS.map((p) => (

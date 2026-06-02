@@ -121,7 +121,7 @@ function SafetyPill({ children, color }: { children: React.ReactNode; color: 'do
   }[color]
 
   return (
-    <span className={cn('text-[9px] font-mono font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border', cls)}>
+    <span className={cn('text-[10px] font-mono font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border', cls)}>
       {children}
     </span>
   )

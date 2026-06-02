@@ -74,9 +74,9 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-text uppercase tracking-wider">Market Watch</span>
             {watchlistSource === 'db' ? (
-              <span className="text-[9px] text-up font-mono">●</span>
+              <span className="text-[10px] text-up font-mono">●</span>
             ) : (
-              <span className="text-[9px] text-warn font-mono animate-pulse">●</span>
+              <span className="text-[10px] text-warn font-mono animate-pulse">●</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                     )}
                   >
                     <span className="truncate">{group.name}</span>
-                    <span className="text-[9px] opacity-40">{group.symbols.length}</span>
+                    <span className="text-[10px] opacity-40">{group.symbols.length}</span>
                   </button>
                 ))}
               </div>
@@ -149,10 +149,10 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       )}
 
       <div className="flex h-7 items-center border-b border-border bg-panel/50 px-2 mt-1">
-        <div className="flex-1 font-mono text-[9px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
-        <div className="w-[68px] text-right font-mono text-[9px] tracking-wide text-text-faint">LTP</div>
-        <div className="w-[48px] text-right font-mono text-[9px] tracking-wide text-text-faint">CHG%</div>
-        <div className="w-[36px] text-right font-mono text-[9px] tracking-wide text-text-faint">VOL</div>
+        <div className="flex-1 font-mono text-[10px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
+        <div className="w-[68px] text-right font-mono text-[10px] tracking-wide text-text-faint">LTP</div>
+        <div className="w-[48px] text-right font-mono text-[10px] tracking-wide text-text-faint">CHG%</div>
+        <div className="w-[36px] text-right font-mono text-[10px] tracking-wide text-text-faint">VOL</div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -225,7 +225,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                   <span className="shrink-0 font-mono text-[12px] font-semibold tracking-wide text-text leading-tight">
                     {cleanSymbol}
                   </span>
-                  <span className="min-w-0 truncate text-[9px] text-text-faint leading-tight">
+                  <span className="min-w-0 truncate text-[10px] text-text-faint leading-tight">
                     {displayName || meta}
                   </span>
                 </div>
@@ -234,7 +234,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                   <span className={cn(
                     'w-[68px] text-right font-mono text-[12px] font-semibold tabular-nums',
                     displayLtp == null
-                      ? 'text-text-faint/70 text-[9px]'
+                      ? 'text-text-faint/70 text-[10px]'
                       : displayChgPct != null && displayChgPct > 0
                       ? 'text-up'
                       : displayChgPct != null && displayChgPct < 0

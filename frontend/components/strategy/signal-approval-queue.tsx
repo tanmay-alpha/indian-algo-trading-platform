@@ -99,7 +99,7 @@ export function SignalApprovalQueue() {
           <Bell className="w-3.5 h-3.5 text-text-dim" />
           <span className="text-xs font-semibold text-text">Signal Approval Queue</span>
           {pending.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full bg-warn/20 text-warn text-[9px] font-mono font-bold">
+            <span className="px-1.5 py-0.5 rounded-full bg-warn/20 text-warn text-[10px] font-mono font-bold">
               {pending.length}
             </span>
           )}
@@ -170,7 +170,7 @@ export function SignalApprovalQueue() {
 
       {/* Footer */}
       {lastRefreshed && (
-        <div className="px-3 py-1.5 border-t border-border text-[9px] font-mono text-text-faint opacity-60 text-right">
+        <div className="px-3 py-1.5 border-t border-border text-[10px] font-mono text-text-faint opacity-60 text-right">
           <Clock className="inline w-2.5 h-2.5 mr-1" />
           {new Date(lastRefreshed).toLocaleTimeString()}
         </div>
@@ -208,11 +208,11 @@ function SignalRow({
             {side ?? 'N/A'}
           </span>
           <span className="text-xs font-semibold text-text truncate">{signal.symbol}</span>
-          <span className={cn('px-1.5 py-0.5 rounded-sm border text-[8px] font-mono font-semibold', STATUS_COLOR[signal.status] ?? STATUS_COLOR.GENERATED)}>
+          <span className={cn('px-1.5 py-0.5 rounded-sm border text-[10px] font-mono font-semibold', STATUS_COLOR[signal.status] ?? STATUS_COLOR.GENERATED)}>
             {signal.status}
           </span>
         </div>
-        <div className="text-[9px] font-mono text-text-faint shrink-0">{time}</div>
+        <div className="text-[10px] font-mono text-text-faint shrink-0">{time}</div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-1.5">
@@ -222,12 +222,12 @@ function SignalRow({
       </div>
 
       {signal.reason && (
-        <div className="mt-1 text-[9px] font-mono text-text-faint truncate" title={signal.reason}>
+        <div className="mt-1 text-[10px] font-mono text-text-faint truncate" title={signal.reason}>
           {signal.reason}
         </div>
       )}
       {signal.dismiss_reason && (
-        <div className="mt-0.5 text-[9px] font-mono text-down/80 truncate">
+        <div className="mt-0.5 text-[10px] font-mono text-down/80 truncate">
           Dismissed: {signal.dismiss_reason}
         </div>
       )}
@@ -281,7 +281,7 @@ function TabPill({ label, active, onClick }: { label: string; active: boolean; o
 function MiniVal({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[8px] uppercase tracking-wider text-text-faint">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-text-faint">{label}</div>
       <div className="text-[10px] font-mono text-text">{value}</div>
     </div>
   )
@@ -292,7 +292,7 @@ function EmptyState({ icon, title, hint }: { icon: React.ReactNode; title: strin
     <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
       <div className="text-text-faint opacity-50">{icon}</div>
       <div className="text-xs font-mono text-text-faint">{title}</div>
-      <div className="text-[9px] text-text-faint opacity-70 max-w-xs">{hint}</div>
+      <div className="text-[10px] text-text-faint opacity-70 max-w-xs">{hint}</div>
     </div>
   )
 }

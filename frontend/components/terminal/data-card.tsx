@@ -36,7 +36,7 @@ export function DataCard({
             {title}
           </span>
           {subtitle && (
-            <span className="text-[9px] font-mono text-text-dim truncate hidden sm:inline-block">
+            <span className="text-[10px] font-mono text-text-dim truncate hidden sm:inline-block">
               {subtitle}
             </span>
           )}
@@ -54,7 +54,7 @@ export function DataCard({
 
       {/* Footer (Optional) */}
       {footer && (
-        <div className="h-8 px-3 shrink-0 flex items-center justify-between border-t border-border bg-bg/25 text-[9px] font-mono text-text-dim select-none">
+        <div className="h-8 px-3 shrink-0 flex items-center justify-between border-t border-border bg-bg/25 text-[10px] font-mono text-text-dim select-none">
           {footer}
         </div>
       )}

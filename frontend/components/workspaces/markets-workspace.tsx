@@ -240,7 +240,7 @@ export function MarketsWorkspace() {
             <SummaryRow label="Tracked" value={String(board?.summary.total_symbols_tracked ?? 0)} />
             <SummaryRow label="With Data" value={String(board?.summary.symbols_with_data ?? 0)} />
             <SummaryRow label="Stale" value={String(board?.summary.symbols_stale ?? 0)} />
-            <div className="mt-1 text-[9px] leading-4 text-text-faint">
+            <div className="mt-1 text-[10px] leading-4 text-text-faint">
               {board?.note || 'Data reflects only subscribed symbols.'}
             </div>
           </div>
@@ -272,7 +272,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="border-b border-border bg-bg/70 px-3 py-2">
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[9px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }
@@ -413,7 +413,7 @@ function ScreenerPanel({
 function Header({ columns }: { columns: string[] }) {
   return (
     <div
-      className="grid gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-[9px] uppercase text-text-faint"
+      className="grid gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase text-text-faint"
       style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
     >
       {columns.map((column) => <span key={column}>{column}</span>)}
