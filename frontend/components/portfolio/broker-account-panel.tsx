@@ -10,7 +10,6 @@ import {
   BookOpen,
   AlertTriangle,
   Clock,
-  CheckCircle,
   WifiOff,
   Wallet,
 } from 'lucide-react'

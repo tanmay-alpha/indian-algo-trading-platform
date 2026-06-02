@@ -10,14 +10,11 @@ import {
 import { useEffect, useState, type ReactNode } from 'react'
 import { indicatorKey, useTerminalStore } from '@/store/terminal-store'
 import { TIMEFRAMES } from '@/lib/constants'
-import { cn, fmtPrice, fmtVolume, marketSessionLabel } from '@/lib/utils'
+import { cn, fmtPrice, fmtVolume } from '@/lib/utils'
 import {
-  formatIndicatorValue,
-  latestNonNull,
   mapLineSeries,
   mapMacdSeries,
 } from '@/lib/indicator-series'
-import type { IndicatorResultsResponse, Timeframe, WorkspaceId } from '@/lib/types'
 import { DataQualityBadge } from '@/components/terminal/data-quality-badge'
 import { EmptyState } from '@/components/terminal/empty-state'
 import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
@@ -59,7 +56,6 @@ export function TradeWorkspace() {
   const setTimeframe = useTerminalStore((s) => s.setChartTimeframe)
 
   const indicatorStatus = useTerminalStore((s) => s.indicatorStatus)
-  const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   
   const ltp = tick?.ltp ?? tick?.price
   const row = selected ? market[selected] : null
@@ -120,7 +116,6 @@ export function PortfolioWorkspace() {
   const adminToken = useTerminalStore((s) => s.omsAdminToken)
   const setOmsAdminToken = useTerminalStore((s) => s.setOmsAdminToken)
   const clearOmsAdminToken = useTerminalStore((s) => s.clearOmsAdminToken)
-  const fetchManualOrderTickets = useTerminalStore((s) => s.fetchManualOrderTickets)
   const refreshPortfolio = useTerminalStore((s) => s.refreshPortfolio)
 
   const [tokenInput, setTokenInput] = useState('')
@@ -230,7 +225,7 @@ export function PortfolioWorkspace() {
             </div>
             <ul className="list-disc pl-4 space-y-1">
               <li>All database queries are read-only.</li>
-              <li>Order validation is dry-run only — no exchange mutations.</li>
+              <li>Order validation is dry-run only - no exchange mutations.</li>
               <li>Live build policy is globally locked.</li>
             </ul>
           </div>
@@ -477,7 +472,6 @@ export function PremiumChartPanel() {
   const indicatorError = useTerminalStore((s) => s.indicatorChartError)
   const chartOverlays = useTerminalStore((s) => s.chartOverlays)
   const indicatorSubpanels = useTerminalStore((s) => s.indicatorSubpanels)
-  const activeIndicatorNames = useTerminalStore((s) => s.activeIndicatorNames)
   const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
   const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
   const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)

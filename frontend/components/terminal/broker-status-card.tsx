@@ -1,7 +1,7 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { ShieldCheck, Lock, Activity, RefreshCw } from 'lucide-react'
+import { ShieldCheck, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BrokerStatusCard() {

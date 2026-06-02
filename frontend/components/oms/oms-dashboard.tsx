@@ -19,14 +19,14 @@ import { useTerminalStore } from '@/store/terminal-store'
 import { cn, fmtPrice } from '@/lib/utils'
 import type { OmsOrder, OmsFill, OmsEvent, OmsDataState } from '@/lib/types'
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
 function fmt(v: string | null | undefined): string {
-  return v ?? '—'
+  return v ?? '-'
 }
 
 function fmtTs(v: string | null | undefined): string {
-  if (!v) return '—'
+  if (!v) return '-'
   try {
     return new Date(v).toLocaleTimeString('en-IN', { hour12: false })
   } catch {
@@ -43,11 +43,7 @@ function statusColor(status: string): string {
   return 'text-text-dim'
 }
 
-function sideColor(side: string): string {
-  return side?.toUpperCase() === 'BUY' ? 'text-emerald-400' : 'text-rose-400'
-}
-
-// ─── sub-components ─────────────────────────────────────────────────────────
+// Sub-components
 
 function OmsStatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -63,10 +59,16 @@ function BlotterTable({
   columns,
   rows,
   emptyMsg,
+  rowKeys,
+  selectedKey,
+  onRowClick,
 }: {
   columns: string[]
   rows: string[][]
   emptyMsg: string
+  rowKeys?: string[]
+  selectedKey?: string | null
+  onRowClick?: (rowKey: string) => void
 }) {
   const colStyle = { gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }
   return (
@@ -81,15 +83,32 @@ function BlotterTable({
         <div className="flex-1 grid place-items-center py-8 text-text-faint text-xs font-mono">{emptyMsg}</div>
       ) : (
         <div className="flex-1 overflow-auto">
-          {rows.map((row, i) => (
-            <div
-              key={i}
-              className="grid gap-2 px-3 py-1.5 border-b border-border/50 text-[10px] font-mono text-text-2 hover:bg-panel/40 transition-colors"
-              style={colStyle}
-            >
-              {row.map((cell, j) => <span key={j} className="truncate" title={cell}>{cell}</span>)}
-            </div>
-          ))}
+          {rows.map((row, i) => {
+            const rowKey = rowKeys?.[i] ?? String(i)
+            const interactive = Boolean(onRowClick)
+
+            return (
+              <div
+                key={rowKey}
+                role={interactive ? 'button' : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                onClick={() => onRowClick?.(rowKey)}
+                onKeyDown={(event) => {
+                  if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return
+                  event.preventDefault()
+                  onRowClick(rowKey)
+                }}
+                className={cn(
+                  'grid gap-2 px-3 py-1.5 border-b border-border/50 text-[10px] font-mono text-text-2 hover:bg-panel/40 transition-colors',
+                  interactive && 'cursor-pointer',
+                  selectedKey === rowKey && 'bg-info/10 text-text'
+                )}
+                style={colStyle}
+              >
+                {row.map((cell, j) => <span key={j} className="truncate" title={cell}>{cell}</span>)}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -109,7 +128,7 @@ function AdminTokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
         </div>
         <p className="text-[11px] text-text-faint font-mono">
           Required to view protected local/demo portfolio endpoints and OMS status blotters. Do not enter production secrets in public deployments.
-          The token is held in volatile memory only — never stored or persisted.
+          The token is held in volatile memory only; it is never stored or persisted.
           <br /><br />
           Note: This dashboard is strictly READ-ONLY. Live trading remains locked.
         </p>
@@ -146,13 +165,13 @@ function BackendUnavailableState() {
     <div className="flex-1 grid place-items-center p-8">
       <div className="text-center space-y-2">
         <XCircle className="w-8 h-8 text-rose-400 mx-auto" />
-        <div className="text-xs font-mono text-text-faint">Backend unreachable — OMS data unavailable.</div>
+        <div className="text-xs font-mono text-text-faint">Backend unreachable - OMS data unavailable.</div>
       </div>
     </div>
   )
 }
 
-// ─── tab panels ─────────────────────────────────────────────────────────────
+// Tab panels
 
 function SummaryTab() {
   const status = useTerminalStore((s) => s.omsStatus)
@@ -185,7 +204,7 @@ function SummaryTab() {
           Trading Safety Engine {health?.oms_initialized ? 'Online' : 'Offline'}
         </span>
         <span className="ml-auto text-[10px] font-mono text-text-faint">
-          {status?.trading_mode ?? '—'} mode · {status?.in_memory_active_orders ?? 0} active in-memory
+          {status?.trading_mode ?? '-'} mode / {status?.in_memory_active_orders ?? 0} active in-memory
         </span>
       </div>
 
@@ -211,7 +230,7 @@ function SummaryTab() {
             <OmsStatCard label="Warnings" value={String(rebuild.warnings_count)} />
           </div>
           <div className="text-[10px] font-mono text-text-faint">
-            Source: {rebuild.source} · Last: {fmtTs(rebuild.last_rebuild_at)}
+            Source: {rebuild.source} / Last: {fmtTs(rebuild.last_rebuild_at)}
           </div>
           {(rebuild.rebuilt_positions?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
@@ -254,14 +273,17 @@ function OrdersTab() {
         <BlotterTable
           columns={cols}
           emptyMsg="No orders recorded in OMS."
+          rowKeys={orders.map((o: OmsOrder) => o.request_id)}
+          selectedKey={selected}
+          onRowClick={handleSelect}
           rows={orders.map((o: OmsOrder) => [
-            o.request_id.slice(0, 12) + '…',
+            o.request_id.slice(0, 12) + '...',
             o.symbol,
             o.side,
             String(o.quantity),
             o.order_type,
             o.status,
-            o.avg_fill_price != null ? fmtPrice(o.avg_fill_price) : '—',
+            o.avg_fill_price != null ? fmtPrice(o.avg_fill_price) : '-',
             o.mode,
             fmtTs(o.created_at),
           ])}
@@ -272,15 +294,15 @@ function OrdersTab() {
         <div className="h-1/2 border-t border-border overflow-auto p-3 space-y-2 bg-bg/60">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-info">Audit: {selected}</span>
-            <button onClick={() => { setSelected(null); clearAudit() }} className="text-[10px] text-text-dim hover:text-text font-mono">× Close</button>
+            <button onClick={() => { setSelected(null); clearAudit() }} className="text-[10px] text-text-dim hover:text-text font-mono">Close</button>
           </div>
           <div className="space-y-1">
             {audit.events.map((ev, i) => (
               <div key={i} className="grid grid-cols-4 gap-2 text-[10px] font-mono border-b border-border/40 py-0.5">
                 <span className="text-text-faint">{fmtTs(ev.created_at)}</span>
                 <span className="text-text">{ev.event_type}</span>
-                <span className={statusColor(ev.status ?? '')}>{ev.status ?? '—'}</span>
-                <span className="text-text-faint truncate">{ev.reason ?? '—'}</span>
+                <span className={statusColor(ev.status ?? '')}>{ev.status ?? '-'}</span>
+                <span className="text-text-faint truncate">{ev.reason ?? '-'}</span>
               </div>
             ))}
             {audit.events.length === 0 && <span className="text-[10px] text-text-faint font-mono">No events.</span>}
@@ -300,12 +322,12 @@ function FillsTab() {
       columns={cols}
       emptyMsg="No fills recorded."
       rows={fills.map((f: OmsFill) => [
-        f.fill_id.slice(0, 10) + '…',
+        f.fill_id.slice(0, 10) + '...',
         f.symbol,
         f.side,
         String(f.filled_quantity),
         fmtPrice(f.fill_price),
-        f.fees != null ? fmtPrice(f.fees) : '—',
+        f.fees != null ? fmtPrice(f.fees) : '-',
         fmt(f.source),
         fmtTs(f.created_at),
       ])}
@@ -323,10 +345,10 @@ function AuditTrailTab() {
       emptyMsg="No audit events recorded."
       rows={events.map((e: OmsEvent) => [
         fmtTs(e.created_at),
-        e.request_id.slice(0, 12) + '…',
+        e.request_id.slice(0, 12) + '...',
         e.event_type,
-        e.status ?? '—',
-        (e.reason ?? '—').slice(0, 40),
+        e.status ?? '-',
+        (e.reason ?? '-').slice(0, 40),
       ])}
     />
   )
@@ -379,7 +401,7 @@ function ReconciliationTab() {
   )
 }
 
-// ─── main component ──────────────────────────────────────────────────────────
+// Main component
 
 type OmsTab = 'summary' | 'orders' | 'fills' | 'audit' | 'reconciliation'
 
@@ -401,7 +423,6 @@ export function OmsDashboard() {
   const setOmsAdminToken = useTerminalStore((s) => s.setOmsAdminToken)
   const clearOmsAdminToken = useTerminalStore((s) => s.clearOmsAdminToken)
   const refreshOmsDashboard = useTerminalStore((s) => s.refreshOmsDashboard)
-  const fetchOmsHealth = useTerminalStore((s) => s.fetchOmsHealth)
 
   // Bootstrap: check health and refresh dashboard on mount
   useEffect(() => {
@@ -425,7 +446,7 @@ export function OmsDashboard() {
       <div className="h-10 px-4 flex items-center gap-3 border-b border-border bg-bg-2 shrink-0">
         <Shield className="w-3.5 h-3.5 text-info shrink-0" />
         <span className="text-[11px] font-mono uppercase tracking-wider text-text">OMS Blotter</span>
-        <span className="text-[10px] font-mono text-text-faint">READ-ONLY · ADMIN PROTECTED · NO TRADING ACTIONS</span>
+        <span className="text-[10px] font-mono text-text-faint">READ-ONLY / ADMIN PROTECTED / NO TRADING ACTIONS</span>
 
         <div className="ml-auto flex items-center gap-2">
           {/* Data state badge */}

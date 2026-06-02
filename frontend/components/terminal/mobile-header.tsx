@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { List, Zap, LockKeyhole, Info } from 'lucide-react'
+import { List, Zap, LockKeyhole } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { cn, getNseMarketSession, fmtPrice } from '@/lib/utils'
+import { cn, fmtPrice } from '@/lib/utils'
 import { useIstClock } from '@/lib/use-ist-clock'
 import { WORKSPACES } from '@/lib/constants'
 import { SafetyBadgeGroup } from './safety-badge'
@@ -14,7 +13,6 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeaderProps) {
-  const [mounted, setMounted] = useState(false)
   const activeWorkspace = useTerminalStore((s) => s.activeWorkspace)
   const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
   const market = useTerminalStore((s) => s.marketWatch)
@@ -23,10 +21,6 @@ export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeader
   const wsConnected = useTerminalStore((s) => s.wsConnected)
   const executionMode = useTerminalStore((s) => s.executionMode)
   const istTime = useIstClock()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const workspaceName = WORKSPACES.find((w) => w.id === activeWorkspace)?.label ?? activeWorkspace
   const row = selectedSymbol ? market[selectedSymbol] : null
@@ -65,7 +59,7 @@ export function MobileHeader({ onOpenWatchlist, onOpenRightPanel }: MobileHeader
                     'text-[10px] font-mono leading-none',
                     chg != null && chg > 0 ? 'text-up' : chg != null && chg < 0 ? 'text-down' : 'text-text-faint'
                   )}>
-                    {fmtPrice(ltp)} ({chg != null ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : '—'})
+                    {fmtPrice(ltp)} ({chg != null ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}%` : '-'})
                   </span>
                 )}
               </>

@@ -49,7 +49,6 @@ import type {
   OmsReconciliationStatus,
   OmsDataState,
   PersistentWatchlistItem,
-  PersistentWatchlist,
   ManualOrderTicket,
   ManualOrderValidateRequest,
 } from '@/lib/types'

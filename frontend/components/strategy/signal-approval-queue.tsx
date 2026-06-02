@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle, XCircle, RefreshCw, Clock, Bell, ChevronRight, AlertTriangle, History } from 'lucide-react'
+import { CheckCircle, XCircle, RefreshCw, Clock, Bell, AlertTriangle, History } from 'lucide-react'
 import { cn, fmtPrice } from '@/lib/utils'
 import type { PendingSignal, SignalHistoryItem } from '@/lib/types'
 import { getPendingSignals, getSignalHistory, approveSignalForPaper, dismissSignal } from '@/lib/api'

@@ -51,6 +51,9 @@ export function getTradingViewChartUrl(symbol: string, exchange?: string): strin
 }
 
 export function getAngelOneChartUrl(symbol: string, exchange?: string): string {
+  void symbol
+  void exchange
+
   // Safe fallback to Angel One trading chart
   return 'https://www.angelone.in/trade/watchlist/chart'
 }

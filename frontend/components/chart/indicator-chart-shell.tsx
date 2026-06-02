@@ -9,7 +9,6 @@ import {
   createSeriesMarkers,
 } from 'lightweight-charts'
 import type {
-  BollingerPoint,
   Candle,
   ChartSignalMarker,
   ChartOverlayState,
@@ -73,7 +72,6 @@ export function IndicatorChartShell({
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
   const [patterns, setPatterns] = useState<PatternMarker[]>([])
-  const [patternsLoading, setPatternsLoading] = useState(false)
   const [showPatterns, setShowPatterns] = useState(true)
   const [showVolume, setShowVolume] = useState(true)
   const [hoveredData, setHoveredData] = useState<{
@@ -118,15 +116,11 @@ export function IndicatorChartShell({
   // Fetch pattern markers when candles/symbol/timeframe change
   useEffect(() => {
     if (!symbol || candles.length === 0) {
-      if (patterns.length > 0) {
-        // Use microtask to avoid synchronous setState in effect warning
-        Promise.resolve().then(() => setPatterns([]))
-      }
+      setPatterns((current) => (current.length > 0 ? [] : current))
       return
     }
 
     let active = true
-    Promise.resolve().then(() => setPatternsLoading(true))
     getPatternsForSymbol(symbol, timeframe)
       .then((res) => {
         if (active && res.available) {
@@ -135,11 +129,6 @@ export function IndicatorChartShell({
       })
       .catch((err) => {
         console.error('Error fetching pattern markers:', err)
-      })
-      .finally(() => {
-        if (active) {
-          Promise.resolve().then(() => setPatternsLoading(false))
-        }
       })
 
     return () => {

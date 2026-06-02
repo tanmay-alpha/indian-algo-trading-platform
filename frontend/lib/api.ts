@@ -5,7 +5,6 @@ import type {
   TerminalStatus,
   IndexSnapshot,
   Candle,
-  PatternMarker,
   PatternResponse,
   MarketWatchRow,
   PortfolioSummary,

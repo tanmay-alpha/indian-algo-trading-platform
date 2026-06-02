@@ -10,10 +10,9 @@ import {
   Bot,
   Power,
   Clock,
-  ChevronRight,
   Layers,
 } from 'lucide-react'
-import { cn, fmtPrice } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { StrategyConfigRuntime, StrategySchedulerStatus } from '@/lib/types'
 import {
   getStrategyConfigs,

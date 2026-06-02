@@ -1,7 +1,7 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { Layers, TrendingUp, DollarSign } from 'lucide-react'
+import { Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function PortfolioSummaryCard() {

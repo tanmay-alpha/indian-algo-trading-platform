@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LockKeyhole } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { BUILD_ENV, INDEX_TILES } from '@/lib/constants'
 import { cn, getNseMarketSession } from '@/lib/utils'
@@ -15,7 +14,6 @@ import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 export function TopMarketBar() {
   const [mounted, setMounted] = useState(false)
   const indices = useTerminalStore((s) => s.indices)
-  const mode = useTerminalStore((s) => s.executionMode)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const istTime = useIstClock()
@@ -49,7 +47,7 @@ export function TopMarketBar() {
       <div className="flex h-full shrink-0 items-center gap-2 border-r border-border px-3">
         <div>
           <div className="text-[11px] font-semibold leading-tight text-text">MAET Terminal</div>
-          <div className="text-[10px] font-mono text-text-faint">Market Analytics · Paper Demo</div>
+          <div className="text-[10px] font-mono text-text-faint">Market Analytics / Paper Demo</div>
         </div>
         <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-faint">
           {BUILD_ENV}
@@ -99,7 +97,7 @@ function IndexTile({
       <div className="font-mono text-[10px] text-text-faint">{label}</div>
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-[12px] font-semibold tabular-nums text-text">
-          {value != null ? value.toLocaleString('en-IN') : '—'}
+          {value != null ? value.toLocaleString('en-IN') : '-'}
         </span>
         <span
           className={cn(
@@ -111,7 +109,7 @@ function IndexTile({
               : 'text-text-faint'
           )}
         >
-          {change != null ? `${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%` : 'WAITING'}
+          {change != null ? `${change > 0 ? '+' : '-'} ${Math.abs(change).toFixed(2)}%` : 'WAITING'}
         </span>
       </div>
     </div>

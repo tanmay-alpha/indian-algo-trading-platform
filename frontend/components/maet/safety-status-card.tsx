@@ -1,6 +1,6 @@
 'use client'
 
-import { ShieldCheck, WifiOff, Activity, Lock } from 'lucide-react'
+import { ShieldCheck, Activity, Lock } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn, getNseMarketSession } from '@/lib/utils'
 

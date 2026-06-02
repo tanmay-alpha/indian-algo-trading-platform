@@ -2,8 +2,8 @@
 
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { ApiStatus, DataQuality, NseMarketSession } from '@/lib/types'
-import { cn, fmtAge, fmtVolume, getNseMarketSession, marketNoDataLabel, marketSessionLabel } from '@/lib/utils'
+import type { ApiStatus, DataQuality } from '@/lib/types'
+import { cn, fmtAge, fmtVolume, marketNoDataLabel, marketSessionLabel } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
 import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
@@ -61,9 +61,6 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       ? terminalStatus.gateway.subscribed_symbols.map((item) => normalizeWatchSymbol(String(item)))
       : []
   )
-  const session = mounted ? getNseMarketSession() : 'CLOSED'
-  const sessionMeta = marketSessionMeta(session)
-
   return (
     <aside
       aria-label="Watchlist"
@@ -184,15 +181,6 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
             const cleanSymbol = compactSymbolName(symbol)
             const isLive = quality === 'LIVE'
             const isWaiting = subscribed && (quality === 'WAITING' || quality === 'WARMING')
-            const statusLabel = !subscribed
-              ? 'NO FEED'
-              : isWaiting
-              ? 'WAIT'
-              : quality === 'STALE' || quality === 'DELAYED'
-              ? quality
-              : quality === 'PRE-MARKET' || quality === 'POST-MARKET' || quality === 'MARKET CLOSED'
-              ? '—'
-              : '—'
             const meta = row?.exchange
               ? `${row.exchange} EQ`
               : last
@@ -253,7 +241,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                       ? 'text-down'
                       : 'text-text-faint'
                   )}>
-                    {displayLtp != null ? formatChange(displayChgPct) : '—'}
+                    {displayLtp != null ? formatChange(displayChgPct) : '-'}
                   </span>
                   <span className={cn(
                     'w-[36px] text-right font-mono text-[10px] tabular-nums',
@@ -261,7 +249,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                       ? 'text-text-faint/45'
                       : 'text-text-faint'
                   )}>
-                    {displayLtp != null && displayVolume != null ? fmtVolume(displayVolume) : '—'}
+                    {displayLtp != null && displayVolume != null ? fmtVolume(displayVolume) : '-'}
                   </span>
                 </div>
 
@@ -326,23 +314,10 @@ function compactSymbolName(symbol: string): string {
 function formatLtp(value: number | null): string {
   return value != null
     ? value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : '—'
+    : '-'
 }
 
 function formatChange(value: number | null): string {
-  if (value == null) return '—'
+  if (value == null) return '-'
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
-}
-
-function marketSessionMeta(session: NseMarketSession): { label: string; dotClass: string } {
-  if (session === 'OPEN') {
-    return { label: 'NSE LIVE · 9:15–15:30 IST', dotClass: 'bg-up' }
-  }
-  if (session === 'PRE_MARKET') {
-    return { label: 'NSE PRE-MARKET · Opens 9:15 IST', dotClass: 'bg-warn' }
-  }
-  if (session === 'WEEKEND') {
-    return { label: 'NSE CLOSED · Weekend', dotClass: 'bg-text-faint' }
-  }
-  return { label: 'NSE CLOSED · Opens Mon 9:15 IST', dotClass: 'bg-text-faint' }
 }

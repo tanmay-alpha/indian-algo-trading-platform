@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Lock, ShieldAlert, Play, CheckCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 export function OrderDryRunCard() {
   const [symbol, setSymbol] = useState('RELIANCE')

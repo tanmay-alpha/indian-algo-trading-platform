@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ShieldAlert, RefreshCw, Cpu, Activity, Clock } from 'lucide-react'
+import { Activity, Clock } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { useIstClock } from '@/lib/use-ist-clock'
 import { getNseMarketSession } from '@/lib/utils'
