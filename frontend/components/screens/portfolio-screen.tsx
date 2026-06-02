@@ -3,11 +3,10 @@
 import { useState } from 'react'
 import {
   LockKeyhole, Eye, EyeOff, RefreshCw, ShieldCheck,
-  AlertTriangle, Briefcase, TrendingUp
+  AlertTriangle, Briefcase
 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
-import { PremiumCard } from '@/components/ui-maet/premium-card'
 import { MetricCard } from '@/components/ui-maet/metric-card'
 import { SectionTitle } from '@/components/ui-maet/section-title'
 import { EmptyState } from '@/components/ui-maet/empty-state'
@@ -66,10 +65,9 @@ export function PortfolioScreen() {
   const holdings = useTerminalStore((s) => s.holdings)
   const reconciliation = useTerminalStore((s) => s.reconciliationStatus)
   const loading = useTerminalStore((s) => s.portfolioLoading)
-  const error = useTerminalStore((s) => s.portfolioError)
 
   const formatRupee = (val: number | null | undefined) => {
-    if (val == null) return '₹0.00'
+    if (val == null) return '—'
     return '₹' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
@@ -88,7 +86,7 @@ export function PortfolioScreen() {
           <div className="text-center space-y-2 mb-6">
             <h3 className="text-md font-bold text-text uppercase tracking-wider">Developer Unlock Required</h3>
             <p className="text-xs text-text-dim leading-relaxed">
-              Protected portfolio endpoints require an Admin Token. Enter the token configured in your backend service.
+              Protected portfolio endpoints require an Admin Token. It is held in memory only and cleared when you lock the engine.
             </p>
           </div>
 
@@ -108,9 +106,10 @@ export function PortfolioScreen() {
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
+                aria-label={showToken ? 'Hide admin token' : 'Show admin token'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-faint hover:text-text"
               >
-                {showToken ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                {showToken ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
               </button>
             </div>
 
@@ -124,7 +123,7 @@ export function PortfolioScreen() {
               type="button"
               onClick={handleUnlock}
               disabled={isUnlocking || !tokenInput.trim()}
-              className="w-full h-11 rounded-xl bg-[#22D3EE] text-[#070A0F] text-xs font-bold uppercase tracking-wider hover:bg-[#22D3EE]/90 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+              className="w-full h-11 rounded-xl bg-[#22D3EE] text-[#070A0F] text-xs font-bold uppercase tracking-wider hover:bg-[#22D3EE]/90 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/60"
             >
               {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
               Verify &amp; Unlock
@@ -192,9 +191,11 @@ export function PortfolioScreen() {
         <button
           onClick={() => refreshPortfolio()}
           disabled={loading}
-          className="w-10 h-10 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-text-dim hover:text-text active:scale-95 transition-all"
+          aria-label="Refresh read-only portfolio snapshot"
+          className="w-10 h-10 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-text-dim hover:text-text active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
+          type="button"
         >
-          <RefreshCw className={cn('w-4.5 h-4.5', loading && 'animate-spin')} />
+          <RefreshCw className={cn('w-[18px] h-[18px]', loading && 'animate-spin')} />
         </button>
       </div>
 
@@ -317,12 +318,12 @@ function PositionRow({ pos }: { pos: any }) {
       <div>
         <div className="text-xs font-bold text-text leading-tight tracking-wide">{cleanSym}</div>
         <div className="text-[10px] text-text-faint font-mono font-medium mt-1">
-          {pos.quantity} Qty · Avg ₹{pos.avg_price?.toFixed(2)}
+          {pos.quantity} Qty · Avg {formatInlineRupee(pos.avg_price)}
         </div>
       </div>
       <div className="text-right">
         <div className={cn('text-xs font-bold font-mono tracking-tight', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
-          {isUp ? '+' : ''}₹{pos.unrealized_pnl?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatSignedInlineRupee(pos.unrealized_pnl)}
         </div>
         <div className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-1">Unrealized P&amp;L</div>
       </div>
@@ -339,15 +340,26 @@ function HoldingRow({ hold }: { hold: any }) {
       <div>
         <div className="text-xs font-bold text-text leading-tight tracking-wide">{cleanSym}</div>
         <div className="text-[10px] text-text-faint font-mono font-medium mt-1">
-          {hold.quantity} Qty · Avg ₹{hold.average_price?.toFixed(2)}
+          {hold.quantity} Qty · Avg {formatInlineRupee(hold.average_price)}
         </div>
       </div>
       <div className="text-right">
         <div className={cn('text-xs font-bold font-mono tracking-tight', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
-          {isUp ? '+' : ''}₹{hold.pnl?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatSignedInlineRupee(hold.pnl)}
         </div>
-        <div className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-1">LTP ₹{hold.ltp?.toFixed(2)}</div>
+        <div className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-1">LTP {formatInlineRupee(hold.ltp)}</div>
       </div>
     </div>
   )
+}
+
+function formatInlineRupee(value: number | null | undefined) {
+  if (value == null) return '—'
+  return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatSignedInlineRupee(value: number | null | undefined) {
+  if (value == null) return '—'
+  const prefix = value > 0 ? '+' : ''
+  return `${prefix}${formatInlineRupee(value)}`
 }

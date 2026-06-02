@@ -16,7 +16,7 @@ const SCREEN_TITLES: Record<AppTab, string> = {
   chart:     'Chart',
   portfolio: 'Portfolio',
   ai:        'AI Advisory',
-  system:    'Telemetry',
+  system:    'System',
 }
 
 export function MobileAppShell() {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Terminal, ShieldCheck, Activity, Award } from 'lucide-react'
+import { Terminal, ShieldCheck } from 'lucide-react'
 
 export function TerminalPreview() {
   const [ticks, setTicks] = useState<{ symbol: string; price: number; change: number }[]>([
@@ -35,11 +35,11 @@ export function TerminalPreview() {
       <div className="h-7 px-3 bg-bg-2/50 border-b border-white/[0.04] flex items-center justify-between text-[9px] text-text-dim">
         <div className="flex items-center gap-1.5">
           <Terminal className="w-3 h-3 text-[#38bdf8]" />
-          <span>REAL-TIME ADVISORY FEED</span>
+          <span>VISUAL DEMO PREVIEW</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse" />
-          <span>CONNECTED</span>
+          <span>DEMO</span>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ export function TerminalPreview() {
       {/* Status Footer */}
       <div className="bg-white/[0.01] px-3 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] text-text-dim">
         <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-[#38bdf8]" /> SECURE SANDBOX</span>
-        <span>NSE SESSIONS</span>
+        <span>NOT LIVE DATA</span>
       </div>
     </div>
   )

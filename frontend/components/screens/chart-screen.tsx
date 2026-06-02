@@ -143,7 +143,7 @@ export function ChartScreen() {
 
           {/* Angel One */}
           <a
-            href={aoUrl}
+            href={selectedSymbol ? aoUrl : undefined}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={selectedSymbol ? `Open ${cleanSym} in Angel One` : 'Select a symbol to open Angel One'}
@@ -388,7 +388,7 @@ export function ChartScreen() {
         onClose={() => setShowOrderSheet(false)}
         title={`Dry-Run Order Ticket: ${cleanSym}`}
       >
-        <div className="h-[68vh]">
+        <div className="h-[64dvh] min-h-[420px]">
           <OrderTicket />
         </div>
       </MobileActionSheet>

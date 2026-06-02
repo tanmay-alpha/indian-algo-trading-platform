@@ -11,9 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   History,
-  Unlock,
   RefreshCw,
-  Info,
 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { fmtPrice } from '@/lib/utils'
@@ -95,7 +93,7 @@ export function OrderTicket() {
         }
         clearOmsAdminToken()
       }
-    } catch (err) {
+    } catch {
       setUnlockError('Invalid token or connection error.')
       clearOmsAdminToken()
     } finally {
@@ -183,7 +181,9 @@ export function OrderTicket() {
         {adminToken && (
           <button
             onClick={clearOmsAdminToken}
+            aria-label="Lock dry-run validation engine"
             className="text-[9px] font-mono px-2 py-0.5 rounded border border-border text-text-dim hover:text-rose-400 hover:border-rose-500/30 transition-colors"
+            type="button"
           >
             Lock Engine
           </button>
@@ -220,11 +220,12 @@ export function OrderTicket() {
                     }}
                     placeholder="X-Admin-Token value"
                     autoComplete="off"
-                    className="w-full h-8 rounded border border-[#38bdf8]/15 bg-bg/50 px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-[#38bdf8]/15 bg-bg/50 px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   />
                   <button
                     type="button"
                     onClick={() => setShowToken(!showToken)}
+                    aria-label={showToken ? 'Hide admin token' : 'Show admin token'}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-text-dim hover:text-text"
                   >
                     {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -239,7 +240,7 @@ export function OrderTicket() {
                   type="button"
                   onClick={handleUnlock}
                   disabled={isUnlocking || !tokenInput.trim()}
-                  className="w-full h-8 rounded bg-info/20 border border-info/30 text-info text-xs font-mono font-bold hover:bg-info/30 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full h-10 rounded-lg bg-info/20 border border-info/30 text-info text-xs font-mono font-bold hover:bg-info/30 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
                 >
                   {isUnlocking && <RefreshCw className="h-3 w-3 animate-spin" />}
                   Unlock Validation Engine
@@ -272,7 +273,7 @@ export function OrderTicket() {
                   type="button"
                   onClick={() => setSide('BUY')}
                   className={cn(
-                    'h-9 rounded font-mono font-bold uppercase text-[11px] transition-all border',
+                    'h-10 rounded-lg font-mono font-bold uppercase text-[11px] transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
                     side === 'BUY'
                       ? 'border-up bg-up/10 text-up shadow-[0_0_8px_rgba(34,197,94,0.15)]'
                       : 'border-border bg-bg/20 text-text-dim hover:text-text'
@@ -284,7 +285,7 @@ export function OrderTicket() {
                   type="button"
                   onClick={() => setSide('SELL')}
                   className={cn(
-                    'h-9 rounded font-mono font-bold uppercase text-[11px] transition-all border',
+                    'h-10 rounded-lg font-mono font-bold uppercase text-[11px] transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
                     side === 'SELL'
                       ? 'border-down bg-down/10 text-down shadow-[0_0_8px_rgba(239,68,68,0.15)]'
                       : 'border-border bg-bg/20 text-text-dim hover:text-text'
@@ -303,7 +304,7 @@ export function OrderTicket() {
                     value={symbolInput}
                     onChange={(e) => setSymbolInput(e.target.value.toUpperCase())}
                     placeholder="e.g. INFY"
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   />
                 </div>
                 <div>
@@ -311,7 +312,7 @@ export function OrderTicket() {
                   <select
                     value={exchange}
                     onChange={(e) => setExchange(e.target.value as 'NSE' | 'BSE')}
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-1 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-1 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   >
                     <option value="NSE">NSE</option>
                     <option value="BSE">BSE</option>
@@ -328,7 +329,7 @@ export function OrderTicket() {
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   />
                 </div>
                 <div>
@@ -336,7 +337,7 @@ export function OrderTicket() {
                   <select
                     value={productType}
                     onChange={(e) => setProductType(e.target.value)}
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-1.5 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-1.5 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   >
                     <option value="CNC">CNC (Cash & Carry)</option>
                     <option value="MIS">MIS (Intraday)</option>
@@ -355,7 +356,7 @@ export function OrderTicket() {
                       setOrderType(e.target.value)
                       if (e.target.value === 'MARKET') setPriceOverride('')
                     }}
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-1.5 text-xs font-mono text-text focus:outline-none focus:border-info/50"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-1.5 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   >
                     <option value="MARKET">MARKET</option>
                     <option value="LIMIT">LIMIT</option>
@@ -374,7 +375,7 @@ export function OrderTicket() {
                     value={priceOverride}
                     onChange={(e) => setPriceOverride(e.target.value)}
                     placeholder={tick?.ltp ? String(tick.ltp) : 'Price'}
-                    className="w-full h-8 rounded border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50 disabled:opacity-40"
+                    className="w-full h-10 rounded-lg border border-border bg-bg/40 px-2 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30 disabled:opacity-40"
                   />
                 </div>
               </div>
@@ -383,7 +384,7 @@ export function OrderTicket() {
               <button
                 type="submit"
                 disabled={isValidating}
-                className="w-full h-9 rounded bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/35 text-info text-xs font-mono font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5"
+                className="w-full h-11 rounded-xl bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/35 text-info text-xs font-mono font-bold tracking-wide transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
               >
                 {isValidating ? (
                   <>
@@ -485,6 +486,20 @@ export function OrderTicket() {
                     <span className="text-[8px] font-mono bg-rose-500/10 text-rose-400 px-1 py-0.5 rounded border border-rose-500/20">
                       MUTATIONS LOCKED
                     </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-1 pt-1 text-[9px] font-mono text-text-faint">
+                    <div className="flex justify-between gap-3">
+                      <span>validation_only</span>
+                      <span className="text-amber-400 font-bold">true</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>live_execution_enabled</span>
+                      <span className="text-amber-400 font-bold">false</span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span>broker_mutation_allowed</span>
+                      <span className="text-amber-400 font-bold">false</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -618,10 +633,10 @@ export function OrderTicket() {
                   type="checkbox"
                   checked={confirmChecked}
                   onChange={(e) => setConfirmChecked(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-amber-400 cursor-pointer"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-amber-400 cursor-pointer"
                 />
                 <span className="text-[10px] font-mono text-text-2 group-hover:text-text transition-colors leading-snug">
-                  I understand this is a <strong className="text-amber-400">dry-run validation only</strong>. No real order will be placed.
+                  I understand this is dry-run validation only and will not place a real broker order.
                 </span>
               </label>
             </div>
@@ -631,7 +646,7 @@ export function OrderTicket() {
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 h-8 rounded border border-border bg-bg/40 text-[11px] font-mono text-text-dim hover:text-text hover:bg-bg-2 transition-colors"
+                className="flex-1 h-10 rounded-lg border border-border bg-bg/40 text-[11px] font-mono text-text-dim hover:text-text hover:bg-bg-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50"
               >
                 Cancel
               </button>
@@ -639,7 +654,7 @@ export function OrderTicket() {
                 type="button"
                 onClick={handleConfirmValidate}
                 disabled={!confirmChecked}
-                className="flex-1 h-8 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 h-10 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Validate Dry-Run Order

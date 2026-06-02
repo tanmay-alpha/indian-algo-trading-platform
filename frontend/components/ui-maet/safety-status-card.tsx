@@ -1,18 +1,9 @@
 'use client'
 
 import { ShieldCheck, Lock, Eye, Brain } from 'lucide-react'
-import { useTerminalStore } from '@/store/terminal-store'
-import { cn, getNseMarketSession } from '@/lib/utils'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 
 export function SafetyStatusCard() {
-  const wsStatus       = useTerminalStore((s) => s.wsStatus)
-  const apiStatus      = useTerminalStore((s) => s.apiStatus)
-  const backendOffline = useTerminalStore((s) => s.backendOffline)
-
-  const isOnline    = apiStatus === 'ONLINE' && !backendOffline
-  const isConnected = wsStatus === 'CONNECTED'
-
   return (
     <div className="w-full rounded-2xl border border-[#EA3943]/20 bg-[#EA3943]/5 p-4 relative overflow-hidden shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
       {/* Background glow */}
@@ -79,7 +70,7 @@ export function SafetyStatusCard() {
       </div>
 
       <div className="text-[11px] text-text-dim leading-relaxed bg-black/20 rounded-xl p-3 border border-white/[0.03]">
-        <span className="font-semibold text-text">Sandbox Policy:</span> Real-time feeds display verified read-only index/instrument tickers. Manual order submissions run dry-run validation checks on the backend risk-gate. No live capital is exposed or committed.
+        <span className="font-semibold text-text">Sandbox Policy:</span> Market feeds display verified read-only index/instrument tickers only when the backend is connected. Manual order submissions run dry-run validation checks on the backend risk-gate. No live capital is exposed or committed.
       </div>
     </div>
   )

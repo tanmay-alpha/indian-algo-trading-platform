@@ -2,25 +2,23 @@
 
 import Link from 'next/link'
 import {
-  ShieldCheck, Cpu, Layers, Activity, ArrowRight,
-  Lock, Terminal, Eye, AlertTriangle, BookOpen,
-  List, BarChart2, Briefcase, Brain, Flame, Smartphone, ChevronRight
+  ShieldCheck, Activity, ArrowRight, Github,
+  Lock, Eye, AlertTriangle,
+  List, BarChart2, Briefcase, Brain, Smartphone, ChevronRight
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { AmbientGradient } from '@/components/effects/ambient-gradient'
-import { FloatingOrb } from '@/components/effects/floating-orb'
 import { AnimatedGrid } from '@/components/effects/animated-grid'
 import { TiltCard } from '@/components/effects/tilt-card'
 import { PremiumGlowBorder } from '@/components/effects/premium-glow-border'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
-import { ShimmerSkeleton } from '@/components/effects/shimmer-skeleton'
 
 type MockTab = 'home' | 'chart' | 'portfolio' | 'ai'
 
 export default function LandingPage() {
   const [activeMockTab, setActiveMockTab] = useState<MockTab>('home')
   
-  // Tickers for simulated market feeds
+  // Tickers for the landing-page visual demo only.
   const [niftyPrice, setNiftyPrice] = useState(24210.55)
   const [niftyChange, setNiftyChange] = useState(120.45)
   const [niftyPercent, setNiftyPercent] = useState(0.50)
@@ -28,10 +26,7 @@ export default function LandingPage() {
   const [reliancePrice, setReliancePrice] = useState(2450.75)
   const [relianceChange, setRelianceChange] = useState(15.30)
   
-  const [tcsPrice, setTcsPrice] = useState(3890.20)
-  const [tcsChange, setTcsChange] = useState(-22.45)
-
-  // Live simulation loop
+  // Visual demo loop. Values are intentionally labelled as non-live UI motion.
   useEffect(() => {
     const interval = setInterval(() => {
       // Update Nifty
@@ -51,26 +46,15 @@ export default function LandingPage() {
         setRelianceChange(next - 2435.45)
         return next
       })
-
-      // Update TCS
-      const tcsDelta = (Math.random() - 0.52) * 1.2
-      setTcsPrice((prev) => {
-        const next = prev + tcsDelta
-        setTcsChange(next - 3912.65)
-        return next
-      })
     }, 1500)
     return () => clearInterval(interval)
   }, [])
 
   return (
     <div className="min-h-screen bg-[#070A0F] text-text font-sans relative overflow-x-hidden">
-      {/* Background premium orbs & gradients */}
+      {/* Background ambience */}
       <AmbientGradient color="cyan" className="top-0" />
-      <AmbientGradient color="purple" className="top-[600px]" />
-      <FloatingOrb color="bg-cyan-500/10" delay={0} duration={20} size="w-96 h-96" className="top-10 left-1/4" />
-      <FloatingOrb color="bg-purple-500/10" delay={3} duration={25} size="w-80 h-80" className="top-[400px] right-10" />
-      <FloatingOrb color="bg-emerald-500/5" delay={5} duration={30} size="w-96 h-96" className="bottom-[200px] left-10" />
+      <AmbientGradient color="emerald" className="top-[720px] opacity-40" />
 
       {/* Premium animated grid */}
       <AnimatedGrid opacity={0.2} />
@@ -120,8 +104,8 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-sm sm:text-base text-text-2 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Experience a beautiful mobile broker shell built for NSE/BSE. Simulated dry-run validations, 
-          real-time telemetry logs, portfolio reconciliation, and AI advisory alerts in one elegant interface.
+          Experience a mobile broker shell built for NSE/BSE research. Dry-run validation, backend telemetry,
+          read-only portfolio reconciliation, and passive AI advisory notes stay clearly separated from live execution.
         </p>
 
         {/* CTAs */}
@@ -133,12 +117,12 @@ export default function LandingPage() {
             Launch Mobile Dashboard <Smartphone className="w-4 h-4" />
           </Link>
           <a
-            href="https://github.com"
+            href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-8 py-3.5 text-sm font-semibold rounded-xl text-text border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] transition-all hover:scale-[1.02] text-center font-mono flex items-center justify-center gap-2"
           >
-            GitHub Repo <ArrowRight className="w-4 h-4 opacity-60" />
+            GitHub Repo <Github className="w-4 h-4 opacity-70" />
           </a>
         </div>
 
@@ -164,16 +148,16 @@ export default function LandingPage() {
                 </div>
                 <div className="h-4 w-[1px] bg-white/[0.08] hidden md:block" />
                 <div className="flex items-center gap-2 select-none">
-                  <span className="text-text-dim uppercase tracking-wider text-[10px]">NSE FEED</span>
+                  <span className="text-text-dim uppercase tracking-wider text-[10px]">Preview</span>
                   <span className="text-up font-semibold flex items-center gap-1">
-                    <LivePulseDot color="emerald" size="sm" className="mr-1 inline-flex" /> DEMO FEED
+                    <LivePulseDot color="emerald" size="sm" className="mr-1 inline-flex" /> VISUAL DEMO
                   </span>
                 </div>
               </div>
             </div>
           </TiltCard>
           <div className="text-center text-[10px] font-mono text-text-dim px-4 leading-normal">
-            ⚠️ <strong>Visual demo — not live market data.</strong> MAET is currently in research/paper mode. Live execution is locked.
+            <strong>Visual demo - not live market data.</strong> Live execution is locked in this build.
           </div>
         </div>
 
@@ -189,7 +173,7 @@ export default function LandingPage() {
               Toggle screen mockups &amp; preview the mobile terminal
             </h3>
             <p className="text-xs text-text-2 leading-relaxed">
-              MAET has been redesigned from the ground up for phone viewports. Try clicking the screens below to preview each dashboard module.
+              MAET is optimized for phone viewports first. Use the preview controls to inspect the product shape without treating sample values as market data.
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -223,7 +207,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div className="text-xs font-bold">2. Advanced Charts</div>
-                  <div className="text-[10px] text-text-dim mt-0.5">Stock vector tracking &amp; manual execution validations</div>
+                  <div className="text-[10px] text-text-dim mt-0.5">Charts, indicators &amp; dry-run validation</div>
                 </div>
               </button>
 
@@ -240,7 +224,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div className="text-xs font-bold">3. Portfolio Snapshot</div>
-                  <div className="text-[10px] text-text-dim mt-0.5">Holdings, position values, and developer unlock</div>
+                  <div className="text-[10px] text-text-dim mt-0.5">Read-only broker snapshot access</div>
                 </div>
               </button>
 
@@ -257,7 +241,7 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <div className="text-xs font-bold">4. Strategy Copilot</div>
-                  <div className="text-[10px] text-text-dim mt-0.5">Real-time signals, confidence index &amp; advisory advice</div>
+                  <div className="text-[10px] text-text-dim mt-0.5">Passive research notes and risk context</div>
                 </div>
               </button>
             </div>
@@ -326,7 +310,7 @@ export default function LandingPage() {
                           <span>ENVIRONMENT CONSTRAINTS</span>
                         </div>
                         <p className="text-[9px] text-text-dim leading-normal">
-                          Advisory client is locked. Order routing is redirected to local simulated validation kernels.
+                          Advisory client is locked. Order routing is limited to local dry-run validation checks.
                         </p>
                         <div className="flex flex-wrap gap-1">
                           <span className="text-[7px] font-semibold bg-down/10 text-down border border-down/20 px-1 rounded font-mono">LIVE GATING ACTIVE</span>
@@ -425,11 +409,11 @@ export default function LandingPage() {
                           <span>PAPER ONLY</span>
                         </div>
                         <div className="flex justify-between text-[9px] text-text">
-                          <span>Qty: 50 Shares</span>
-                          <span className="font-mono">Est: ₹{ (reliancePrice * 50).toLocaleString('en-IN', { maximumFractionDigits: 2 }) }</span>
+                          <span>Validation only</span>
+                          <span className="font-mono">broker_mutation_allowed=false</span>
                         </div>
                         <div className="h-6 bg-[#16C784] text-bg font-extrabold text-[9px] rounded-lg flex items-center justify-center tracking-wider">
-                          VALIDATE SIMULATED TRADE
+                          VALIDATE DRY-RUN CHECK
                         </div>
                       </div>
                     </div>
@@ -441,42 +425,38 @@ export default function LandingPage() {
                       {/* Metrics header */}
                       <div className="grid grid-cols-2 gap-2">
                         <div className="p-2 border border-white/[0.05] bg-white/[0.01] rounded-xl text-left">
-                          <div className="text-[8px] text-text-dim font-medium uppercase">Total Value</div>
-                          <div className="text-xs font-bold text-text mt-0.5">₹1,84,500.00</div>
+                          <div className="text-[8px] text-text-dim font-medium uppercase">Snapshot Status</div>
+                          <div className="text-xs font-bold text-text mt-0.5">Read-only</div>
                         </div>
                         <div className="p-2 border border-white/[0.05] bg-white/[0.01] rounded-xl text-left">
-                          <div className="text-[8px] text-text-dim font-medium uppercase">Day's P&amp;L</div>
-                          <div className="text-xs font-bold text-up mt-0.5">+₹1,450.00</div>
+                          <div className="text-[8px] text-text-dim font-medium uppercase">Funds</div>
+                          <div className="text-xs font-bold text-warn mt-0.5">Protected</div>
                         </div>
                       </div>
 
                       {/* Holdings items */}
                       <div className="space-y-2">
-                        <div className="text-[8px] font-bold uppercase tracking-wider text-text-faint">Positions (2)</div>
+                        <div className="text-[8px] font-bold uppercase tracking-wider text-text-faint">Portfolio sections</div>
                         
                         <div className="flex items-center justify-between p-2 border border-white/[0.04] bg-white/[0.01] rounded-xl">
                           <div>
-                            <div className="text-[9px] font-bold text-text">RELIANCE</div>
-                            <div className="text-[8px] text-text-dim mt-0.5">Qty 50 · Avg 2435.45</div>
+                            <div className="text-[9px] font-bold text-text">Holdings</div>
+                            <div className="text-[8px] text-text-dim mt-0.5">Broker snapshot required</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[9px] font-bold text-text">₹{reliancePrice.toFixed(2)}</div>
-                            <div className={`text-[8px] font-bold mt-0.5 ${relianceChange >= 0 ? 'text-up' : 'text-down'}`}>
-                              {relianceChange >= 0 ? '+' : ''}₹{(relianceChange * 50).toFixed(2)}
-                            </div>
+                            <div className="text-[9px] font-bold text-text">--</div>
+                            <div className="text-[8px] font-bold mt-0.5 text-text-faint">READ ONLY</div>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between p-2 border border-white/[0.04] bg-white/[0.01] rounded-xl">
                           <div>
-                            <div className="text-[9px] font-bold text-text">TCS</div>
-                            <div className="text-[8px] text-text-dim mt-0.5">Qty 30 · Avg 3912.65</div>
+                            <div className="text-[9px] font-bold text-text">Positions</div>
+                            <div className="text-[8px] text-text-dim mt-0.5">Dry-run ledger only</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[9px] font-bold text-text">₹{tcsPrice.toFixed(2)}</div>
-                            <div className={`text-[8px] font-bold mt-0.5 ${tcsChange >= 0 ? 'text-up' : 'text-down'}`}>
-                              {tcsChange >= 0 ? '+' : ''}₹{(tcsChange * 30).toFixed(2)}
-                            </div>
+                            <div className="text-[9px] font-bold text-text">--</div>
+                            <div className="text-[8px] font-bold mt-0.5 text-text-faint">READ ONLY</div>
                           </div>
                         </div>
                       </div>
@@ -492,7 +472,7 @@ export default function LandingPage() {
                         <div>
                           <div className="text-[8px] font-bold text-violet uppercase tracking-wider">AI Strategy Engine</div>
                           <p className="text-[7.5px] text-text-dim leading-relaxed mt-0.5 font-medium">
-                            Advisory intelligence runs simulation checks every 30 seconds. Confirm execution parameter checks before validating.
+                            Advisory intelligence is passive. execution_allowed=false and broker actions remain blocked.
                           </p>
                         </div>
                       </div>
@@ -502,7 +482,7 @@ export default function LandingPage() {
                         <div className="flex gap-2">
                           <div className="w-4 h-4 rounded-full bg-violet/10 flex items-center justify-center text-violet font-bold text-[7px] shrink-0">AI</div>
                           <div className="bg-[#151D28] text-text p-2 rounded-r-xl rounded-bl-xl border border-white/[0.03] max-w-[85%] font-medium">
-                            I recommend reviewing TCS options. Real-time indicators showing minor sell-off volume exhaustion.
+                            TCS research note: review liquidity and risk context. This is not a trade instruction.
                           </div>
                         </div>
 
@@ -579,7 +559,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-base font-bold text-white mb-2">Real-Time Data Streams</h3>
               <p className="text-xs text-text-2 leading-relaxed">
-                Consumes real-time streaming WebSocket updates directly from backend brokers and feeds it seamlessly into responsive mobile-styled UI components.
+                Displays backend WebSocket and REST state with explicit offline, delayed, and read-only labels when data is unavailable.
               </p>
             </div>
           </TiltCard>
@@ -591,7 +571,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-base font-bold text-white mb-2">AI Copilot Advisory</h3>
               <p className="text-xs text-text-2 leading-relaxed">
-                Direct strategy advice overlay and signals with fully transparent, read-only analytical flows directly linked to Python ML kernels.
+                Passive research notes and signal explanations stay advisory-only, with no route to live broker execution.
               </p>
             </div>
           </TiltCard>
@@ -603,7 +583,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-base font-bold text-white mb-2">Observability &amp; Telemetry</h3>
               <p className="text-xs text-text-2 leading-relaxed">
-                Detailed logs and live status updates detailing backend performance metrics, system memory, and order verification states.
+                Health, readiness, broker sync, and dry-run verification states are surfaced in readable mobile cards.
               </p>
             </div>
           </TiltCard>
@@ -659,7 +639,7 @@ export default function LandingPage() {
           <div className="flex gap-4">
             <Link href="/terminal" className="hover:text-white transition-colors">Workspace</Link>
             <span>·</span>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/tanmay-alpha/indian-algo-trading-platform" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>
         </div>
       </footer>

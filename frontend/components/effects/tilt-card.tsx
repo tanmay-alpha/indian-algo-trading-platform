@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import React, { useState, useRef, MouseEvent, ReactNode } from 'react'
+import React, { useState, useRef, MouseEvent, ReactNode, useEffect } from 'react'
 
 interface TiltCardProps {
   children: ReactNode
@@ -11,9 +11,17 @@ interface TiltCardProps {
 
 export function TiltCard({ children, className, intensity = 10 }: TiltCardProps) {
   const [rotate, setRotate] = useState({ x: 0, y: 0 })
+  const [motionEnabled, setMotionEnabled] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const coarsePointer = window.matchMedia('(pointer: coarse)').matches
+    setMotionEnabled(!reduceMotion && !coarsePointer)
+  }, [])
+
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!motionEnabled) return
     const card = cardRef.current
     if (!card) return
 
@@ -31,6 +39,7 @@ export function TiltCard({ children, className, intensity = 10 }: TiltCardProps)
   }
 
   const handleMouseLeave = () => {
+    if (!motionEnabled) return
     setRotate({ x: 0, y: 0 })
   }
 
@@ -44,7 +53,9 @@ export function TiltCard({ children, className, intensity = 10 }: TiltCardProps)
         className
       )}
       style={{
-        transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`,
+        transform: motionEnabled
+          ? `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`
+          : undefined,
       }}
     >
       {children}

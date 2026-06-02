@@ -6,21 +6,27 @@ interface StockRowProps {
   symbol: string
   name?: string
   exchange?: string
-  price: number
-  change?: number
+  price?: number | null
+  change?: number | null
   isSelected?: boolean
   onClick?: () => void
 }
 
 export function StockRow({ symbol, name, exchange = 'NSE', price, change = 0, isSelected = false, onClick }: StockRowProps) {
-  const isPositive = change >= 0
+  const hasPrice = price != null
+  const hasChange = change != null
+  const isPositive = (change ?? 0) >= 0
   
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      disabled={!onClick}
+      aria-label={`Open chart for ${symbol}`}
       className={cn(
-        "flex items-center justify-between p-3.5 rounded-xl border border-white/[0.04] bg-white/[0.015] transition-all duration-150",
+        "w-full min-h-[60px] flex items-center justify-between p-3.5 rounded-xl border border-white/[0.04] bg-white/[0.015] transition-all duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60",
         onClick && "cursor-pointer hover:bg-white/[0.035] active:scale-[0.99]",
+        !onClick && "cursor-default",
         isSelected && "bg-white/[0.05] border-[#22D3EE]/30 shadow-[0_4px_12px_rgba(34,211,238,0.05)]"
       )}
     >
@@ -35,16 +41,18 @@ export function StockRow({ symbol, name, exchange = 'NSE', price, change = 0, is
       </div>
       
       <div className="text-right shrink-0 ml-4">
-        <div className="text-xs font-bold font-mono text-text">
-          {price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="text-xs font-bold font-mono text-text tabular-nums">
+          {hasPrice
+            ? price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '—'}
         </div>
         <span className={cn(
-          "text-[10px] font-semibold font-mono inline-block mt-0.5",
-          isPositive ? "text-[#16C784]" : "text-[#EA3943]"
+          "text-[10px] font-semibold font-mono inline-block mt-0.5 tabular-nums",
+          hasChange ? (isPositive ? "text-[#16C784]" : "text-[#EA3943]") : "text-text-faint"
         )}>
-          {isPositive ? '+' : ''}{change.toFixed(2)}%
+          {hasChange ? `${isPositive ? '+' : ''}${change.toFixed(2)}%` : '—'}
         </span>
       </div>
-    </div>
+    </button>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Search, X, Plus, Check, Loader2, BarChart2 } from 'lucide-react'
+import { Search, X, Plus, Check, BarChart2 } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
@@ -227,7 +227,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
       {!isBackendConnected && !watchlistLoading && (
         <div className="mx-4 mb-3 shrink-0 px-3 py-2 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-[10px] text-[#F59E0B] font-semibold flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] shrink-0" />
-          Backend API not loaded. Showing standard client-side instrument list.
+          Backend not connected. Quotes remain blank until REST or WebSocket data is available.
         </div>
       )}
 
@@ -303,6 +303,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                     className="flex flex-col min-w-0 flex-1 text-left"
                     type="button"
                     onClick={() => handleSearchRowChart(r)}
+                    aria-label={`View ${r.symbol} chart`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-text tracking-wide truncate">{r.symbol}</span>
@@ -320,6 +321,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                       className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 bg-[#22D3EE]/10 text-[#22D3EE] hover:bg-[#22D3EE]/20 transition-all duration-150"
                       type="button"
                       title="View chart for this instrument"
+                      aria-label={`View ${r.symbol} chart`}
                     >
                       <BarChart2 className="w-3 h-3" />
                       Chart
@@ -334,6 +336,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                           void addSymbol(r.symbol, r.exchange)
                         }
                       }}
+                      aria-label={isInWatchlist(r.symbol) ? `Remove ${r.symbol} from watchlist` : `Add ${r.symbol} to watchlist`}
                       className={cn(
                         "px-2.5 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 transition-all duration-150 active:scale-[0.98]",
                         isInWatchlist(r.symbol)
@@ -376,8 +379,8 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                       symbol={cleanSymbol}
                       name={row.name}
                       exchange={row.exchange}
-                      price={row.ltp ?? 0}
-                      change={row.change_pct ?? 0}
+                      price={row.ltp ?? null}
+                      change={row.change_pct ?? null}
                       isSelected={selectedSymbol === row.symbol}
                       onClick={() => handleRowClick(row.symbol, row.exchange, row.name)}
                     />

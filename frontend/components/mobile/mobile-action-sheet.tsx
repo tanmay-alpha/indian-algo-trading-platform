@@ -37,7 +37,7 @@ export function MobileActionSheet({ isOpen, onClose, title, children, className 
       {/* Sheet Content */}
       <div 
         className={cn(
-          "relative w-full max-h-[85vh] bg-[#090D14] border-t border-white/[0.08] rounded-t-3xl shadow-[0_-12px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden pb-4 animate-in slide-in-from-bottom duration-200",
+          "relative w-full max-h-[88dvh] bg-[#090D14] border-t border-white/[0.08] rounded-t-3xl shadow-[0_-12px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden pb-[calc(env(safe-area-inset-bottom,0px)+12px)] animate-in slide-in-from-bottom duration-200",
           className
         )}
       >
@@ -49,7 +49,8 @@ export function MobileActionSheet({ isOpen, onClose, title, children, className 
           <h3 className="text-sm font-bold text-text tracking-wide">{title}</h3>
           <button 
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-text-dim hover:bg-white/[0.1] active:scale-95 transition-all"
+            aria-label="Close sheet"
+            className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-text-dim hover:bg-white/[0.1] active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
             type="button"
           >
             <X className="w-4 h-4" />

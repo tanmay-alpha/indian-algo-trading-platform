@@ -1,7 +1,7 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { ShieldCheck, Wifi, WifiOff, Activity } from 'lucide-react'
+import { ShieldCheck, Wifi, WifiOff } from 'lucide-react'
 import { cn, getNseMarketSession } from '@/lib/utils'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 
@@ -11,12 +11,9 @@ interface MobileTopHeaderProps {
 
 export function MobileTopHeader({ title }: MobileTopHeaderProps) {
   const wsStatus    = useTerminalStore((s) => s.wsStatus)
-  const apiStatus   = useTerminalStore((s) => s.apiStatus)
   const marketSession = getNseMarketSession()
-  const backendOffline = useTerminalStore((s) => s.backendOffline)
 
   const isConnected = wsStatus === 'CONNECTED'
-  const isOnline    = apiStatus === 'ONLINE' && !backendOffline
 
   const sessionColor = {
     OPEN:        'text-up',
