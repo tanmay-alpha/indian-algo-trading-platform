@@ -12,20 +12,20 @@
 /* ─── CSS Custom Properties ──────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg:         #070A0F;
-  --bg-2:       #080B12;
-  --bg-surface: #0B0F17;
-  --bg-card:    rgba(255, 255, 255, 0.035);
-  --bg-card-hover: rgba(255, 255, 255, 0.055);
+  --bg:         #071018;
+  --bg-2:       #0B1220;
+  --bg-surface: #0B1220;
+  --bg-card:    rgba(255, 255, 255, 0.06);
+  --bg-card-hover: rgba(255, 255, 255, 0.09);
 
   /* Panels */
-  --panel:      #0D1117;
-  --panel-2:    #111720;
-  --panel-3:    #151D28;
+  --panel:      #111827;
+  --panel-2:    #0B1220;
+  --panel-3:    #172033;
 
   /* Borders */
-  --border:         rgba(255, 255, 255, 0.07);
-  --border-strong:  rgba(255, 255, 255, 0.12);
+  --border:         rgba(255, 255, 255, 0.10);
+  --border-strong:  rgba(255, 255, 255, 0.14);
   --border-accent:  rgba(56, 189, 248, 0.25);
   --border-card:    rgba(255, 255, 255, 0.08);
 
@@ -45,8 +45,8 @@
   /* Status */
   --warn:       #F59E0B;
   --warn-dim:   rgba(245, 158, 11, 0.12);
-  --info:       #38BDF8;
-  --info-dim:   rgba(56, 189, 248, 0.12);
+  --info:       #0EA5E9;
+  --info-dim:   rgba(14, 165, 233, 0.12);
   --locked:     #EF4444;
   --violet:     #A855F7;
   --violet-dim: rgba(168, 85, 247, 0.12);
@@ -323,19 +323,15 @@ body {
   ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 }
 
-/* ─── Desktop overrides ──────────────────────────────────── */
-@media (min-width: 768px) {
-  .mobile-app {
-    max-width: 480px;
-    margin: 0 auto;
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    box-shadow: 0 0 80px rgba(0, 0, 0, 0.45);
-  }
+/* Desktop workspace embeds the same data-backed screens in full-width panels. */
+.desktop-app .mobile-screen {
+  height: 100%;
+  padding: 16px;
+  padding-bottom: 16px;
+}
 
-  .mobile-screen {
-    padding-bottom: 16px;
-  }
+.desktop-pane .mobile-screen {
+  scrollbar-width: thin;
 }
 
 @media (prefers-reduced-motion: reduce) {

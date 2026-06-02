@@ -91,7 +91,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
 
   // Build display rows:
   // - When backend is connected (watchlistSource === 'db'), use persistentWatchlistItems
-  //   merged with live tick data from marketWatch for LTP/change.
+  //   merged with backend tick data from marketWatch for LTP/change.
   // - Otherwise fall back to marketWatch rows.
   const rows = useMemo(() => {
     if (watchlistSource === 'db' && persistentWatchlistItems.length > 0) {
@@ -307,7 +307,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-text tracking-wide truncate">{r.symbol}</span>
-                      <span className="text-[9px] font-mono font-semibold px-1 py-0.25 rounded bg-white/[0.06] text-text-dim border border-white/[0.04] uppercase shrink-0">
+                      <span className="text-xs font-mono font-semibold px-1 py-0.25 rounded bg-white/[0.06] text-text-dim border border-white/[0.04] uppercase shrink-0">
                         {r.exchange}
                       </span>
                     </div>

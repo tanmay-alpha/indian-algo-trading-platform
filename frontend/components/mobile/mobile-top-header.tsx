@@ -1,15 +1,17 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { ShieldCheck, Wifi, WifiOff } from 'lucide-react'
+import { Activity, ShieldCheck, Wifi, WifiOff } from 'lucide-react'
 import { cn, getNseMarketSession } from '@/lib/utils'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
+import type { AppTab } from './mobile-bottom-nav'
 
 interface MobileTopHeaderProps {
   title?: string
+  onNavigate?: (tab: AppTab) => void
 }
 
-export function MobileTopHeader({ title }: MobileTopHeaderProps) {
+export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
   const wsStatus    = useTerminalStore((s) => s.wsStatus)
   const marketSession = getNseMarketSession()
 
@@ -56,7 +58,7 @@ export function MobileTopHeader({ title }: MobileTopHeaderProps) {
       {/* Right status cluster */}
       <div className="flex items-center gap-2">
         {/* Market session */}
-        <span className={cn('text-[10px] font-semibold font-mono', sessionColor)}>
+        <span className={cn('hidden min-[390px]:inline text-[10px] font-semibold font-mono', sessionColor)}>
           {sessionLabel}
         </span>
 
@@ -78,6 +80,15 @@ export function MobileTopHeader({ title }: MobileTopHeaderProps) {
           <ShieldCheck className="w-3 h-3" />
           LOCKED
         </div>
+
+        <button
+          type="button"
+          onClick={() => onNavigate?.('system')}
+          aria-label="Open System screen"
+          className="grid h-9 w-9 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-text-dim transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60"
+        >
+          <Activity className="h-4 w-4" />
+        </button>
       </div>
     </header>
   )

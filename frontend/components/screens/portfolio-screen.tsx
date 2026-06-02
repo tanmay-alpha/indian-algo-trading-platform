@@ -134,9 +134,9 @@ export function PortfolioScreen() {
           {(!backendReachable || connectionError || lastStatusError) && (
             <div className="mt-4 p-3 rounded-2xl bg-[#EA3943]/5 border border-[#EA3943]/15 space-y-1.5 text-[10px] font-mono text-text-dim">
               <div className="flex items-center justify-between border-b border-white/[0.03] pb-1 mb-1">
-                <span className="font-bold text-text text-[9px] uppercase">Connectivity Diagnostics</span>
+                <span className="font-bold text-text text-xs uppercase">Connectivity Diagnostics</span>
                 <span className={cn(
-                  "px-1.5 py-0.25 rounded text-[8px] font-bold tracking-wider",
+                  "px-1.5 py-0.25 rounded text-xs font-bold tracking-wider",
                   backendReachable ? "bg-[#16C784]/20 text-[#16C784]" : "bg-[#EA3943]/20 text-[#EA3943]"
                 )}>
                   {backendReachable ? "ONLINE" : "OFFLINE"}
@@ -148,14 +148,14 @@ export function PortfolioScreen() {
               </div>
               {connectionError && (
                 <div className="border-t border-white/[0.03] pt-1 mt-1">
-                  <span className="font-semibold text-text text-[9px] block">Connection Error:</span>
-                  <span className="text-[#EA3943] text-[9px] break-all">{connectionError}</span>
+                  <span className="font-semibold text-text text-xs block">Connection Error:</span>
+                  <span className="text-[#EA3943] text-xs break-all">{connectionError}</span>
                 </div>
               )}
               {lastStatusError && !connectionError && (
                 <div className="border-t border-white/[0.03] pt-1 mt-1">
-                  <span className="font-semibold text-text text-[9px] block">Last Health Error:</span>
-                  <span className="text-[#EA3943] text-[9px] break-all">{lastStatusError}</span>
+                  <span className="font-semibold text-text text-xs block">Last Health Error:</span>
+                  <span className="text-[#EA3943] text-xs break-all">{lastStatusError}</span>
                 </div>
               )}
             </div>
@@ -325,7 +325,7 @@ function PositionRow({ pos }: { pos: any }) {
         <div className={cn('text-xs font-bold font-mono tracking-tight', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
           {formatSignedInlineRupee(pos.unrealized_pnl)}
         </div>
-        <div className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-1">Unrealized P&amp;L</div>
+        <div className="text-xs text-text-faint font-semibold uppercase tracking-wider mt-1">Unrealized P&amp;L</div>
       </div>
     </div>
   )
@@ -347,7 +347,7 @@ function HoldingRow({ hold }: { hold: any }) {
         <div className={cn('text-xs font-bold font-mono tracking-tight', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
           {formatSignedInlineRupee(hold.pnl)}
         </div>
-        <div className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-1">LTP {formatInlineRupee(hold.ltp)}</div>
+        <div className="text-xs text-text-faint font-semibold uppercase tracking-wider mt-1">LTP {formatInlineRupee(hold.ltp)}</div>
       </div>
     </div>
   )

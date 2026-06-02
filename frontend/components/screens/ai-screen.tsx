@@ -135,7 +135,7 @@ export function AiScreen() {
           </button>
         </div>
 
-        <span className="text-[9px] font-mono font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2.5 py-1 rounded-full flex items-center gap-1.5 uppercase">
+        <span className="text-xs font-mono font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2.5 py-1 rounded-full flex items-center gap-1.5 uppercase">
           <AlertTriangle className="w-3 h-3 text-[#F59E0B]" />
           Passive
         </span>
@@ -155,7 +155,7 @@ export function AiScreen() {
                       : 'mr-auto bg-white/[0.018] border-white/[0.07] text-text-dim'
                   )}
                 >
-                  <div className="flex items-center gap-1.5 text-[9px] font-mono text-text-faint uppercase font-bold mb-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-text-faint uppercase font-bold mb-1.5">
                     {msg.role === 'user' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
@@ -261,7 +261,7 @@ function SignalCard({
           </div>
           <div className="min-w-0">
             <span className="text-xs font-bold text-text block leading-tight truncate">{symbol}</span>
-            <span className="text-[9px] text-text-faint font-semibold uppercase tracking-wider mt-0.5 block">
+            <span className="text-xs text-text-faint font-semibold uppercase tracking-wider mt-0.5 block">
               Passive model note
             </span>
           </div>

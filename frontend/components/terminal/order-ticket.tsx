@@ -175,14 +175,14 @@ export function OrderTicket() {
           <ShoppingCart className="h-3.5 w-3.5 text-info" />
           <div>
             <div className="text-[11px] font-semibold text-text uppercase tracking-wider">Manual Order Ticket</div>
-            <div className="text-[8px] text-text-faint font-mono">DRY-RUN RISK GATE VALIDATION</div>
+            <div className="text-xs text-text-faint font-mono">DRY-RUN RISK GATE VALIDATION</div>
           </div>
         </div>
         {adminToken && (
           <button
             onClick={clearOmsAdminToken}
             aria-label="Lock dry-run validation engine"
-            className="text-[9px] font-mono px-2 py-0.5 rounded border border-border text-text-dim hover:text-rose-400 hover:border-rose-500/30 transition-colors"
+            className="text-xs font-mono px-2 py-0.5 rounded border border-border text-text-dim hover:text-rose-400 hover:border-rose-500/30 transition-colors"
             type="button"
           >
             Lock Engine
@@ -233,7 +233,7 @@ export function OrderTicket() {
                 </div>
 
                 {unlockError && (
-                  <p className="text-[9px] text-rose-400 font-mono text-left">{unlockError}</p>
+                  <p className="text-xs text-rose-400 font-mono text-left">{unlockError}</p>
                 )}
 
                 <button
@@ -250,7 +250,7 @@ export function OrderTicket() {
 
             {/* Permanent Safety Warnings */}
             <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-[10px] text-text-faint font-mono">
-              <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-[9px]">
+              <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-xs">
                 <ShieldCheck className="h-3 w-3" />
                 <span>Execution Lock Parameters</span>
               </div>
@@ -298,7 +298,7 @@ export function OrderTicket() {
               {/* Symbol & Exchange */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">Symbol</label>
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">Symbol</label>
                   <input
                     type="text"
                     value={symbolInput}
@@ -308,7 +308,7 @@ export function OrderTicket() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">Exchange</label>
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">Exchange</label>
                   <select
                     value={exchange}
                     onChange={(e) => setExchange(e.target.value as 'NSE' | 'BSE')}
@@ -323,7 +323,7 @@ export function OrderTicket() {
               {/* Quantity & Product Type */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">Quantity</label>
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">Quantity</label>
                   <input
                     type="number"
                     min="1"
@@ -333,7 +333,7 @@ export function OrderTicket() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">Product Type</label>
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">Product Type</label>
                   <select
                     value={productType}
                     onChange={(e) => setProductType(e.target.value)}
@@ -349,7 +349,7 @@ export function OrderTicket() {
               {/* Order Type & Price Override */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">Order Type</label>
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">Order Type</label>
                   <select
                     value={orderType}
                     onChange={(e) => {
@@ -365,7 +365,7 @@ export function OrderTicket() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[8px] font-mono text-text-faint uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-mono text-text-faint uppercase tracking-wider mb-1">
                     Price {orderType === 'MARKET' ? '(LTP Used)' : 'Override'}
                   </label>
                   <input
@@ -433,7 +433,7 @@ export function OrderTicket() {
                     </span>
                   </div>
                   <span className={cn(
-                    "text-[9px] font-mono uppercase px-1.5 py-0.5 rounded font-bold border",
+                    "text-xs font-mono uppercase px-1.5 py-0.5 rounded font-bold border",
                     validationResult.status === 'VALIDATED' && validationResult.rejection_reason === null
                       ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
                       : "text-rose-400 border-rose-500/30 bg-rose-500/10"
@@ -445,22 +445,22 @@ export function OrderTicket() {
                 {/* Metrics */}
                 <div className="grid grid-cols-2 gap-y-2.5 text-[10px] font-mono">
                   <div>
-                    <span className="text-text-faint block text-[8px] uppercase tracking-wide">Notional Exposure</span>
+                    <span className="text-text-faint block text-xs uppercase tracking-wide">Notional Exposure</span>
                     <span className="text-text font-bold">₹{fmtPrice(validationResult.estimated_notional)}</span>
                   </div>
                   <div>
-                    <span className="text-text-faint block text-[8px] uppercase tracking-wide">Validation Price</span>
+                    <span className="text-text-faint block text-xs uppercase tracking-wide">Validation Price</span>
                     <span className="text-text">₹{fmtPrice(validationResult.price)} <span className="text-[7px] text-text-faint">({validationResult.price_source})</span></span>
                   </div>
                   <div>
-                    <span className="text-text-faint block text-[8px] uppercase tracking-wide">Risk Engine Status</span>
+                    <span className="text-text-faint block text-xs uppercase tracking-wide">Risk Engine Status</span>
                     <span className={validationResult.status === 'VALIDATED' ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
                       {validationResult.status === 'VALIDATED' ? "PASSED" : "REJECTED"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-text-faint block text-[8px] uppercase tracking-wide">Timestamp</span>
-                    <span className="text-text-dim text-[9px]">
+                    <span className="text-text-faint block text-xs uppercase tracking-wide">Timestamp</span>
+                    <span className="text-text-dim text-xs">
                       {new Date(validationResult.created_at).toLocaleTimeString('en-IN', { hour12: false })}
                     </span>
                   </div>
@@ -468,7 +468,7 @@ export function OrderTicket() {
 
                 {/* Rejection Details if applicable */}
                 {validationResult.rejection_reason && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-2 text-[9px] font-mono text-rose-400">
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded p-2 text-xs font-mono text-rose-400">
                     <span className="font-bold uppercase block mb-0.5">Rejection Reason:</span>
                     {validationResult.rejection_reason}
                   </div>
@@ -477,17 +477,17 @@ export function OrderTicket() {
                 {/* Safety markers footer */}
                 <div className="pt-2 border-t border-border/20 space-y-1">
                   <div className="flex flex-wrap gap-1">
-                    <span className="text-[8px] font-mono bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded border border-amber-500/20">
+                    <span className="text-xs font-mono bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded border border-amber-500/20">
                       DRY RUN ONLY
                     </span>
-                    <span className="text-[8px] font-mono bg-cyan-500/10 text-cyan-400 px-1 py-0.5 rounded border border-cyan-500/20">
+                    <span className="text-xs font-mono bg-cyan-500/10 text-cyan-400 px-1 py-0.5 rounded border border-cyan-500/20">
                       VALIDATION-ONLY
                     </span>
-                    <span className="text-[8px] font-mono bg-rose-500/10 text-rose-400 px-1 py-0.5 rounded border border-rose-500/20">
+                    <span className="text-xs font-mono bg-rose-500/10 text-rose-400 px-1 py-0.5 rounded border border-rose-500/20">
                       MUTATIONS LOCKED
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 gap-1 pt-1 text-[9px] font-mono text-text-faint">
+                  <div className="grid grid-cols-1 gap-1 pt-1 text-xs font-mono text-text-faint">
                     <div className="flex justify-between gap-3">
                       <span>validation_only</span>
                       <span className="text-amber-400 font-bold">true</span>
@@ -531,18 +531,18 @@ export function OrderTicket() {
                           <span className={cn("font-bold", ticket.side === 'BUY' ? 'text-up' : 'text-down')}>
                             {ticket.side} {ticket.symbol}
                           </span>
-                          <span className="text-[8px] text-text-faint">
+                          <span className="text-xs text-text-faint">
                             {new Date(ticket.created_at).toLocaleTimeString('en-IN', { hour12: false })}
                           </span>
                         </div>
-                        <div className="flex justify-between text-[9px] text-text-dim">
+                        <div className="flex justify-between text-xs text-text-dim">
                           <span>Qty: {ticket.quantity} @ ₹{fmtPrice(ticket.price)}</span>
                           <span className={isValid ? "text-emerald-400 font-bold" : "text-rose-400"}>
                             {isValid ? "PASSED" : "REJ"}
                           </span>
                         </div>
                         {ticket.rejection_reason && (
-                          <div className="text-[8px] text-rose-400/80 truncate">
+                          <div className="text-xs text-rose-400/80 truncate">
                             Reason: {ticket.rejection_reason}
                           </div>
                         )}
@@ -573,7 +573,7 @@ export function OrderTicket() {
               <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
               <div>
                 <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">Dry-Run Confirmation</div>
-                <div className="text-[9px] font-mono text-text-faint">VALIDATE ONLY — No broker order will be placed</div>
+                <div className="text-xs font-mono text-text-faint">VALIDATE ONLY — No broker order will be placed</div>
               </div>
             </div>
 
@@ -581,34 +581,34 @@ export function OrderTicket() {
             <div className="px-4 py-3 space-y-2">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono">
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Symbol</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Symbol</span>
                   <span className="text-text font-semibold">{pendingOrder.symbol}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Side</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Side</span>
                   <span className={cn('font-bold', pendingOrder.side === 'BUY' ? 'text-up' : 'text-down')}>
                     {pendingOrder.side} (DRY-RUN)
                   </span>
                 </div>
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Quantity</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Quantity</span>
                   <span className="text-text">{pendingOrder.quantity.toLocaleString('en-IN')}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Exchange</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Exchange</span>
                   <span className="text-text">{pendingOrder.exchange}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Product Type</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Product Type</span>
                   <span className="text-text">{pendingOrder.productType}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] uppercase tracking-wider text-text-faint block">Order Type</span>
+                  <span className="text-xs uppercase tracking-wider text-text-faint block">Order Type</span>
                   <span className="text-text">{pendingOrder.orderType}</span>
                 </div>
                 {pendingOrder.priceOverride && (
                   <div>
-                    <span className="text-[8px] uppercase tracking-wider text-text-faint block">Price Override</span>
+                    <span className="text-xs uppercase tracking-wider text-text-faint block">Price Override</span>
                     <span className="text-text">₹{parseFloat(pendingOrder.priceOverride).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
@@ -616,13 +616,13 @@ export function OrderTicket() {
 
               {/* Safety state row */}
               <div className="rounded border border-border/50 bg-bg/60 px-2 py-1.5 flex flex-wrap gap-1.5">
-                <span className="text-[8px] font-mono bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/25">DRY-RUN ONLY</span>
-                <span className="text-[8px] font-mono bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/25">LIVE EXECUTION LOCKED</span>
-                <span className="text-[8px] font-mono bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/25">BROKER MUTATION DISABLED</span>
+                <span className="text-xs font-mono bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/25">DRY-RUN ONLY</span>
+                <span className="text-xs font-mono bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/25">LIVE EXECUTION LOCKED</span>
+                <span className="text-xs font-mono bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/25">BROKER MUTATION DISABLED</span>
               </div>
 
               {/* Safety disclaimer */}
-              <p className="text-[9px] font-mono text-text-faint leading-relaxed">
+              <p className="text-xs font-mono text-text-faint leading-relaxed">
                 This will <strong className="text-text">not</strong> place a real broker order.
                 The backend will validate risk gates and return a simulation ticket only.
               </p>

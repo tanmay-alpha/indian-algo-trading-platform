@@ -8,6 +8,7 @@ import { getTradingViewChartUrl, getAngelOneChartUrl } from '@/lib/symbol-links'
 import { OrderTicket } from '@/components/terminal/order-ticket'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { SectionTitle } from '@/components/ui-maet/section-title'
+import { ChartFrame } from '@/components/ui-maet/chart-frame'
 import { MobileActionSheet } from '@/components/mobile/mobile-action-sheet'
 import { mapLineSeries, mapMacdSeries } from '@/lib/indicator-series'
 import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
@@ -58,7 +59,7 @@ export function ChartScreen() {
   const chgPct       = row?.change_pct ?? null
   const isUp         = (chgPct ?? 0) > 0
   const cleanSym     = selectedSymbol?.split(':').pop()?.split('-')[0] ?? selectedSymbol
-  // Use store-level exchange/name (set on instrument select) or fall back to live tick data
+  // Use store-level exchange/name (set on instrument select) or fall back to backend tick data.
   const displayExchange = selectedExchange ?? row?.exchange ?? 'NSE'
   const displayName     = selectedInstrumentName ?? row?.name ?? 'INDEX / STOCK'
 
@@ -180,7 +181,7 @@ export function ChartScreen() {
         </div>
 
         {/* Honesty label */}
-        <p className="mt-2 text-[9px] text-text-faint font-medium leading-snug">
+        <p className="mt-2 text-xs text-text-faint font-medium leading-snug">
           External charts open in third-party platforms.{' '}
           <span className="text-[#F59E0B] font-semibold">MAET remains paper&nbsp;/&nbsp;read-only.</span>{' '}
           No orders are placed from MAET.
@@ -210,7 +211,7 @@ export function ChartScreen() {
       </div>
 
       {/* Chart container */}
-      <div className="flex-grow min-h-[280px] rounded-2xl border border-white/[0.06] bg-[#070b12] flex flex-col relative overflow-hidden shadow-inner">
+      <ChartFrame className="flex min-h-[300px] lg:min-h-[260px] xl:min-h-[300px] flex-grow flex-col relative">
         {selectedSymbol ? (
           <div className="flex flex-col flex-grow min-h-0">
             <div className="flex-grow min-h-0 relative">
@@ -286,7 +287,7 @@ export function ChartScreen() {
             </p>
           </div>
         )}
-      </div>
+      </ChartFrame>
 
       {/* Technical Indicators */}
       <div className="shrink-0">
@@ -370,7 +371,7 @@ export function ChartScreen() {
           onClick={() => selectedSymbol && setShowOrderSheet(true)}
           disabled={!selectedSymbol}
           className={cn(
-            "w-full h-12 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border transition-all duration-150",
+            "w-full h-12 rounded-2xl font-bold text-xs tracking-wide flex items-center justify-center gap-2 border transition-all duration-150",
             selectedSymbol
               ? "bg-[#F59E0B]/10 hover:bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B] shadow-[0_4px_16px_rgba(245,158,11,0.05)] active:scale-[0.985]"
               : "bg-white/[0.02] border-white/[0.05] text-text-faint cursor-not-allowed opacity-50"
@@ -378,7 +379,7 @@ export function ChartScreen() {
           type="button"
         >
           <ShieldCheck className="w-4 h-4" />
-          {selectedSymbol ? `Validate Dry-Run Order · ${cleanSym}` : 'Select Symbol to Validate'}
+          {selectedSymbol ? `Validate Dry-Run Order · ${cleanSym}` : 'Validate Dry-Run Order'}
         </button>
       </div>
 

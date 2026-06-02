@@ -1,17 +1,16 @@
 'use client'
 
-import { Home, List, BarChart2, Briefcase, Brain, Activity } from 'lucide-react'
+import { Home, List, BarChart2, Briefcase, Brain } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type AppTab = 'home' | 'watchlist' | 'chart' | 'portfolio' | 'ai' | 'system'
 
-const TABS: { id: AppTab; label: string; Icon: React.FC<{ className?: string }> }[] = [
+const TABS: { id: Exclude<AppTab, 'system'>; label: string; Icon: React.FC<{ className?: string }> }[] = [
   { id: 'home',      label: 'Home',      Icon: Home       },
-  { id: 'watchlist', label: 'Watch',     Icon: List       },
+  { id: 'watchlist', label: 'Watchlist', Icon: List       },
   { id: 'chart',     label: 'Chart',     Icon: BarChart2  },
   { id: 'portfolio', label: 'Portfolio', Icon: Briefcase  },
   { id: 'ai',        label: 'AI',        Icon: Brain      },
-  { id: 'system',    label: 'System',    Icon: Activity   },
 ]
 
 interface MobileBottomNavProps {
@@ -22,7 +21,7 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
   return (
     <nav
-      className="bottom-nav flex items-stretch justify-around px-1 z-40 shrink-0"
+      className="bottom-nav flex items-stretch justify-around px-2 z-40 shrink-0"
       aria-label="Main navigation"
     >
       {TABS.map(({ id, label, Icon }) => {
@@ -46,7 +45,7 @@ export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
               <Icon className={cn('w-[18px] h-[18px]', isActive ? 'text-info' : 'text-text-dim')} />
             </div>
             <span className={cn(
-              'text-[9px] sm:text-[10px] leading-none font-medium tracking-tight truncate max-w-full',
+              'text-xs leading-none font-medium tracking-tight truncate max-w-full',
               isActive ? 'text-info' : 'text-text-faint'
             )}>
               {label}

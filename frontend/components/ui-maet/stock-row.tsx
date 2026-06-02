@@ -33,7 +33,7 @@ export function StockRow({ symbol, name, exchange = 'NSE', price, change = 0, is
       <div className="flex flex-col min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-bold text-text tracking-wide truncate">{symbol}</span>
-          <span className="text-[9px] font-mono font-semibold px-1 py-0.25 rounded bg-white/[0.06] text-text-dim border border-white/[0.04] uppercase shrink-0">
+          <span className="text-xs font-mono font-semibold px-1 py-0.25 rounded bg-white/[0.06] text-text-dim border border-white/[0.04] uppercase shrink-0">
             {exchange}
           </span>
         </div>
