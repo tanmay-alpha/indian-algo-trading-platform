@@ -28,13 +28,6 @@ export function MobileTerminalShell({ activeTab, onNavigate }: MobileTerminalShe
   return (
     <div className="mobile-app">
       <MobileTopHeader title={SCREEN_TITLES[activeTab]} onNavigate={onNavigate} />
-      <div className="safety-strip shrink-0 overflow-x-auto whitespace-nowrap">
-        <span className="inline-flex rounded-full border border-down/25 bg-down/10 px-2.5 py-1 text-xs font-bold text-down">LIVE LOCKED</span>
-        <span className="inline-flex rounded-full border border-warn/25 bg-warn/10 px-2.5 py-1 text-xs font-bold text-warn">PAPER MODE</span>
-        <span className="inline-flex rounded-full border border-info/25 bg-info/10 px-2.5 py-1 text-xs font-bold text-info">READ ONLY</span>
-        <span className="inline-flex rounded-full border border-violet/25 bg-violet/10 px-2.5 py-1 text-xs font-bold text-violet">AI ADVISORY ONLY</span>
-        <span className="inline-flex rounded-full border border-down/25 bg-down/10 px-2.5 py-1 text-xs font-bold text-down">BROKER MUTATION DISABLED</span>
-      </div>
 
       <div className="relative min-h-0 flex-1">
         <ScreenWrapper active={activeTab === 'home'}>

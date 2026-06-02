@@ -10,10 +10,10 @@ export function ResponsiveTerminalShell() {
 
   return (
     <>
-      <div className="lg:hidden h-dvh" data-shell="mobile">
+      <div className="h-[calc(100dvh-var(--safety-strip-h))] lg:hidden" data-shell="mobile">
         <MobileTerminalShell activeTab={activeTab} onNavigate={setActiveTab} />
       </div>
-      <div className="hidden lg:block" data-shell="desktop">
+      <div className="hidden h-[calc(100dvh-var(--safety-strip-h))] lg:block" data-shell="desktop">
         <DesktopTerminalShell activeTab={activeTab} onNavigate={setActiveTab} />
       </div>
     </>

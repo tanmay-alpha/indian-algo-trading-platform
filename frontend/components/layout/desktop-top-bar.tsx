@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, Radio, ShieldCheck, Wifi, WifiOff } from 'lucide-react'
+import { Activity, Radio, Wifi, WifiOff } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
@@ -33,13 +33,13 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
   }[session ?? 'CLOSED'] ?? 'MARKET CLOSED'
 
   return (
-    <header className="flex min-h-20 shrink-0 items-center justify-between gap-4 border-b border-white/[0.08] bg-[#071018]/90 px-5 py-3 backdrop-blur-xl">
+    <header className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-maet-border bg-maet-base/92 px-5 py-3 backdrop-blur-xl">
       <div>
-        <h1 className="text-lg font-extrabold leading-tight text-text">{TITLES[activeTab]}</h1>
-        <p className="text-xs font-medium text-text-dim">Safety-first NSE/BSE analytics and dry-run validation.</p>
+        <h1 className="font-heading text-xl font-bold leading-tight text-maet-text xl-heading">{TITLES[activeTab]}</h1>
+        <p className="text-xs font-medium text-maet-text-muted">Market session, backend state, and read-only research context.</p>
       </div>
 
-      <div className="flex max-w-[720px] flex-wrap items-center justify-end gap-2">
+      <div className="flex max-w-[640px] flex-wrap items-center justify-end gap-2">
         <StatusChip label={sessionLabel} tone={session === 'OPEN' ? 'good' : 'warn'} icon={<Activity className="h-3.5 w-3.5" />} />
         <StatusChip
           label={apiOnline ? 'API ONLINE' : 'API OFFLINE'}
@@ -51,11 +51,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
           tone={wsOnline ? 'good' : 'muted'}
           icon={wsOnline ? <LivePulseDot color="emerald" size="sm" /> : <Radio className="h-3.5 w-3.5" />}
         />
-        <StatusChip label="LIVE LOCKED" tone="bad" icon={<ShieldCheck className="h-3.5 w-3.5" />} />
-        <StatusChip label="PAPER MODE" tone="warn" icon={<ShieldCheck className="h-3.5 w-3.5" />} />
-        <StatusChip label="READ ONLY" tone="muted" icon={<ShieldCheck className="h-3.5 w-3.5" />} />
-        <StatusChip label="AI ADVISORY ONLY" tone="warn" icon={<ShieldCheck className="h-3.5 w-3.5" />} />
-        <StatusChip label="BROKER MUTATION DISABLED" tone="bad" icon={<ShieldCheck className="h-3.5 w-3.5" />} />
+        <StatusChip label="v0.1.0" tone="muted" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />} />
       </div>
     </header>
   )
@@ -71,14 +67,14 @@ function StatusChip({
   icon: ReactNode
 }) {
   const toneClass = {
-    good: 'border-up/25 bg-up/10 text-up',
-    warn: 'border-warn/25 bg-warn/10 text-warn',
-    bad: 'border-down/25 bg-down/10 text-down',
-    muted: 'border-white/[0.08] bg-white/[0.04] text-text-dim',
+    good: 'border-maet-green/25 bg-maet-green/10 text-maet-green',
+    warn: 'border-maet-amber/25 bg-maet-amber/10 text-maet-amber',
+    bad: 'border-maet-red/25 bg-maet-red/10 text-maet-red',
+    muted: 'border-maet-border bg-maet-elevated text-maet-text-secondary',
   }[tone]
 
   return (
-    <span className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-bold uppercase', toneClass)}>
+    <span className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[11px] font-bold uppercase', toneClass)}>
       {icon}
       {label}
     </span>

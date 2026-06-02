@@ -1,147 +1,107 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Database,
-  Radio,
-  RefreshCw,
-  ShieldCheck,
-  WifiOff,
-} from 'lucide-react'
+import { Activity, Database, Radio, Server, ShieldCheck, WifiOff } from 'lucide-react'
 import { MobilePage } from '@/components/mobile/mobile-page'
-import { PremiumCard } from '@/components/ui-maet/premium-card'
-import { SectionTitle } from '@/components/ui-maet/section-title'
+import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { useTerminalStore } from '@/store/terminal-store'
 import { API_URL, WS_URL } from '@/lib/constants'
-import { cn } from '@/lib/utils'
+import { cn, fmtAge } from '@/lib/utils'
+import { useNow } from '@/lib/use-now'
 
 export function SystemScreen() {
+  const now = useNow()
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const wsStatus = useTerminalStore((s) => s.wsStatus)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
-  const backendOffline = useTerminalStore((s) => s.backendOffline)
   const brokerStatus = useTerminalStore((s) => s.brokerStatus)
   const terminalStatus = useTerminalStore((s) => s.terminalStatus)
-  const reconciliation = useTerminalStore((s) => s.reconciliationStatus)
+  const lastStatusFetchAt = useTerminalStore((s) => s.lastStatusFetchAt)
+  const lastTickAt = useTerminalStore((s) => s.lastTickAt)
+  const wsReconnectAttempts = useTerminalStore((s) => s.wsReconnectAttempts)
   const connectionError = useTerminalStore((s) => s.connectionError)
   const lastStatusError = useTerminalStore((s) => s.lastStatusError)
-  const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
 
-  const apiOnline = apiStatus === 'ONLINE' && !backendOffline
+  const apiOnline = apiStatus === 'ONLINE'
   const wsOnline = wsStatus === 'CONNECTED'
-  const brokerReadOnly = brokerStatus?.configured ? 'CONFIGURED' : 'NOT CONFIGURED'
-  const mismatchCount = reconciliation?.summary?.mismatch_count ?? 0
+  const candleSymbols = terminalStatus?.candles?.symbols?.length ?? 0
+  const supportedTimeframes = terminalStatus?.candles?.supported_timeframes?.join(', ') || 'Unavailable'
 
   return (
-    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
-      <PremiumCard className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-info/10 border border-info/25 flex items-center justify-center text-info shrink-0">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-sm font-extrabold text-text leading-tight">System Readiness</h2>
-            <p className="text-xs text-text-dim leading-relaxed mt-1">
-              Operational health, live-lock policy, broker sync, and reconciliation shown as readable mobile states.
-            </p>
-          </div>
-        </div>
-      </PremiumCard>
-
-      <div className="grid grid-cols-2 gap-3 shrink-0">
-        <StatusCard
-          title="Backend"
-          value={apiOnline ? 'ONLINE' : backendWakeState === 'WAKING' ? 'WAKING' : 'OFFLINE'}
-          tone={apiOnline ? 'good' : backendWakeState === 'WAKING' ? 'warn' : 'bad'}
-          icon={apiOnline ? <CheckCircle2 className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-        />
-        <StatusCard
-          title="Market Stream"
-          value={wsOnline ? 'CONNECTED' : wsStatus}
-          tone={wsOnline ? 'good' : 'warn'}
-          icon={<Radio className="w-4 h-4" />}
-        />
-        <StatusCard
-          title="Mode"
-          value={terminalStatus?.trading_mode ?? 'PAPER'}
-          tone="warn"
-          icon={<ShieldCheck className="w-4 h-4" />}
-        />
-        <StatusCard
-          title="Live Lock"
-          value="LOCKED"
-          tone="bad"
-          icon={<ShieldCheck className="w-4 h-4" />}
-        />
+    <MobilePage className="flex h-full flex-col space-y-4 pb-4">
+      <div className="shrink-0 rounded-card border border-maet-border bg-maet-surface p-4">
+        <h1 className="font-heading text-xl font-bold text-maet-text">System Health</h1>
+        <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Operational telemetry for the MAET frontend, backend, broker session, and market stream.</p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-5 pr-0.5">
-        <div>
-          <SectionTitle title="Readiness" />
-          <div className="space-y-3">
-            <DetailCard
-              icon={<Database className="w-4 h-4" />}
-              title="API Target"
-              status={apiOnline ? 'Reachable' : 'Backend not connected'}
-              tone={apiOnline ? 'good' : 'bad'}
-              rows={[
-                ['REST', API_URL || 'Not configured'],
-                ['WebSocket', WS_URL || 'Not configured'],
-              ]}
-            />
+      <div className="min-h-0 flex-1 overflow-y-auto space-y-3">
+        <TelemetryCard
+          icon={<Server className="h-5 w-5" />}
+          title="FastAPI Backend"
+          status={apiOnline ? 'Connected' : backendWakeState === 'WAKING' ? 'Waking' : 'Offline'}
+          tone={apiOnline ? 'good' : backendWakeState === 'WAKING' ? 'warn' : 'bad'}
+          rows={[
+            ['Target', API_URL || 'Not configured'],
+            ['Last ping', lastStatusFetchAt ? fmtAge(now - lastStatusFetchAt) : 'No successful ping'],
+            ['Response time', apiOnline ? 'Available from browser fetch' : 'Offline'],
+          ]}
+        />
 
-            <DetailCard
-              icon={<ShieldCheck className="w-4 h-4" />}
-              title="Execution Safety"
-              status="Live execution is locked"
-              tone="bad"
-              rows={[
-                ['live_execution_enabled', 'false'],
-                ['broker_mutation_allowed', 'false'],
-                ['order_flow', 'dry-run validation only'],
-              ]}
-            />
+        <TelemetryCard
+          icon={wsOnline ? <Radio className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+          title="Market Stream"
+          status={wsOnline ? 'Connected' : wsStatus}
+          tone={wsOnline ? 'good' : 'warn'}
+          rows={[
+            ['Target', WS_URL || 'Not configured'],
+            ['Last tick', lastTickAt ? fmtAge(now - lastTickAt) : 'No tick received'],
+            ['Reconnect count', String(wsReconnectAttempts)],
+          ]}
+        />
 
-            <DetailCard
-              icon={<Radio className="w-4 h-4" />}
-              title="Broker Sync"
-              status={brokerReadOnly}
-              tone={brokerStatus?.configured ? 'warn' : 'neutral'}
-              rows={[
-                ['mode', 'read-only broker snapshot'],
-                ['logged_in', String(Boolean(brokerStatus?.logged_in))],
-                ['feed_token', String(Boolean(brokerStatus?.feed_token_available))],
-              ]}
-            />
+        <TelemetryCard
+          icon={<Activity className="h-5 w-5" />}
+          title="Angel One Session"
+          status={brokerStatus?.logged_in ? 'Active' : brokerStatus?.configured ? 'Configured' : 'Offline'}
+          tone={brokerStatus?.logged_in ? 'good' : brokerStatus?.configured ? 'warn' : 'muted'}
+          rows={[
+            ['Session age', brokerStatus?.logged_in ? 'Token present, age hidden' : 'Unavailable'],
+            ['Feed token', brokerStatus?.feed_token_available ? 'Available' : 'Unavailable'],
+            ['Token status', brokerStatus?.logged_in ? 'Obfuscated' : 'Not active'],
+          ]}
+        />
 
-            <DetailCard
-              icon={<RefreshCw className="w-4 h-4" />}
-              title="Reconciliation"
-              status={mismatchCount > 0 ? `${mismatchCount} mismatch${mismatchCount === 1 ? '' : 'es'}` : 'No mismatches loaded'}
-              tone={mismatchCount > 0 ? 'warn' : 'neutral'}
-              rows={[
-                ['portfolio_data', portfolioSummary?.data_status ?? 'UNAVAILABLE'],
-                ['source_of_truth', portfolioSummary?.source_of_truth ?? 'Not available'],
-              ]}
-            />
+        <div className="rounded-card border border-maet-red/40 bg-maet-red/10 p-4">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-red/40 bg-maet-red/12 text-maet-red">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-heading text-base font-bold text-maet-text">Execution Safety</div>
+              <div className="mt-2 rounded-md border border-maet-red/40 bg-maet-base px-3 py-2 font-mono text-xs font-bold text-maet-red">
+                BUILD_LIVE_EXECUTION_ALLOWED = false
+              </div>
+              <p className="mt-2 text-xs leading-5 text-maet-text-secondary">Live order placement is permanently locked in this build.</p>
+            </div>
           </div>
         </div>
 
+        <TelemetryCard
+          icon={<Database className="h-5 w-5" />}
+          title="CandleStore"
+          status={candleSymbols > 0 ? 'Cached' : 'Offline'}
+          tone={candleSymbols > 0 ? 'good' : 'muted'}
+          rows={[
+            ['Symbols cached', String(candleSymbols)],
+            ['Timeframes', supportedTimeframes],
+            ['Cache age', terminalStatus?.candles ? 'Available from backend status' : 'Unavailable'],
+          ]}
+        />
+
         {(connectionError || lastStatusError) && (
-          <div>
-            <SectionTitle title="Diagnostics" />
-            <div className="rounded-2xl border border-[#EA3943]/20 bg-[#EA3943]/5 p-3.5 text-xs text-text-dim leading-relaxed">
-              <div className="flex items-center gap-2 text-[#EA3943] font-bold uppercase tracking-wider mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Current Connection Issue
-              </div>
-              <p className="font-mono break-words">
-                {connectionError || lastStatusError}
-              </p>
-            </div>
+          <div className="rounded-card border border-maet-red/30 bg-maet-red/10 p-3">
+            <div className="font-heading text-sm font-bold text-maet-red">Current connection issue</div>
+            <p className="mt-2 break-words font-mono text-xs leading-5 text-maet-text-secondary">{connectionError || lastStatusError}</p>
           </div>
         )}
       </div>
@@ -149,31 +109,9 @@ export function SystemScreen() {
   )
 }
 
-type Tone = 'good' | 'warn' | 'bad' | 'neutral'
+type Tone = 'good' | 'warn' | 'bad' | 'muted'
 
-function StatusCard({
-  title,
-  value,
-  tone,
-  icon,
-}: {
-  title: string
-  value: string
-  tone: Tone
-  icon: ReactNode
-}) {
-  return (
-    <PremiumCard className="p-3.5 min-h-[96px]">
-      <div className={cn('w-8 h-8 rounded-xl border flex items-center justify-center mb-3', toneClasses(tone).soft)}>
-        {icon}
-      </div>
-      <div className="text-[10px] text-text-dim uppercase tracking-wider font-bold">{title}</div>
-      <div className={cn('text-xs font-mono font-extrabold mt-1 truncate', toneClasses(tone).text)}>{value}</div>
-    </PremiumCard>
-  )
-}
-
-function DetailCard({
+function TelemetryCard({
   icon,
   title,
   status,
@@ -187,48 +125,38 @@ function DetailCard({
   rows: [string, string][]
 }) {
   return (
-    <PremiumCard className="p-3.5">
-      <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/[0.04]">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn('w-8 h-8 rounded-xl border flex items-center justify-center shrink-0', toneClasses(tone).soft)}>
+    <div className="rounded-card border border-maet-border bg-maet-surface p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-md border', toneClass(tone).box)}>
             {icon}
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-bold text-text truncate">{title}</div>
-            <div className={cn('text-[10px] font-mono font-bold mt-0.5', toneClasses(tone).text)}>{status}</div>
+            <div className="font-heading text-base font-bold text-maet-text">{title}</div>
+            <div className="mt-0.5 text-xs text-maet-text-muted">{status}</div>
           </div>
         </div>
+        <StatusBadge tone={tone === 'good' ? 'success' : tone === 'bad' ? 'danger' : tone === 'warn' ? 'warning' : 'muted'} dot={tone !== 'muted'}>
+          {status}
+        </StatusBadge>
       </div>
-
-      <div className="space-y-2 mt-3">
+      <div className="space-y-2 border-t border-maet-border pt-3">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex items-start justify-between gap-3 text-[10px] font-mono">
-            <span className="text-text-faint uppercase tracking-wider">{label}</span>
-            <span className="text-text-dim text-right break-all">{value}</span>
+          <div key={label} className="grid grid-cols-[112px_minmax(0,1fr)] gap-3 text-xs">
+            <span className="text-maet-text-muted">{label}</span>
+            <span className="break-words font-mono text-maet-text-secondary">{value}</span>
           </div>
         ))}
       </div>
-    </PremiumCard>
+    </div>
   )
 }
 
-function toneClasses(tone: Tone) {
+function toneClass(tone: Tone) {
   return {
-    good: {
-      soft: 'bg-[#16C784]/10 border-[#16C784]/20 text-[#16C784]',
-      text: 'text-[#16C784]',
-    },
-    warn: {
-      soft: 'bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]',
-      text: 'text-[#F59E0B]',
-    },
-    bad: {
-      soft: 'bg-[#EA3943]/10 border-[#EA3943]/20 text-[#EA3943]',
-      text: 'text-[#EA3943]',
-    },
-    neutral: {
-      soft: 'bg-white/[0.04] border-white/[0.08] text-text-dim',
-      text: 'text-text-dim',
-    },
+    good: { box: 'border-maet-green/30 bg-maet-green/10 text-maet-green' },
+    warn: { box: 'border-maet-amber/30 bg-maet-amber/10 text-maet-amber' },
+    bad: { box: 'border-maet-red/30 bg-maet-red/10 text-maet-red' },
+    muted: { box: 'border-maet-border bg-maet-elevated text-maet-text-muted' },
   }[tone]
 }

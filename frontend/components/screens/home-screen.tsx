@@ -1,127 +1,136 @@
 'use client'
 
-import {
-  List, BarChart2, Briefcase, Brain,
-  ChevronRight, BookOpen, Activity
-} from 'lucide-react'
+import { BarChart2, Plus, Radio, Search, WifiOff } from 'lucide-react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
-import { SafetyStatusCard } from '@/components/ui-maet/safety-status-card'
 import { MobilePage } from '@/components/mobile/mobile-page'
-import { PremiumCard } from '@/components/ui-maet/premium-card'
-import { SectionTitle } from '@/components/ui-maet/section-title'
-import { TiltCard } from '@/components/effects/tilt-card'
-
-const QUICK_ACTIONS: {
-  id: AppTab
-  label: string
-  sub: string
-  Icon: React.FC<{ className?: string }>
-  color: string
-  bg: string
-}[] = [
-  {
-    id: 'watchlist',
-    label: 'Watchlist',
-    sub: 'Track NSE/BSE instruments',
-    Icon: List,
-    color: 'text-[#22D3EE]',
-    bg: 'bg-[#22D3EE]/10 border-[#22D3EE]/20',
-  },
-  {
-    id: 'chart',
-    label: 'Chart & Execution',
-    sub: 'Interactive visual trading',
-    Icon: BarChart2,
-    color: 'text-[#16C784]',
-    bg: 'bg-[#16C784]/10 border-[#16C784]/20',
-  },
-  {
-    id: 'portfolio',
-    label: 'Portfolio Snapshot',
-    sub: 'Read-only holdings & positions',
-    Icon: Briefcase,
-    color: 'text-[#F59E0B]',
-    bg: 'bg-[#F59E0B]/10 border-[#F59E0B]/20',
-  },
-  {
-    id: 'ai',
-    label: 'AI Advisory Desk',
-    sub: 'Co-pilot research advisory',
-    Icon: Brain,
-    color: 'text-[#A855F7]',
-    bg: 'bg-[#A855F7]/10 border-[#A855F7]/20',
-  },
-  {
-    id: 'system',
-    label: 'System Telemetry',
-    sub: 'Observability logs & diagnostics',
-    Icon: Activity,
-    color: 'text-[#38BDF8]',
-    bg: 'bg-[#38BDF8]/10 border-[#38BDF8]/20',
-  },
-]
+import { WatchlistRow } from '@/components/ui-maet/watchlist-row'
+import { StatusBadge } from '@/components/ui-maet/status-badge'
+import { useTerminalStore, selectActiveWatchlistSymbols } from '@/store/terminal-store'
+import { getNseMarketSession } from '@/lib/utils'
 
 interface HomeScreenProps {
   onNavigate: (tab: AppTab) => void
 }
 
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const wsStatus = useTerminalStore((s) => s.wsStatus)
+  const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
+  const setSelectedSymbol = useTerminalStore((s) => s.setSelectedSymbol)
+  const marketWatch = useTerminalStore((s) => s.marketWatch)
+  const symbols = useTerminalStore(selectActiveWatchlistSymbols)
+  const session = getNseMarketSession()
+  const topSymbols = symbols.slice(0, 5)
+  const backendOffline = apiStatus !== 'ONLINE'
+
   return (
-    <MobilePage className="space-y-6 pb-4">
-      {/* Greeting */}
-      <div className="pt-2">
-        <h1 className="text-xl font-extrabold text-text tracking-tight leading-tight">
-          Welcome back, Operator
-        </h1>
-        <p className="text-xs text-text-dim mt-1 font-medium">
-          Sandbox Trading &amp; Research Workspace
-        </p>
-      </div>
-
-      {/* Safety Status Card */}
-      <SafetyStatusCard />
-
-      {/* Quick Actions */}
-      <div>
-        <SectionTitle title="Terminal Modules" />
-        <div className="space-y-3">
-          {QUICK_ACTIONS.map(({ id, label, sub, Icon, color, bg }) => (
-            <TiltCard key={id} intensity={5}>
-              <PremiumCard
-                onClick={() => onNavigate(id)}
-                className="flex items-center gap-3.5 p-3.5"
-              >
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${bg}`}>
-                  <Icon className={`w-5 h-5 ${color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-text tracking-wide">{label}</div>
-                  <div className="text-[11px] text-text-dim truncate mt-0.5 font-medium">{sub}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-text-faint shrink-0" />
-              </PremiumCard>
-            </TiltCard>
-          ))}
-        </div>
-      </div>
-
-      {/* Product disclaimer */}
-      <PremiumCard className="border-white/[0.05] bg-white/[0.01] p-4">
-        <div className="flex items-start gap-3">
-          <BookOpen className="w-5 h-5 text-text-faint mt-0.5 shrink-0" />
+    <MobilePage className="space-y-5 pb-4">
+      <section className="rounded-card border border-maet-border bg-maet-surface p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs font-bold text-text mb-1 uppercase tracking-wider">About MAET Terminal</div>
-            <p className="text-2xs text-text-faint leading-relaxed font-medium">
-              MAET is an analytics, compliance, and dry-run execution assistant. Live order placement is permanently locked. Dry-run operations validate parameters locally and simulate fills against read-only market models.
+            <h1 className="font-heading text-2xl font-bold leading-tight text-maet-text">Market desk</h1>
+            <p className="mt-1 text-sm leading-6 text-maet-text-secondary">
+              Start with a symbol, review the chart, then validate paper parameters.
             </p>
           </div>
+          <StatusBadge tone={session === 'OPEN' ? 'success' : 'warning'} dot>
+            {session === 'OPEN' ? 'Market open' : session.replace(/_/g, ' ')}
+          </StatusBadge>
         </div>
-      </PremiumCard>
 
-      {/* Version note */}
-      <div className="text-center text-[10px] text-text-faint font-semibold tracking-wider uppercase">
-        MAET BUILD v0.1.0 · PAPER ONLY · LIVE LOCKED
-      </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <StateTile label="Backend" value={apiStatus === 'ONLINE' ? 'Online' : 'Offline'} good={apiStatus === 'ONLINE'} />
+          <StateTile label="Stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-bold text-maet-text">Mini watchlist</h2>
+          <button
+            type="button"
+            onClick={() => onNavigate('watchlist')}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-maet-border bg-maet-surface px-3 text-xs font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Add Symbol
+          </button>
+        </div>
+
+        {backendOffline && (
+          <div className="mb-3 flex items-center gap-2 rounded-md border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber">
+            <WifiOff className="h-4 w-4" />
+            Backend offline - symbol names only until quotes arrive.
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {topSymbols.map((symbol) => {
+            const row = marketWatch[symbol]
+            const clean = symbol.split(':').pop()?.replace(/-EQ$/, '') ?? symbol
+            return (
+              <WatchlistRow
+                key={symbol}
+                symbol={symbol}
+                name={row?.name ?? clean}
+                exchange={row?.exchange ?? 'NSE'}
+                price={row?.ltp ?? null}
+                changePct={row?.change_pct ?? null}
+                offline={backendOffline || row?.ltp == null}
+                selected={selectedSymbol === symbol}
+                onOpen={() => {
+                  setSelectedSymbol(symbol)
+                  onNavigate('chart')
+                }}
+              />
+            )
+          })}
+          {topSymbols.length === 0 && (
+            <div className="rounded-card border border-maet-border bg-maet-surface p-6 text-center">
+              <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
+              <div className="mt-3 text-sm font-bold text-maet-text">Add symbols to your watchlist</div>
+              <button
+                type="button"
+                onClick={() => onNavigate('watchlist')}
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-maet-blue px-4 text-xs font-bold text-white"
+              >
+                <Plus className="h-4 w-4" />
+                Add Symbol
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3">
+        <QuickAction label="Open Chart" icon={<BarChart2 className="h-5 w-5" />} onClick={() => onNavigate('chart')} />
+        <QuickAction label="System" icon={<Radio className="h-5 w-5" />} onClick={() => onNavigate('system')} />
+      </section>
     </MobilePage>
+  )
+}
+
+function StateTile({ label, value, good }: { label: string; value: string; good: boolean }) {
+  return (
+    <div className="rounded-md border border-maet-border bg-maet-base px-3 py-2">
+      <div className="text-xs text-maet-text-muted">{label}</div>
+      <div className="mt-1 flex items-center gap-2 font-mono text-xs font-bold text-maet-text">
+        <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-red'} />
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function QuickAction({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-12 items-center justify-center gap-2 rounded-card border border-maet-border bg-maet-surface text-sm font-bold text-maet-text-secondary hover:border-maet-border-strong hover:bg-maet-elevated hover:text-maet-text"
+    >
+      <span className="text-maet-blue">{icon}</span>
+      {label}
+    </button>
   )
 }

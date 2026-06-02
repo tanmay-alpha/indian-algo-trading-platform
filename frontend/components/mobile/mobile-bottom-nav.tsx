@@ -21,7 +21,7 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
   return (
     <nav
-      className="bottom-nav flex items-stretch justify-around px-2 z-40 shrink-0"
+      className="bottom-nav z-40 flex shrink-0 items-stretch justify-around px-2"
       aria-label="Main navigation"
     >
       {TABS.map(({ id, label, Icon }) => {
@@ -33,23 +33,24 @@ export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
             aria-label={`Open ${label} screen`}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'flex flex-col items-center justify-center flex-1 gap-0.5 transition-all duration-150 active:scale-90 min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/60',
-              isActive ? 'text-info' : 'text-text-dim'
+              'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-md transition-all duration-150 active:scale-95',
+              isActive ? 'text-maet-blue' : 'text-maet-text-muted'
             )}
             type="button"
           >
             <div className={cn(
-              'w-7 h-7 flex items-center justify-center rounded-xl transition-all duration-150',
-              isActive ? 'bg-info/12' : 'bg-transparent'
+              'flex h-7 w-7 items-center justify-center rounded-md transition-all duration-150',
+              isActive ? 'bg-maet-blue/12' : 'bg-transparent'
             )}>
-              <Icon className={cn('w-[18px] h-[18px]', isActive ? 'text-info' : 'text-text-dim')} />
+              <Icon className={cn('h-5 w-5', isActive ? 'text-maet-blue' : 'text-maet-text-muted')} />
             </div>
             <span className={cn(
-              'text-xs leading-none font-medium tracking-tight truncate max-w-full',
-              isActive ? 'text-info' : 'text-text-faint'
+              'max-w-full truncate text-xs font-medium leading-none',
+              isActive ? 'text-maet-blue' : 'text-maet-text-muted'
             )}>
               {label}
             </span>
+            {isActive && <span className="absolute bottom-1 h-[3px] w-5 rounded-full bg-maet-blue" />}
           </button>
         )
       })}

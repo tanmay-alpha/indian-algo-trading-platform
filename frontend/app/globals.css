@@ -1,67 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ============================================================
-   MAET Terminal — Design System
-   Mobile-first premium trading app
-   ============================================================ */
+@import '../styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Custom Properties ──────────────────────────────── */
-:root {
-  /* Backgrounds */
-  --bg:         #071018;
-  --bg-2:       #0B1220;
-  --bg-surface: #0B1220;
-  --bg-card:    rgba(255, 255, 255, 0.06);
-  --bg-card-hover: rgba(255, 255, 255, 0.09);
-
-  /* Panels */
-  --panel:      #111827;
-  --panel-2:    #0B1220;
-  --panel-3:    #172033;
-
-  /* Borders */
-  --border:         rgba(255, 255, 255, 0.10);
-  --border-strong:  rgba(255, 255, 255, 0.14);
-  --border-accent:  rgba(56, 189, 248, 0.25);
-  --border-card:    rgba(255, 255, 255, 0.08);
-
-  /* Text */
-  --text:       #EEF2F7;
-  --text-2:     #94A3B8;
-  --text-dim:   #64748B;
-  --text-faint: #475569;
-
-  /* Market */
-  --up:         #16C784;
-  --up-dim:     rgba(22, 199, 132, 0.12);
-  --up-glow:    rgba(22, 199, 132, 0.18);
-  --down:       #EA3943;
-  --down-dim:   rgba(234, 57, 67, 0.12);
-
-  /* Status */
-  --warn:       #F59E0B;
-  --warn-dim:   rgba(245, 158, 11, 0.12);
-  --info:       #0EA5E9;
-  --info-dim:   rgba(14, 165, 233, 0.12);
-  --locked:     #EF4444;
-  --violet:     #A855F7;
-  --violet-dim: rgba(168, 85, 247, 0.12);
-
-  /* Mode badges */
-  --paper:      #F59E0B;
-  --live:       #EF4444;
-
-  /* Layout */
-  --bottom-nav-h: 68px;
-  --top-header-h: 56px;
-  --safe-bottom:  env(safe-area-inset-bottom, 0px);
-}
-
-/* ─── Base ───────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
 }
@@ -69,34 +11,64 @@
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  background: var(--bg-base);
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  min-height: 100dvh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   overscroll-behavior: none;
 }
 
-/* ─── Typography ─────────────────────────────────────────── */
-.font-mono, code, pre {
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.font-mono,
+code,
+pre {
   font-family: var(--font-mono), ui-monospace, 'JetBrains Mono', monospace;
+}
+
+.font-heading {
+  font-family: var(--font-heading), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+  font-feature-settings: 'tnum';
 }
 
-/* ─── Mobile App Layout ──────────────────────────────────── */
 .mobile-app {
-  height: 100dvh;
+  height: 100%;
   width: 100%;
   max-width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg-base);
 }
 
 .mobile-screen {
@@ -113,23 +85,20 @@ body {
   display: none;
 }
 
-/* ─── Premium Card ───────────────────────────────────────── */
-.premium-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
+.maet-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-panel);
 }
 
+.premium-card,
+.glass-card,
 .premium-card-glow {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
-  transition: box-shadow 0.2s;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-panel);
 }
 
 .premium-card-glow::before {
@@ -137,193 +106,170 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(56,189,248,0.04) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(77, 156, 248, 0.06), transparent 60%);
   pointer-events: none;
 }
 
-/* ─── Glass Card ─────────────────────────────────────────── */
-.glass-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 16px;
-}
-
-/* ─── Bottom Nav ─────────────────────────────────────────── */
 .bottom-nav {
-  height: var(--bottom-nav-h);
+  min-height: calc(var(--bottom-nav-h) + var(--safe-bottom));
+  height: calc(var(--bottom-nav-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(8, 11, 18, 0.96);
-  border-top: 1px solid var(--border);
+  background: rgba(17, 24, 39, 0.96);
+  border-top: 1px solid var(--border-subtle);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* ─── Market Colors ──────────────────────────────────────── */
-.text-up   { color: var(--up); }
-.text-down { color: var(--down); }
+.text-up { color: var(--accent-green); }
+.text-down { color: var(--accent-red); }
+.bg-up { background: rgba(0, 214, 143, 0.12); }
+.bg-down { background: rgba(255, 77, 106, 0.12); }
+.text-glow-green { text-shadow: 0 0 12px rgba(0, 214, 143, 0.45); }
+.text-glow-red { text-shadow: 0 0 12px rgba(255, 77, 106, 0.45); }
+.text-glow-cyan { text-shadow: 0 0 18px rgba(77, 156, 248, 0.42); }
 
-.bg-up   { background: var(--up-dim); }
-.bg-down { background: var(--down-dim); }
-
-/* ─── Glows ──────────────────────────────────────────────── */
-.text-glow-green { text-shadow: 0 0 12px rgba(22, 199, 132, 0.5); }
-.text-glow-red   { text-shadow: 0 0 12px rgba(234, 57, 67, 0.5); }
-.text-glow-cyan  { text-shadow: 0 0 18px rgba(56, 189, 248, 0.45); }
-
-/* ─── Watchlist Row ──────────────────────────────────────── */
 .wl-row {
-  transition: background 0.12s;
+  transition: background 0.12s ease-out, border-color 0.12s ease-out;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 .wl-row:active {
-  background: rgba(56, 189, 248, 0.04);
+  background: rgba(77, 156, 248, 0.06);
 }
 
 .wl-row.selected {
-  background: rgba(56, 189, 248, 0.05);
-  border-left: 2px solid var(--info);
+  background: rgba(77, 156, 248, 0.09);
+  border-left: 2px solid var(--accent-blue);
 }
 
-/* ─── Flash Animations ───────────────────────────────────── */
-@keyframes flashUp {
-  0%   { background: rgba(22, 199, 132, 0.22); }
+@keyframes tickUp {
+  0% { background: rgba(0, 214, 143, 0.24); }
   100% { background: transparent; }
 }
 
-@keyframes flashDown {
-  0%   { background: rgba(234, 57, 67, 0.22); }
+@keyframes tickDown {
+  0% { background: rgba(255, 77, 106, 0.22); }
   100% { background: transparent; }
 }
 
-.flash-up   { animation: flashUp   0.5s ease-out; }
-.flash-down { animation: flashDown 0.5s ease-out; }
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
 
-/* ─── Pulse ──────────────────────────────────────────────── */
 @keyframes pulseSoft {
   0%, 100% { opacity: 0.55; }
-  50%       { opacity: 1; }
+  50% { opacity: 1; }
 }
 
-.pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
-
-/* ─── Slide In Bottom ────────────────────────────────────── */
 @keyframes slideInBottom {
   from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
 
-.slide-in-bottom { animation: slideInBottom 0.28s cubic-bezier(0.34, 1.2, 0.64, 1); }
-.fade-in         { animation: fadeIn 0.18s ease-out; }
+.tick-up { animation: tickUp 600ms ease-out; }
+.tick-down { animation: tickDown 600ms ease-out; }
+.flash-up { animation: tickUp 500ms ease-out; }
+.flash-down { animation: tickDown 500ms ease-out; }
+.pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
+.slide-in-bottom { animation: slideInBottom 200ms ease-out; }
+.fade-in { animation: fadeIn 150ms ease-out; }
 
-/* ─── Input ──────────────────────────────────────────────── */
 .maet-input {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text);
-  border-radius: 10px;
-  font-size: 15px;
   height: 44px;
-  padding: 0 14px;
-  outline: none;
-  transition: border-color 0.15s;
   width: 100%;
-  font-family: inherit;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(26, 34, 53, 0.7);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 14px;
+  transition: border-color 0.12s ease-out, background 0.12s ease-out;
 }
 
-.maet-input::placeholder { color: var(--text-faint); }
-.maet-input:focus { border-color: rgba(56, 189, 248, 0.4); }
+.maet-input::placeholder {
+  color: var(--text-muted);
+}
 
-/* ─── Button ─────────────────────────────────────────────── */
+.maet-input:focus {
+  border-color: var(--accent-blue);
+  background: var(--bg-elevated);
+}
+
 .maet-btn {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 0.12s ease-out, border-color 0.12s ease-out, color 0.12s ease-out;
   user-select: none;
 }
 
-.maet-btn:active { opacity: 0.8; }
-.maet-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
 .maet-btn-primary {
-  background: var(--info);
-  color: var(--bg);
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.maet-btn-primary:hover {
+  background: #6fb2ff;
 }
 
 .maet-btn-ghost {
-  background: rgba(255,255,255,0.05);
-  color: var(--text-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
 }
 
-/* ─── Section heading ────────────────────────────────────── */
+.maet-btn-ghost:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
 .section-label {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text-muted);
 }
 
-/* ─── Safety badge strip ─────────────────────────────────── */
-.safety-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 16px;
-  background: rgba(0,0,0,0.3);
-  border-bottom: 1px solid var(--border);
-}
-
-/* ─── Chip / Filter ──────────────────────────────────────── */
 .filter-chip {
   display: inline-flex;
+  min-height: 32px;
   align-items: center;
-  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
   padding: 0 12px;
-  border-radius: 20px;
+  color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s;
+  font-weight: 700;
   white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .filter-chip.active {
-  background: rgba(56, 189, 248, 0.12);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: var(--info);
+  border-color: var(--accent-blue);
+  background: rgba(77, 156, 248, 0.16);
+  color: var(--accent-blue);
 }
 
-/* ─── Scrollbar (desktop) ────────────────────────────────── */
-@media (min-width: 768px) {
-  ::-webkit-scrollbar       { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-/* Desktop workspace embeds the same data-backed screens in full-width panels. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .desktop-app .mobile-screen {
   height: 100%;
   padding: 16px;
@@ -332,6 +278,22 @@ body {
 
 .desktop-pane .mobile-screen {
   scrollbar-width: thin;
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pb-nav { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px)); }
+
+@media (min-width: 768px) {
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+}
+
+@media (min-width: 1280px) {
+  .xl-heading {
+    font-size: 28px;
+    line-height: 36px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -344,7 +306,3 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ─── Safe-area utilities ────────────────────────────────── */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.pb-nav  { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px)); }

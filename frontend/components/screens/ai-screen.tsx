@@ -1,289 +1,143 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  AlertTriangle,
-  Brain,
-  Cpu,
-  Lock,
-  Send,
-  ShieldCheck,
-  Sparkles,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
+import { Bot, Send, Sparkles } from 'lucide-react'
 import { MobilePage } from '@/components/mobile/mobile-page'
-import { PremiumCard } from '@/components/ui-maet/premium-card'
-import { SectionTitle } from '@/components/ui-maet/section-title'
+import { StatusBadge } from '@/components/ui-maet/status-badge'
+import { cn } from '@/lib/utils'
 
 type Message = { role: 'user' | 'assistant'; content: string }
-type ResearchStance = 'WATCH' | 'WAIT' | 'AVOID'
 
-const RESEARCH_NOTES: {
-  symbol: string
-  stance: ResearchStance
-  score: number
-  reason: string
-}[] = [
-  {
-    symbol: 'NIFTY 50',
-    stance: 'WATCH',
-    score: 71.4,
-    reason: 'VWAP support and breadth should be reviewed with fresh broker candles before any paper validation.',
-  },
-  {
-    symbol: 'BANKNIFTY',
-    stance: 'WAIT',
-    score: 62.8,
-    reason: 'Option-chain context suggests volatility risk. The advisory model does not authorize entries.',
-  },
-  {
-    symbol: 'RELIANCE',
-    stance: 'AVOID',
-    score: 58.2,
-    reason: 'Recent resistance context is marked for research only. No broker action can be triggered here.',
-  },
+const EXAMPLE_PROMPTS = [
+  'Summarize RELIANCE technical indicators',
+  'What is the current NIFTY 50 market session state?',
+  'Explain the current strategy signals for BANKNIFTY',
 ]
 
 export function AiScreen() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'signals'>('chat')
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        'Welcome to MAET AI Advisory Core. I can summarize chart context, explain risk factors, and prepare dry-run research notes. execution_allowed=false and AI cannot place orders.',
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
 
-  const handleSend = () => {
-    const trimmed = input.trim()
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isTyping])
+
+  const sendPrompt = (prompt = input) => {
+    const trimmed = prompt.trim()
     if (!trimmed) return
-
     setInput('')
-    setMessages((prev) => [...prev, { role: 'user', content: trimmed }])
+    setMessages((current) => [...current, { role: 'user', content: trimmed }])
     setIsTyping(true)
 
     window.setTimeout(() => {
       setIsTyping(false)
-      setMessages((prev) => [
-        ...prev,
+      setMessages((current) => [
+        ...current,
         {
           role: 'assistant',
           content:
-            `[PASSIVE RESEARCH NOTE FOR "${trimmed.toUpperCase()}"]\n` +
-            'This is explanatory analysis only, based on available chart and risk context.\n\n' +
-            'execution_allowed=false\nlive_execution_enabled=false\nbroker_mutation_allowed=false\n\n' +
-            'Use dry-run validation for parameter checks only. Consult a licensed financial advisor before making investment decisions.',
+            `Research note for "${trimmed}": review price context, indicator agreement, and downside risk before any paper validation. ` +
+            'This interface can explain context only. It cannot route or authorize a broker order.',
         },
       ])
-    }, 900)
+    }, 750)
   }
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
-
   return (
-    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
-      <PremiumCard className="p-4 border-[#A855F7]/18 bg-[#A855F7]/[0.035]">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#A855F7]/12 border border-[#A855F7]/25 flex items-center justify-center text-[#A855F7] shrink-0">
-            <Brain className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-extrabold text-text leading-tight">AI Advisory Only</div>
-            <p className="text-xs text-text-dim leading-relaxed mt-1">
-              Passive research notes can explain signals and risks. AI cannot submit, route, or authorize orders.
-            </p>
-          </div>
+    <MobilePage className="flex h-full flex-col pb-4">
+      <div className="mb-3 flex shrink-0 items-center justify-between gap-3 rounded-card border border-maet-border bg-maet-surface p-4">
+        <div>
+          <h1 className="font-heading text-xl font-bold text-maet-text">AI Advisory</h1>
+          <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Ask for market context, indicator explanations, and risk framing.</p>
         </div>
-
-        <div className="grid grid-cols-1 gap-2 mt-4 text-[10px] font-mono">
-          <SafetyLine icon={<Lock className="w-3.5 h-3.5" />} label="execution_allowed" value="false" />
-          <SafetyLine icon={<ShieldCheck className="w-3.5 h-3.5" />} label="live_execution_enabled" value="false" />
-          <SafetyLine icon={<AlertTriangle className="w-3.5 h-3.5" />} label="broker_mutation_allowed" value="false" />
-        </div>
-      </PremiumCard>
-
-      <div className="shrink-0 flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-2 rounded-2xl">
-        <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/[0.04] flex-1 mr-3">
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={cn(
-              'flex-1 min-h-9 rounded-lg text-xs font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/60',
-              activeTab === 'chat'
-                ? 'bg-[#A855F7] text-white shadow-sm'
-                : 'text-text-dim hover:text-text'
-            )}
-            type="button"
-          >
-            Copilot Chat
-          </button>
-          <button
-            onClick={() => setActiveTab('signals')}
-            className={cn(
-              'flex-1 min-h-9 rounded-lg text-xs font-bold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/60',
-              activeTab === 'signals'
-                ? 'bg-[#A855F7] text-white shadow-sm'
-                : 'text-text-dim hover:text-text'
-            )}
-            type="button"
-          >
-            Research
-          </button>
-        </div>
-
-        <span className="text-xs font-mono font-bold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 px-2.5 py-1 rounded-full flex items-center gap-1.5 uppercase">
-          <AlertTriangle className="w-3 h-3 text-[#F59E0B]" />
-          Passive
-        </span>
+        <StatusBadge tone="ai">Advisory only - no execution</StatusBadge>
       </div>
 
-      <div className="flex-1 min-h-0 relative">
-        {activeTab === 'chat' ? (
-          <div className="absolute inset-0 flex flex-col">
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-              {messages.map((msg, i) => (
-                <div
-                  key={`${msg.role}-${i}`}
-                  className={cn(
-                    'flex flex-col max-w-[90%] rounded-2xl p-3.5 border text-xs leading-relaxed',
-                    msg.role === 'user'
-                      ? 'ml-auto bg-[#A855F7]/10 border-[#A855F7]/20 text-text'
-                      : 'mr-auto bg-white/[0.018] border-white/[0.07] text-text-dim'
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-text-faint uppercase font-bold mb-1.5">
-                    {msg.role === 'user' ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
-                        <span>Operator</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />
-                        <span>Research Advisor</span>
-                      </>
-                    )}
+      <div className="min-h-0 flex-1 rounded-card border border-maet-border bg-maet-base">
+        <div className="flex h-full flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {messages.length === 0 ? (
+              <div className="grid min-h-full place-items-center py-8">
+                <div className="w-full max-w-md text-center">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-md border border-maet-violet/30 bg-maet-violet/12 text-maet-violet">
+                    <Bot className="h-6 w-6" />
                   </div>
-                  <p className="font-mono whitespace-pre-wrap select-text leading-normal">{msg.content}</p>
+                  <h2 className="mt-4 font-heading text-lg font-bold text-maet-text">Start with a research question</h2>
+                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">Example prompts are advisory-only and return explanatory notes.</p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    {EXAMPLE_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => sendPrompt(prompt)}
+                        className="rounded-md border border-maet-border bg-maet-surface px-3 py-2 text-xs font-bold text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((message, index) => (
+                  <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    <div
+                      className={cn(
+                        'max-w-[86%] rounded-xl border px-3 py-2 text-sm leading-6',
+                        message.role === 'user'
+                          ? 'rounded-tr-sm border-maet-border-strong bg-maet-elevated text-maet-text'
+                          : 'rounded-tl-sm border-maet-border border-l-maet-violet bg-maet-surface text-maet-text-secondary'
+                      )}
+                    >
+                      {message.role === 'assistant' && (
+                        <div className="mb-1 flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase text-maet-violet">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Research advisor
+                        </div>
+                      )}
+                      {message.content}
+                    </div>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="inline-flex items-center gap-1 rounded-xl border border-maet-border bg-maet-surface px-3 py-2">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:120ms]" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:240ms]" />
+                  </div>
+                )}
+                <div ref={endRef} />
+              </div>
+            )}
+          </div>
 
-              {isTyping && (
-                <div className="mr-auto bg-white/[0.018] border border-white/[0.07] rounded-2xl p-3.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-text-dim rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-text-dim rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-text-dim rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            <div className="pt-3 flex items-center gap-2 shrink-0">
+          <div className="shrink-0 border-t border-maet-border bg-maet-surface p-3">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Ask for passive risk context..."
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                className="flex-1 h-11 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 text-xs text-text placeholder-text-faint focus:outline-none focus:border-[#A855F7]/50 focus:ring-1 focus:ring-[#A855F7]/30 transition-colors"
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') sendPrompt()
+                }}
+                placeholder="Ask about market context, indicators, or risk..."
+                className="maet-input"
               />
               <button
-                onClick={handleSend}
-                aria-label="Send advisory prompt"
-                className="w-11 h-11 rounded-xl bg-[#A855F7] hover:bg-[#A855F7]/90 flex items-center justify-center text-white transition-all active:scale-95 shrink-0 shadow-[0_4px_12px_rgba(168,85,247,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/60"
                 type="button"
+                onClick={() => sendPrompt()}
+                aria-label="Send advisory prompt"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-maet-blue text-white hover:bg-[#6fb2ff]"
               >
-                <Send className="w-4 h-4" />
+                <Send className="h-4 w-4" />
               </button>
             </div>
           </div>
-        ) : (
-          <div className="absolute inset-0 overflow-y-auto space-y-4 pr-1">
-            <div className="text-xs text-[#F59E0B] bg-[#F59E0B]/5 border border-[#F59E0B]/15 p-3 rounded-xl flex items-start gap-2 leading-relaxed">
-              <AlertTriangle className="w-4 h-4 text-[#F59E0B] shrink-0 mt-0.5" />
-              <span>Research notes are explanatory only. No note below can become a broker order.</span>
-            </div>
-
-            <div>
-              <SectionTitle title="Research Watchlist" />
-              <div className="space-y-3">
-                {RESEARCH_NOTES.map((note) => (
-                  <SignalCard key={note.symbol} {...note} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </MobilePage>
-  )
-}
-
-function SafetyLine({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-black/20 px-3 py-2">
-      <span className="flex items-center gap-2 text-text-dim min-w-0">
-        <span className="text-[#F59E0B] shrink-0">{icon}</span>
-        <span className="truncate">{label}</span>
-      </span>
-      <span className="text-[#F59E0B] font-bold">{value}</span>
-    </div>
-  )
-}
-
-function SignalCard({
-  symbol,
-  stance,
-  score,
-  reason,
-}: {
-  symbol: string
-  stance: ResearchStance
-  score: number
-  reason: string
-}) {
-  const stanceClass = {
-    WATCH: 'bg-[#22D3EE]/10 border-[#22D3EE]/20 text-[#22D3EE]',
-    WAIT: 'bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]',
-    AVOID: 'bg-white/[0.05] border-white/[0.1] text-text-dim',
-  }[stance]
-
-  return (
-    <PremiumCard className="relative overflow-hidden p-3.5 border-[#A855F7]/12 bg-white/[0.025]">
-      <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-white/[0.04] gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-[#A855F7]/10 flex items-center justify-center border border-[#A855F7]/25 text-[#A855F7] shrink-0">
-            <Cpu className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs font-bold text-text block leading-tight truncate">{symbol}</span>
-            <span className="text-xs text-text-faint font-semibold uppercase tracking-wider mt-0.5 block">
-              Passive model note
-            </span>
-          </div>
-        </div>
-        <div className={cn('text-[10px] font-bold font-mono px-2 py-1 rounded-full border shrink-0', stanceClass)}>
-          {stance}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="text-xs font-mono text-text-dim bg-white/[0.01] p-3 rounded-xl border border-white/[0.04] leading-relaxed">
-          <div className="text-text-faint font-bold uppercase tracking-wider mb-1">Explanation</div>
-          <div>{reason}</div>
-        </div>
-
-        <div className="flex items-center justify-between text-[10px] font-mono text-text-faint pt-1 gap-3">
-          <span>Evidence score: <strong className="text-text font-bold">{score.toFixed(1)}%</strong></span>
-          <span className="flex items-center gap-1.5 text-[#F59E0B] font-semibold text-right">
-            <AlertTriangle className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" /> NOT A TRADE SIGNAL
-          </span>
-        </div>
-      </div>
-    </PremiumCard>
   )
 }

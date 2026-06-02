@@ -1,398 +1,300 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BarChart2, ShieldCheck, ExternalLink } from 'lucide-react'
-import { useTerminalStore, indicatorKey } from '@/store/terminal-store'
-import { cn } from '@/lib/utils'
-import { getTradingViewChartUrl, getAngelOneChartUrl } from '@/lib/symbol-links'
-import { OrderTicket } from '@/components/terminal/order-ticket'
-import { MobilePage } from '@/components/mobile/mobile-page'
-import { SectionTitle } from '@/components/ui-maet/section-title'
+import { useEffect, useMemo, useState } from 'react'
+import { BarChart2, ChevronDown, ExternalLink, ListChecks, PanelRightOpen, ShieldCheck } from 'lucide-react'
 import { ChartFrame } from '@/components/ui-maet/chart-frame'
+import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { MobileActionSheet } from '@/components/mobile/mobile-action-sheet'
-import { mapLineSeries, mapMacdSeries } from '@/lib/indicator-series'
+import { MobilePage } from '@/components/mobile/mobile-page'
+import { OrderTicket } from '@/components/screens/order-ticket'
 import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
 import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
+import { mapLineSeries, mapMacdSeries } from '@/lib/indicator-series'
+import { getAngelOneChartUrl, getTradingViewChartUrl } from '@/lib/symbol-links'
+import { cn } from '@/lib/utils'
 import type { Timeframe } from '@/lib/types'
+import { indicatorKey, useTerminalStore, selectActiveWatchlistSymbols } from '@/store/terminal-store'
 
-const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '1d']
+const TIMEFRAMES: { label: string; value: Timeframe }[] = [
+  { label: '1m', value: '1m' },
+  { label: '5m', value: '5m' },
+  { label: '15m', value: '15m' },
+  { label: '30m', value: '30m' },
+  { label: '1h', value: '1h' },
+  { label: 'D', value: '1d' },
+  { label: 'W', value: '1w' },
+]
 
 export function ChartScreen() {
-  const selectedSymbol         = useTerminalStore((s) => s.selectedSymbol)
-  const selectedExchange       = useTerminalStore((s) => s.selectedExchange)
-  const selectedInstrumentName = useTerminalStore((s) => s.selectedInstrumentName)
-  const currentTick            = useTerminalStore((s) => s.currentTick)
-  const marketWatch            = useTerminalStore((s) => s.marketWatch)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [orderSheetOpen, setOrderSheetOpen] = useState(false)
 
-  const chartTimeframe        = useTerminalStore((s) => s.chartTimeframe)
-  const setChartTimeframe     = useTerminalStore((s) => s.setChartTimeframe)
-  const chartOverlays         = useTerminalStore((s) => s.chartOverlays)
-  const indicatorSubpanels    = useTerminalStore((s) => s.indicatorSubpanels)
-  const toggleChartOverlay    = useTerminalStore((s) => s.toggleChartOverlay)
+  const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
+  const selectedExchange = useTerminalStore((s) => s.selectedExchange)
+  const selectedInstrumentName = useTerminalStore((s) => s.selectedInstrumentName)
+  const setSelectedSymbol = useTerminalStore((s) => s.setSelectedSymbol)
+  const marketWatch = useTerminalStore((s) => s.marketWatch)
+  const activeSymbols = useTerminalStore(selectActiveWatchlistSymbols)
+  const chartTimeframe = useTerminalStore((s) => s.chartTimeframe)
+  const setChartTimeframe = useTerminalStore((s) => s.setChartTimeframe)
+  const chartOverlays = useTerminalStore((s) => s.chartOverlays)
+  const indicatorSubpanels = useTerminalStore((s) => s.indicatorSubpanels)
+  const toggleChartOverlay = useTerminalStore((s) => s.toggleChartOverlay)
   const toggleIndicatorSubpanel = useTerminalStore((s) => s.toggleIndicatorSubpanel)
   const indicatorResultsByKey = useTerminalStore((s) => s.indicatorResultsBySymbolTimeframe)
-  const chartCandlesByKey     = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
-  const indicatorLoading      = useTerminalStore((s) => s.indicatorChartLoading)
-  const chartSignalMarkers    = useTerminalStore((s) => s.chartSignalMarkers)
-  const apiStatus             = useTerminalStore((s) => s.apiStatus)
-  const backendWakeState      = useTerminalStore((s) => s.backendWakeState)
-  const fetchChartIndicators  = useTerminalStore((s) => s.fetchChartIndicators)
+  const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
+  const indicatorLoading = useTerminalStore((s) => s.indicatorChartLoading)
+  const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const backendWakeState = useTerminalStore((s) => s.backendWakeState)
+  const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
 
-  const [showOrderSheet, setShowOrderSheet] = useState(false)
-
-  // Fetch candles on symbol / timeframe change
   useEffect(() => {
-    if (selectedSymbol) {
-      void fetchChartIndicators(selectedSymbol, chartTimeframe)
-    }
-  }, [selectedSymbol, chartTimeframe, fetchChartIndicators])
+    if (selectedSymbol) void fetchChartIndicators(selectedSymbol, chartTimeframe)
+  }, [chartTimeframe, fetchChartIndicators, selectedSymbol])
 
-  const chartKey        = selectedSymbol ? indicatorKey(selectedSymbol, chartTimeframe) : null
+  const symbolOptions = useMemo(() => {
+    return Array.from(new Set([selectedSymbol, ...activeSymbols].filter(Boolean))) as string[]
+  }, [activeSymbols, selectedSymbol])
+
+  const chartKey = selectedSymbol ? indicatorKey(selectedSymbol, chartTimeframe) : null
   const indicatorResults = chartKey ? indicatorResultsByKey[chartKey] : undefined
-  const candles         = chartKey ? chartCandlesByKey[chartKey] || [] : []
-  const rsiPoints       = mapLineSeries(candles, indicatorResults?.results.rsi)
-  const macdPoints      = mapMacdSeries(candles, indicatorResults?.results.macd)
-
-  const row          = selectedSymbol ? marketWatch[selectedSymbol] : null
-  const ltp          = row?.ltp ?? currentTick?.ltp ?? null
-  const chgPct       = row?.change_pct ?? null
-  const isUp         = (chgPct ?? 0) > 0
-  const cleanSym     = selectedSymbol?.split(':').pop()?.split('-')[0] ?? selectedSymbol
-  // Use store-level exchange/name (set on instrument select) or fall back to backend tick data.
+  const candles = chartKey ? chartCandlesByKey[chartKey] || [] : []
+  const rsiPoints = mapLineSeries(candles, indicatorResults?.results.rsi)
+  const macdPoints = mapMacdSeries(candles, indicatorResults?.results.macd)
+  const row = selectedSymbol ? marketWatch[selectedSymbol] : null
+  const cleanSymbol = selectedSymbol?.split(':').pop()?.replace(/-EQ$/, '') ?? selectedSymbol
   const displayExchange = selectedExchange ?? row?.exchange ?? 'NSE'
-  const displayName     = selectedInstrumentName ?? row?.name ?? 'INDEX / STOCK'
-
-  // Build external chart URLs from the existing symbol-links helpers
-  const tvUrl = selectedSymbol
-    ? getTradingViewChartUrl(selectedSymbol, displayExchange)
-    : '#'
-  const aoUrl = getAngelOneChartUrl(selectedSymbol ?? '', displayExchange)
+  const displayName = selectedInstrumentName ?? row?.name ?? 'Select from watchlist'
+  const tvUrl = selectedSymbol ? getTradingViewChartUrl(selectedSymbol, displayExchange) : '#'
+  const aoUrl = selectedSymbol ? getAngelOneChartUrl(selectedSymbol, displayExchange) : '#'
 
   return (
-    <MobilePage className="flex flex-col h-full pb-4 space-y-4">
-      {/* Symbol header */}
-      <div className="shrink-0">
-        {selectedSymbol ? (
-          <div className="flex items-center justify-between bg-white/[0.015] border border-white/[0.04] p-3 rounded-2xl">
-            <div>
-              <h2 className="text-base font-extrabold text-text tracking-wide leading-tight">
-                {cleanSym}
-              </h2>
-              <div className="text-[10px] text-text-faint font-semibold uppercase tracking-wider mt-0.5">
-                {displayExchange} · {displayName}
-              </div>
-            </div>
-            {ltp != null ? (
-              <div className="text-right">
-                <div className={cn('text-lg font-bold font-mono tracking-tight leading-none', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
-                  ₹{ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                {chgPct != null && (
-                  <div className={cn('text-[11px] font-bold font-mono mt-1', isUp ? 'text-[#16C784]' : 'text-[#EA3943]')}>
-                    {isUp ? '+' : ''}{chgPct.toFixed(2)}%
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-right">
-                <div className="text-[11px] text-text-faint font-semibold tracking-wider uppercase">No Real-Time Tick</div>
-                <div className="text-[10px] text-text-faint font-medium">Historical feeds only</div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-2xl text-center">
-            <span className="text-xs text-text-dim font-medium">Select a symbol from the Watchlist to view analysis</span>
-          </div>
-        )}
-      </div>
+    <MobilePage className="flex h-full flex-col space-y-3 pb-4">
+      <div className="shrink-0 overflow-hidden rounded-card border border-maet-border bg-maet-surface">
+        <div className="flex min-h-10 items-center gap-2 border-b border-maet-border px-2 py-2">
+          <label className="relative min-w-[144px] flex-1 sm:max-w-[220px]">
+            <span className="sr-only">Select chart symbol</span>
+            <select
+              value={selectedSymbol ?? ''}
+              onChange={(event) => setSelectedSymbol(event.target.value || null)}
+              className="h-9 w-full appearance-none rounded-md border border-maet-border bg-maet-base px-3 pr-8 font-mono text-sm font-bold text-maet-text"
+            >
+              <option value="">Select symbol</option>
+              {symbolOptions.map((symbol) => (
+                <option key={symbol} value={symbol}>{symbol.replace(/-EQ$/, '')}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-maet-text-muted" />
+          </label>
 
-      {/* ── External Chart Handoffs ── */}
-      <div className="shrink-0">
-        <SectionTitle title="View On" />
-        <div className="flex gap-2 flex-wrap">
-          {/* TradingView */}
+          <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {TIMEFRAMES.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setChartTimeframe(item.value)}
+                className={cn(
+                  'h-8 shrink-0 rounded-md border px-2.5 font-mono text-[11px] font-bold',
+                  chartTimeframe === item.value
+                    ? 'border-maet-blue bg-maet-blue/20 text-maet-blue'
+                    : 'border-maet-border text-maet-text-muted hover:bg-maet-elevated hover:text-maet-text'
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setDrawerOpen((current) => !current)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-maet-border text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text"
+            aria-label="Toggle indicator drawer"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+          <StatusBadge tone={apiStatus === 'ONLINE' ? 'success' : 'warning'} dot>{apiStatus === 'ONLINE' ? 'Backend online' : 'Backend offline'}</StatusBadge>
           <a
             href={selectedSymbol ? tvUrl : undefined}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={selectedSymbol ? `Open ${cleanSym} in TradingView` : 'Select a symbol to open TradingView'}
             aria-disabled={!selectedSymbol}
-            tabIndex={selectedSymbol ? 0 : -1}
-            className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-150',
-              selectedSymbol
-                ? 'bg-[#2962FF]/10 text-[#4F80FF] border-[#2962FF]/25 hover:bg-[#2962FF]/15 active:scale-[0.97]'
-                : 'bg-white/[0.02] text-text-faint border-white/[0.04] pointer-events-none opacity-40 cursor-not-allowed'
-            )}
+            className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[11px] font-bold', selectedSymbol ? 'border-[#2962ff]/40 bg-[#2962ff]/10 text-[#7ca0ff]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
           >
-            {/* TradingView logo mark (TV "pill" shape) */}
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 5v8h2v-4l2 4h2l2-4v4h2V8h-2l-3 6-3-6H7z" />
-            </svg>
             TradingView
-            <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+            <ExternalLink className="h-3 w-3" />
           </a>
-
-          {/* Angel One */}
           <a
             href={selectedSymbol ? aoUrl : undefined}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={selectedSymbol ? `Open ${cleanSym} in Angel One` : 'Select a symbol to open Angel One'}
             aria-disabled={!selectedSymbol}
-            tabIndex={selectedSymbol ? 0 : -1}
-            className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all duration-150',
-              selectedSymbol
-                ? 'bg-[#F05822]/10 text-[#F07040] border-[#F05822]/25 hover:bg-[#F05822]/15 active:scale-[0.97]'
-                : 'bg-white/[0.02] text-text-faint border-white/[0.04] pointer-events-none opacity-40 cursor-not-allowed'
-            )}
+            className={cn('inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[11px] font-bold', selectedSymbol ? 'border-[#f05822]/40 bg-[#f05822]/10 text-[#ff8b61]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
           >
-            {/* Angel One flame-like icon */}
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M12 2C8 7 6 10 6 14a6 6 0 0 0 12 0c0-4-2-7-6-12zm0 18a4 4 0 0 1-4-4c0-2.5 1.5-4.5 4-8 2.5 3.5 4 5.5 4 8a4 4 0 0 1-4 4z" />
-            </svg>
             Angel One
-            <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+            <ExternalLink className="h-3 w-3" />
           </a>
-
-          {/* Safety note */}
-          {!selectedSymbol && (
-            <span className="self-center text-[10px] text-text-faint font-medium ml-1">
-              Select a symbol from Watchlist to open external charts.
-            </span>
-          )}
-        </div>
-
-        {/* Honesty label */}
-        <p className="mt-2 text-xs text-text-faint font-medium leading-snug">
-          External charts open in third-party platforms.{' '}
-          <span className="text-[#F59E0B] font-semibold">MAET remains paper&nbsp;/&nbsp;read-only.</span>{' '}
-          No orders are placed from MAET.
-        </p>
-      </div>
-
-      {/* Timeframe selector */}
-      <div className="shrink-0">
-        <SectionTitle title="Timeframe" />
-        <div className="flex gap-2">
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setChartTimeframe(tf)}
-              className={cn(
-                'px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-                chartTimeframe === tf
-                  ? 'bg-[#22D3EE]/10 text-[#22D3EE] border-[#22D3EE]/30'
-                  : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-              )}
-              type="button"
-            >
-              {tf}
-            </button>
-          ))}
+          <span className="font-mono text-[11px] text-maet-text-muted">(Paper research only)</span>
         </div>
       </div>
 
-      {/* Chart container */}
-      <ChartFrame className="flex min-h-[300px] lg:min-h-[260px] xl:min-h-[300px] flex-grow flex-col relative">
-        {selectedSymbol ? (
-          <div className="flex flex-col flex-grow min-h-0">
-            <div className="flex-grow min-h-0 relative">
-              {candles.length === 0 && !indicatorLoading ? (
-                <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-3">
-                  <BarChart2 className="w-8 h-8 text-text-faint opacity-40" />
-                  <div>
-                    <div className="text-xs font-bold text-text-dim uppercase tracking-wider">No Candle Data</div>
-                    <div className="text-[11px] text-text-faint mt-1 leading-normal max-w-[200px]">
-                      {apiStatus === 'OFFLINE'
-                        ? 'Backend offline — cannot fetch historical data.'
-                        : `No ${chartTimeframe} candles found for ${cleanSym}. Market may be closed or data unavailable.`}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => selectedSymbol && void fetchChartIndicators(selectedSymbol, chartTimeframe)}
-                      className="text-[10px] px-3 py-1.5 rounded-lg bg-[#22D3EE]/10 text-[#22D3EE] border border-[#22D3EE]/20 font-semibold hover:bg-[#22D3EE]/15 transition-all"
-                      type="button"
-                    >
-                      Retry Fetch
-                    </button>
-                    {/* Quick-access TV link in empty state */}
-                    <a
-                      href={tvUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] px-3 py-1.5 rounded-lg bg-[#2962FF]/10 text-[#4F80FF] border border-[#2962FF]/20 font-semibold hover:bg-[#2962FF]/15 transition-all flex items-center gap-1"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      TradingView
-                    </a>
-                  </div>
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <ChartFrame className="flex min-h-[360px] flex-col">
+          {selectedSymbol ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex items-center justify-between border-b border-maet-border px-4 py-3">
+                <div>
+                  <div className="font-mono text-lg font-extrabold text-maet-text">{cleanSymbol}</div>
+                  <div className="text-xs text-maet-text-muted">{displayExchange} / {displayName}</div>
                 </div>
-              ) : (
-                <IndicatorChartShell
-                  symbol={selectedSymbol}
-                  timeframe={chartTimeframe}
-                  candles={candles}
-                  result={indicatorResults}
-                  overlays={chartOverlays}
-                  signalMarkers={chartSignalMarkers}
-                  apiStatus={apiStatus}
-                  backendWakeState={backendWakeState}
-                  isFetching={indicatorLoading}
-                  onFetchCandles={
-                    selectedSymbol
-                      ? () => {
-                          void fetchChartIndicators(selectedSymbol, chartTimeframe)
-                        }
-                      : undefined
-                  }
-                />
-              )}
+                <StatusBadge tone={candles.length > 0 ? 'success' : 'warning'}>
+                  {candles.length > 0 ? `${candles.length} candles` : 'Awaiting candles'}
+                </StatusBadge>
+              </div>
+
+              <div className="relative min-h-0 flex-1">
+                {candles.length === 0 && !indicatorLoading ? (
+                  <OfflineChartState
+                    symbol={cleanSymbol ?? selectedSymbol}
+                    apiStatus={apiStatus}
+                    onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                  />
+                ) : (
+                  <IndicatorChartShell
+                    symbol={selectedSymbol}
+                    timeframe={chartTimeframe}
+                    candles={candles}
+                    result={indicatorResults}
+                    overlays={chartOverlays}
+                    signalMarkers={chartSignalMarkers}
+                    apiStatus={apiStatus}
+                    backendWakeState={backendWakeState}
+                    isFetching={indicatorLoading}
+                    onFetchCandles={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                  />
+                )}
+              </div>
+
+              {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
+              {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
             </div>
-            {indicatorSubpanels.rsi && (
-              <div className="shrink-0">
-                <RsiPanel points={rsiPoints} />
+          ) : (
+            <div className="grid min-h-[340px] place-items-center p-6 text-center">
+              <div>
+                <BarChart2 className="mx-auto h-10 w-10 text-maet-text-muted" />
+                <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">Select a symbol</h2>
+                <p className="mt-2 max-w-xs text-sm leading-6 text-maet-text-muted">Open the watchlist and choose an instrument to load candles and indicators.</p>
               </div>
-            )}
-            {indicatorSubpanels.macd && (
-              <div className="shrink-0">
-                <MacdPanel points={macdPoints} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
-            <BarChart2 className="w-10 h-10 text-text-faint mb-3 opacity-60" />
-            <h3 className="text-xs font-bold text-text-dim uppercase tracking-wider">No Symbol Selected</h3>
-            <p className="text-[11px] text-text-faint max-w-[200px] mt-1.5 leading-normal font-medium">
-              Select a symbol from the Watchlist tab to view candles and technical indicators.
-            </p>
-          </div>
-        )}
-      </ChartFrame>
-
-      {/* Technical Indicators */}
-      <div className="shrink-0">
-        <SectionTitle title="Technical Indicators" />
-        <div className="flex flex-wrap gap-2">
-          {/* EMA */}
-          <button
-            onClick={() => toggleChartOverlay('ema')}
-            className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-              chartOverlays.ema
-                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-            )}
-            type="button"
-          >
-            EMA
-          </button>
-
-          {/* VWAP */}
-          <button
-            onClick={() => toggleChartOverlay('vwap')}
-            className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-              chartOverlays.vwap
-                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-            )}
-            type="button"
-          >
-            VWAP
-          </button>
-
-          {/* Bollinger Bands */}
-          <button
-            onClick={() => toggleChartOverlay('bollinger_bands')}
-            className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-              chartOverlays.bollinger_bands
-                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-            )}
-            type="button"
-          >
-            Bollinger Bands
-          </button>
-
-          {/* RSI */}
-          <button
-            onClick={() => toggleIndicatorSubpanel('rsi')}
-            className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-              indicatorSubpanels.rsi
-                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-            )}
-            type="button"
-          >
-            RSI
-          </button>
-
-          {/* MACD */}
-          <button
-            onClick={() => toggleIndicatorSubpanel('macd')}
-            className={cn(
-              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all duration-150',
-              indicatorSubpanels.macd
-                ? 'bg-[#A855F7]/10 text-[#A855F7] border-[#A855F7]/30'
-                : 'bg-white/[0.03] text-text-dim border-white/[0.06] hover:bg-white/[0.05]'
-            )}
-            type="button"
-          >
-            MACD
-          </button>
-        </div>
-      </div>
-
-      {/* Dry-run order action */}
-      <div className="shrink-0 pt-2">
-        <button
-          onClick={() => selectedSymbol && setShowOrderSheet(true)}
-          disabled={!selectedSymbol}
-          className={cn(
-            "w-full h-12 rounded-2xl font-bold text-xs tracking-wide flex items-center justify-center gap-2 border transition-all duration-150",
-            selectedSymbol
-              ? "bg-[#F59E0B]/10 hover:bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B] shadow-[0_4px_16px_rgba(245,158,11,0.05)] active:scale-[0.985]"
-              : "bg-white/[0.02] border-white/[0.05] text-text-faint cursor-not-allowed opacity-50"
+            </div>
           )}
-          type="button"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          {selectedSymbol ? `Validate Dry-Run Order · ${cleanSym}` : 'Validate Dry-Run Order'}
-        </button>
+        </ChartFrame>
+
+        <IndicatorDrawer
+          open={drawerOpen}
+          overlays={chartOverlays}
+          subpanels={indicatorSubpanels}
+          onOverlay={toggleChartOverlay}
+          onSubpanel={toggleIndicatorSubpanel}
+        />
       </div>
 
-      {/* Action sheet containing OrderTicket */}
-      <MobileActionSheet
-        isOpen={showOrderSheet}
-        onClose={() => setShowOrderSheet(false)}
-        title={`Dry-Run Order Ticket: ${cleanSym}`}
+      <button
+        type="button"
+        onClick={() => selectedSymbol && setOrderSheetOpen(true)}
+        disabled={!selectedSymbol}
+        className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-maet-blue text-sm font-bold text-white disabled:opacity-40 lg:hidden"
       >
-        <div className="h-[64dvh] min-h-[420px]">
+        <ShieldCheck className="h-4 w-4" />
+        Validate Order
+      </button>
+
+      <MobileActionSheet
+        isOpen={orderSheetOpen}
+        onClose={() => setOrderSheetOpen(false)}
+        title={`Dry-run validation: ${cleanSymbol ?? 'Symbol'}`}
+      >
+        <div className="h-[64dvh] min-h-[360px]">
           <OrderTicket />
         </div>
       </MobileActionSheet>
     </MobilePage>
+  )
+}
+
+function OfflineChartState({ symbol, apiStatus, onRetry }: { symbol: string; apiStatus: string; onRetry: () => void }) {
+  return (
+    <div className="grid h-full min-h-[320px] place-items-center bg-maet-void p-6 text-center" aria-label={`Price chart for ${symbol}`}>
+      <div>
+        <BarChart2 className="mx-auto h-8 w-8 text-maet-text-muted" />
+        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">No candle data</h2>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">
+          Connect backend to load candles for {symbol}. Current backend status: {apiStatus.toLowerCase()}.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 h-10 rounded-md border border-maet-blue/40 bg-maet-blue/12 px-4 font-mono text-xs font-bold text-maet-blue hover:bg-maet-blue/20"
+        >
+          Retry Fetch
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function IndicatorDrawer({
+  open,
+  overlays,
+  subpanels,
+  onOverlay,
+  onSubpanel,
+}: {
+  open: boolean
+  overlays: { ema: boolean; vwap: boolean; bollinger_bands: boolean }
+  subpanels: { rsi: boolean; macd: boolean }
+  onOverlay: (name: 'ema' | 'vwap' | 'bollinger_bands') => void
+  onSubpanel: (name: 'rsi' | 'macd') => void
+}) {
+  return (
+    <aside className={cn('rounded-card border border-maet-border bg-maet-surface p-3 lg:block', open ? 'block' : 'hidden')}>
+      <div className="mb-3 flex items-center gap-2">
+        <ListChecks className="h-4 w-4 text-maet-violet" />
+        <h2 className="font-heading text-base font-bold text-maet-text">Indicators</h2>
+      </div>
+      <div className="space-y-2">
+        <IndicatorToggle label="EMA" checked={overlays.ema} onClick={() => onOverlay('ema')} />
+        <div className="rounded-md border border-maet-border bg-maet-base px-3 py-2">
+          <div className="mb-1 text-xs text-maet-text-muted">EMA period</div>
+          <input type="number" defaultValue={20} min={1} className="maet-input h-9 font-mono" />
+        </div>
+        <IndicatorToggle label="VWAP" checked={overlays.vwap} onClick={() => onOverlay('vwap')} />
+        <IndicatorToggle label="Bollinger Bands" checked={overlays.bollinger_bands} onClick={() => onOverlay('bollinger_bands')} />
+        <IndicatorToggle label="RSI subpanel" checked={subpanels.rsi} onClick={() => onSubpanel('rsi')} />
+        <IndicatorToggle label="MACD subpanel" checked={subpanels.macd} onClick={() => onSubpanel('macd')} />
+      </div>
+    </aside>
+  )
+}
+
+function IndicatorToggle({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex h-10 w-full items-center justify-between rounded-md border px-3 text-sm font-bold',
+        checked ? 'border-maet-violet bg-maet-violet/15 text-maet-violet' : 'border-maet-border bg-maet-base text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text'
+      )}
+    >
+      {label}
+      <span className={cn('h-4 w-7 rounded-full border p-0.5', checked ? 'border-maet-violet bg-maet-violet/20' : 'border-maet-border bg-maet-surface')}>
+        <span className={cn('block h-2.5 w-2.5 rounded-full bg-current transition-transform', checked && 'translate-x-3')} />
+      </span>
+    </button>
   )
 }

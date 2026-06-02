@@ -1,0 +1,60 @@
+:root {
+  --bg-void: #060810;
+  --bg-base: #0c0f1a;
+  --bg-surface: #111827;
+  --bg-elevated: #1a2235;
+  --bg-overlay: #1f2d44;
+
+  --border-subtle: #1e2d45;
+  --border-strong: #2a3f5f;
+
+  --text-primary: #e8edf5;
+  --text-secondary: #8a9ab8;
+  --text-muted: #4a5a72;
+
+  --accent-green: #00d68f;
+  --accent-red: #ff4d6a;
+  --accent-amber: #f5a623;
+  --accent-blue: #4d9cf8;
+  --accent-violet: #7c5cbf;
+
+  --safety-locked: #ff4d6a;
+  --safety-paper: #f5a623;
+  --safety-read: #4d9cf8;
+
+  --shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 16px 48px rgba(0, 0, 0, 0.38);
+
+  --bottom-nav-h: 56px;
+  --top-header-h: 56px;
+  --safety-strip-h: 28px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Backwards-compatible aliases used by older MAET components. */
+  --bg: var(--bg-base);
+  --bg-2: var(--bg-surface);
+  --panel: var(--bg-surface);
+  --panel-2: var(--bg-base);
+  --panel-3: var(--bg-elevated);
+  --border: var(--border-subtle);
+  --border-accent: rgba(77, 156, 248, 0.28);
+  --border-card: var(--border-subtle);
+  --text: var(--text-primary);
+  --text-2: var(--text-secondary);
+  --text-dim: var(--text-secondary);
+  --text-faint: var(--text-muted);
+  --up: var(--accent-green);
+  --up-dim: rgba(0, 214, 143, 0.12);
+  --up-glow: rgba(0, 214, 143, 0.2);
+  --down: var(--accent-red);
+  --down-dim: rgba(255, 77, 106, 0.12);
+  --warn: var(--accent-amber);
+  --warn-dim: rgba(245, 166, 35, 0.12);
+  --info: var(--accent-blue);
+  --info-dim: rgba(77, 156, 248, 0.12);
+  --locked: var(--safety-locked);
+  --violet: var(--accent-violet);
+  --violet-dim: rgba(124, 92, 191, 0.12);
+  --paper: var(--safety-paper);
+  --live: var(--safety-locked);
+}

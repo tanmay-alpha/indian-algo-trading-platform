@@ -1,7 +1,7 @@
 'use client'
 
 import { useTerminalStore } from '@/store/terminal-store'
-import { Activity, ShieldCheck, Wifi, WifiOff } from 'lucide-react'
+import { Activity, Wifi, WifiOff } from 'lucide-react'
 import { cn, getNseMarketSession } from '@/lib/utils'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 import type { AppTab } from './mobile-bottom-nav'
@@ -55,14 +55,11 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
         </div>
       </div>
 
-      {/* Right status cluster */}
       <div className="flex items-center gap-2">
-        {/* Market session */}
         <span className={cn('hidden min-[390px]:inline text-[10px] font-semibold font-mono', sessionColor)}>
           {sessionLabel}
         </span>
 
-        {/* Connection indicator */}
         <div className={cn(
           'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium',
           isConnected
@@ -73,12 +70,6 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
             ? <><LivePulseDot color="emerald" size="sm" className="mr-1 inline-block shrink-0" /><Wifi className="w-3 h-3" /> WS</>
             : <><WifiOff className="w-3 h-3" /> OFF</>
           }
-        </div>
-
-        {/* Safety lock */}
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-down/8 text-down border border-down/20 text-[10px] font-mono font-semibold">
-          <ShieldCheck className="w-3 h-3" />
-          LOCKED
         </div>
 
         <button

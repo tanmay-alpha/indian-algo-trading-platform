@@ -10,7 +10,7 @@ interface AppCardProps {
 
 export function AppCard({ children, className }: AppCardProps) {
   return (
-    <div className={cn('rounded-3xl border border-white/[0.08] bg-white/[0.045] shadow-card', className)}>
+    <div className={cn('rounded-card border border-maet-border bg-maet-surface shadow-card', className)}>
       {children}
     </div>
   )
