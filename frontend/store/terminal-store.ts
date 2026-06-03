@@ -49,11 +49,13 @@ import type {
   OmsReconciliationStatus,
   OmsDataState,
   PersistentWatchlistItem,
+  ManualOrderStatusResponse,
   ManualOrderTicket,
   ManualOrderValidateRequest,
+  Instrument,
 } from '@/lib/types'
 import { uid } from '@/lib/utils'
-import { DEFAULT_WATCHLIST_GROUPS } from '@/lib/constants'
+import { DEFAULT_WATCHLIST_GROUPS, ENDPOINTS } from '@/lib/constants'
 import { mapSignalsToMarkers } from '@/lib/strategy-series'
 import {
   getPortfolioEquityCurve,
@@ -84,6 +86,19 @@ import {
   OmsResult,
 } from '@/lib/api'
 
+type SelectedInstrumentSource = 'search' | 'watchlist' | 'market-watch' | 'manual' | 'websocket'
+
+interface ChartFetchDiagnostics {
+  symbol: string | null
+  exchange: string | null
+  timeframe: Timeframe
+  route: string | null
+  lastFetchAt: number | null
+  candleCount: number
+  source: string | null
+  error: string | null
+}
+
 export interface TerminalState {
   // Workspace
   activeWorkspace: WorkspaceId
@@ -100,6 +115,10 @@ export interface TerminalState {
   selectedSymbol: string | null
   selectedExchange: string | null
   selectedInstrumentName: string | null
+  selectedInstrumentToken: string | null
+  selectedInstrumentSource: SelectedInstrumentSource | null
+  lastSelectedAt: number | null
+  selectedWatchlistId: number | null
 
   // Watchlist
   watchlistGroupId: string
@@ -147,6 +166,7 @@ export interface TerminalState {
   indicatorChartError: string | null
   indicatorChartLoading: boolean
   chartCandlesBySymbolTimeframe: Record<string, Candle[]>
+  chartFetchDiagnostics: ChartFetchDiagnostics
   strategyStatus: StrategyStatus | null
   strategyTemplates: StrategyTemplate[]
   selectedStrategyName: string | null
@@ -203,7 +223,7 @@ export interface TerminalState {
 
   // Manual Orders (Phase 3)
   manualOrderTickets: ManualOrderTicket[]
-  manualOrderStatus: { mode: string; dry_run: boolean } | null
+  manualOrderStatus: ManualOrderStatusResponse | null
 }
 
 export interface TerminalActions {
@@ -218,7 +238,16 @@ export interface TerminalActions {
   toggleShortcuts: (open?: boolean) => void
 
   setSelectedSymbol: (s: string | null) => void
-  setSelectedInstrument: (symbol: string, exchange: string, name?: string) => void
+  setSelectedInstrument: (
+    symbol: string,
+    exchange: string,
+    name?: string,
+    token?: string | null,
+    source?: SelectedInstrumentSource
+  ) => void
+  openChartForInstrument: (instrument: Instrument, source?: SelectedInstrumentSource) => void
+  clearSelectedInstrument: () => void
+  setSelectedWatchlist: (id: number | null) => void
 
   setWatchlistGroup: (id: string) => void
   addToWatchlist: (symbol: string) => void
@@ -297,7 +326,7 @@ export interface TerminalActions {
 
   // Manual order actions (Phase 3)
   fetchManualOrderStatus: () => Promise<void>
-  validateManualOrder: (body: Omit<ManualOrderValidateRequest, 'admin_token'>) => Promise<{ ok: boolean; ticket?: ManualOrderTicket; error?: string }>
+  validateManualOrder: (body: ManualOrderValidateRequest) => Promise<{ ok: boolean; ticket?: ManualOrderTicket; error?: string }>
   fetchManualOrderTickets: () => Promise<OmsResult<ManualOrderTicket[]>>
 }
 
@@ -316,6 +345,10 @@ const initialState: TerminalState = {
   selectedSymbol: null,
   selectedExchange: null,
   selectedInstrumentName: null,
+  selectedInstrumentToken: null,
+  selectedInstrumentSource: null,
+  lastSelectedAt: null,
+  selectedWatchlistId: null,
 
   watchlistGroupId: 'nifty50',
   watchlistGroups: DEFAULT_WATCHLIST_GROUPS.map((g) => ({ ...g, symbols: [...g.symbols] })),
@@ -377,6 +410,16 @@ const initialState: TerminalState = {
   indicatorChartError: null,
   indicatorChartLoading: false,
   chartCandlesBySymbolTimeframe: {},
+  chartFetchDiagnostics: {
+    symbol: null,
+    exchange: null,
+    timeframe: '5m',
+    route: null,
+    lastFetchAt: null,
+    candleCount: 0,
+    source: null,
+    error: null,
+  },
   strategyStatus: null,
   strategyTemplates: [],
   selectedStrategyName: null,
@@ -466,6 +509,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     set((state) => ({
       chartTimeframe: t,
       backtestConfig: { ...state.backtestConfig, timeframe: t },
+      chartFetchDiagnostics: { ...state.chartFetchDiagnostics, timeframe: t },
     }))
     const { selectedSymbol } = get()
     if (selectedSymbol) {
@@ -481,6 +525,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   setSelectedSymbol: (s) => {
     set((state) => ({
       selectedSymbol: s,
+      selectedExchange: s ? state.selectedExchange ?? 'NSE' : null,
+      selectedInstrumentName: s ? state.selectedInstrumentName : null,
+      selectedInstrumentToken: null,
+      selectedInstrumentSource: s ? 'manual' : null,
+      lastSelectedAt: s ? Date.now() : null,
       backtestConfig: { ...state.backtestConfig, symbol: s || '' },
     }))
     const { chartTimeframe } = get()
@@ -489,18 +538,45 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     }
   },
 
-  setSelectedInstrument: (symbol, exchange, name) => {
+  setSelectedInstrument: (symbol, exchange, name, token, source = 'watchlist') => {
+    const normalizedSymbol = symbol.trim().toUpperCase()
     set((state) => ({
-      selectedSymbol: symbol,
-      selectedExchange: exchange,
+      selectedSymbol: normalizedSymbol,
+      selectedExchange: exchange || 'NSE',
       selectedInstrumentName: name ?? null,
-      backtestConfig: { ...state.backtestConfig, symbol },
+      selectedInstrumentToken: token ?? null,
+      selectedInstrumentSource: source,
+      lastSelectedAt: Date.now(),
+      backtestConfig: { ...state.backtestConfig, symbol: normalizedSymbol },
     }))
     const { chartTimeframe } = get()
-    void get().fetchChartIndicators(symbol, chartTimeframe)
+    void get().fetchChartIndicators(normalizedSymbol, chartTimeframe)
   },
 
+  openChartForInstrument: (instrument, source = 'search') => {
+    const token = instrument.token || instrument.instrumentToken || null
+    get().setSelectedInstrument(
+      instrument.symbol,
+      instrument.exchange || 'NSE',
+      instrument.name || instrument.company || instrument.symbol,
+      token,
+      source
+    )
+  },
+
+  clearSelectedInstrument: () =>
+    set((state) => ({
+      selectedSymbol: null,
+      selectedExchange: null,
+      selectedInstrumentName: null,
+      selectedInstrumentToken: null,
+      selectedInstrumentSource: null,
+      lastSelectedAt: null,
+      backtestConfig: { ...state.backtestConfig, symbol: '' },
+    })),
+
   setWatchlistGroup: (id) => set({ watchlistGroupId: id }),
+  setSelectedWatchlist: (id) => set({ selectedWatchlistId: id }),
 
   addToWatchlist: (symbol) =>
     set((state) => {
@@ -665,21 +741,37 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   },
   fetchPositions: async () => {
     const token = get().omsAdminToken
+    if (!token) {
+      set({ positions: [], portfolioLastUpdated: Date.now() })
+      return
+    }
     const positions = await getPortfolioPositions(token)
     set({ positions, portfolioLastUpdated: Date.now() })
   },
   fetchHoldings: async () => {
     const token = get().omsAdminToken
+    if (!token) {
+      set({ holdings: [], portfolioLastUpdated: Date.now() })
+      return
+    }
     const holdings = await getPortfolioHoldings(token)
     set({ holdings, portfolioLastUpdated: Date.now() })
   },
   fetchEquityCurve: async () => {
     const token = get().omsAdminToken
+    if (!token) {
+      set({ equityCurve: [], portfolioLastUpdated: Date.now() })
+      return
+    }
     const equityCurve = await getPortfolioEquityCurve(token)
     set({ equityCurve, portfolioLastUpdated: Date.now() })
   },
   fetchReconciliationStatus: async () => {
     const token = get().omsAdminToken
+    if (!token) {
+      set({ reconciliationStatus: null, portfolioLastUpdated: Date.now() })
+      return
+    }
     const reconciliationStatus = await getPortfolioReconciliationStatus(token)
     set({ reconciliationStatus, portfolioLastUpdated: Date.now() })
   },
@@ -687,6 +779,23 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     const token = get().omsAdminToken
     set({ portfolioLoading: true, portfolioError: null })
     try {
+      if (!token) {
+        const portfolioSummary = await getPortfolioSummary(null)
+        set({
+          portfolioSummary,
+          positions: [],
+          holdings: [],
+          equityCurve: [],
+          reconciliationStatus: null,
+          portfolioLoading: false,
+          portfolioError:
+            portfolioSummary.data_status === 'UNAVAILABLE'
+              ? 'Portfolio backend unavailable'
+              : null,
+          portfolioLastUpdated: Date.now(),
+        })
+        return
+      }
       const [
         portfolioSummary,
         positions,
@@ -796,21 +905,38 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       return
     }
 
+    const exchange = get().selectedExchange ?? 'NSE'
+    const route = `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}&fetch=true`
     set({
       indicatorChartLoading: true,
       indicatorLoading: true,
       indicatorChartError: null,
       indicatorError: null,
+      chartFetchDiagnostics: {
+        symbol,
+        exchange,
+        timeframe,
+        route,
+        lastFetchAt: null,
+        candleCount: 0,
+        source: null,
+        error: null,
+      },
     })
 
     const key = indicatorKey(symbol, timeframe)
     let candles: Candle[] = []
+    let candleSource: string | null = null
+    let candleError: string | null = null
     try {
       // Pass fetch=true so backend actively pulls historical candles from broker cache
       const candleResponse = await fetchCandles(symbol, timeframe, true)
       candles = candleResponse.candles || []
+      candleSource = candleResponse.source || 'backend'
+      candleError = candleResponse.warning || null
     } catch {
       candles = []
+      candleError = 'Candle backend unavailable or returned no valid rows'
     }
 
     if (names.length === 0) {
@@ -823,6 +949,16 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         chartCandlesBySymbolTimeframe: {
           ...state.chartCandlesBySymbolTimeframe,
           [key]: candles,
+        },
+        chartFetchDiagnostics: {
+          symbol,
+          exchange,
+          timeframe,
+          route,
+          lastFetchAt: Date.now(),
+          candleCount: candles.length,
+          source: candleSource,
+          error: candleError,
         },
       }))
       return
@@ -847,6 +983,16 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       chartCandlesBySymbolTimeframe: {
         ...state.chartCandlesBySymbolTimeframe,
         [key]: candles,
+      },
+      chartFetchDiagnostics: {
+        symbol,
+        exchange,
+        timeframe,
+        route,
+        lastFetchAt: Date.now(),
+        candleCount: candles.length,
+        source: candleSource,
+        error: candleError,
       },
     }))
   },
@@ -1312,8 +1458,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   validateManualOrder: async (body) => {
     const token = get().omsAdminToken
-    const requestBody = { ...body, admin_token: token || '' }
-    const result = await validateManualOrder(requestBody, token)
+    const result = await validateManualOrder(body, token)
     if (result.ok) {
       set((s) => ({
         manualOrderTickets: [result.data, ...s.manualOrderTickets].slice(0, 100),

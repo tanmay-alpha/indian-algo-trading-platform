@@ -46,6 +46,7 @@ export function ChartScreen() {
   const chartCandlesByKey = useTerminalStore((s) => s.chartCandlesBySymbolTimeframe)
   const indicatorLoading = useTerminalStore((s) => s.indicatorChartLoading)
   const chartSignalMarkers = useTerminalStore((s) => s.chartSignalMarkers)
+  const chartFetchDiagnostics = useTerminalStore((s) => s.chartFetchDiagnostics)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const fetchChartIndicators = useTerminalStore((s) => s.fetchChartIndicators)
@@ -161,7 +162,9 @@ export function ChartScreen() {
                 {candles.length === 0 && !indicatorLoading ? (
                   <OfflineChartState
                     symbol={cleanSymbol ?? selectedSymbol}
+                    exchange={displayExchange}
                     apiStatus={apiStatus}
+                    diagnostics={chartFetchDiagnostics}
                     onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
                   />
                 ) : (
@@ -226,15 +229,43 @@ export function ChartScreen() {
   )
 }
 
-function OfflineChartState({ symbol, apiStatus, onRetry }: { symbol: string; apiStatus: string; onRetry: () => void }) {
+function OfflineChartState({
+  symbol,
+  exchange,
+  apiStatus,
+  diagnostics,
+  onRetry,
+}: {
+  symbol: string
+  exchange: string
+  apiStatus: string
+  diagnostics: {
+    timeframe: string
+    route: string | null
+    lastFetchAt: number | null
+    candleCount: number
+    source: string | null
+    error: string | null
+  }
+  onRetry: () => void
+}) {
   return (
     <div className="grid h-full min-h-[320px] place-items-center bg-maet-bg-deep/48 p-6 text-center" aria-label={`Price chart diagnostics for ${symbol}`}>
       <div className="reflection-card max-w-md p-5">
         <BarChart2 className="mx-auto h-8 w-8 text-maet-text-muted" />
-        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">Candle diagnostics unavailable</h2>
+        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">No Candle Data</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">
-          Connect backend to load candles for {symbol}. Current backend status: {apiStatus.toLowerCase()}.
+          Real backend candles were requested for {symbol}. Current backend status: {apiStatus.toLowerCase()}.
         </p>
+        <div className="mt-4 space-y-1 rounded-md border border-maet-border bg-maet-base/70 p-3 text-left font-mono text-[11px] text-maet-text-muted">
+          <DiagnosticLine label="Exchange" value={exchange} />
+          <DiagnosticLine label="Timeframe" value={diagnostics.timeframe} />
+          <DiagnosticLine label="Route" value={diagnostics.route ?? 'Not requested yet'} />
+          <DiagnosticLine label="Last fetch" value={formatLastFetch(diagnostics.lastFetchAt)} />
+          <DiagnosticLine label="Valid candles" value={String(diagnostics.candleCount)} />
+          <DiagnosticLine label="Source" value={diagnostics.source ?? 'Unavailable'} />
+          {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
+        </div>
         <button
           type="button"
           onClick={onRetry}
@@ -245,6 +276,20 @@ function OfflineChartState({ symbol, apiStatus, onRetry }: { symbol: string; api
       </div>
     </div>
   )
+}
+
+function DiagnosticLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[84px_minmax(0,1fr)] gap-2">
+      <span>{label}</span>
+      <span className="break-words text-maet-text-secondary">{value}</span>
+    </div>
+  )
+}
+
+function formatLastFetch(value: number | null): string {
+  if (!value) return 'Pending'
+  return new Date(value).toLocaleTimeString()
 }
 
 function IndicatorDrawer({

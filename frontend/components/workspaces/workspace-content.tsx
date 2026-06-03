@@ -146,9 +146,9 @@ export function PortfolioWorkspace() {
           setUnlockError(('error' in res && res.error) || 'Failed to authenticate')
         }
       }
-    } catch (err) {
+    } catch {
       clearOmsAdminToken()
-      setUnlockError(String(err))
+      setUnlockError('Backend unavailable or administrator token rejected')
     } finally {
       setIsUnlocking(false)
     }

@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 @pytest.fixture
 def auth_headers():
-    return {"X-Admin-Token": settings.admin_token or "dummy"}
+    return {"X-Admin-Token": "test-admin-token"}
 
 @pytest.fixture
 def mock_app_state():

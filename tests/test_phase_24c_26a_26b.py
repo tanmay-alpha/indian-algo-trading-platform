@@ -22,7 +22,7 @@ from backend.core.config import settings
 
 @pytest.fixture
 def auth_headers():
-    return {"X-Admin-Token": settings.admin_token or "dummy"}
+    return {"X-Admin-Token": "test-admin-token"}
 
 
 @pytest.fixture(autouse=True, scope="module")

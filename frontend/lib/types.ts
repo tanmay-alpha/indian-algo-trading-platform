@@ -48,6 +48,7 @@ export type DataQuality =
   | 'MARKET CLOSED'
   | 'PRE-MARKET'
   | 'POST-MARKET'
+  | 'DEMO_PLACEHOLDER'
 
 export type PortfolioDataQuality =
   | 'AVAILABLE'
@@ -91,9 +92,15 @@ export interface Instrument {
   symbol: string
   clean_symbol?: string
   name: string
+  company?: string
   exchange: string
   token: string
+  instrumentToken?: string
+  segment?: string
   sector?: string
+  expiry?: string | null
+  strike?: number | null
+  instrumentType?: string
   instrument_type?: string
   lot_size?: number
   tick_size?: number
@@ -312,10 +319,35 @@ export interface ReconciliationStatus {
 
 // ----- Health endpoint -----
 export interface HealthResponse {
-  status: 'online' | 'offline'
+  status: 'online' | 'degraded' | 'offline'
   mode: 'PAPER' | 'LIVE'
   broker: BrokerStatus
   portfolio: PortfolioPerformance
+  database?: {
+    connected?: boolean
+    url?: string
+    error?: string | null
+  }
+}
+
+export interface ReadyResponse {
+  status: 'ready' | 'error' | string
+  app?: {
+    status?: string
+    environment?: string
+  }
+  broker?: BrokerStatus
+  gateway?: GatewayStatus | null
+  database?: {
+    path_configured?: boolean
+    parent_exists?: boolean
+    path?: string
+    connected?: boolean
+    url?: string
+    error?: string | null
+  }
+  trading_mode?: 'PAPER' | 'LIVE'
+  live_trading_enabled?: boolean
 }
 
 // ----- Candle -----

@@ -51,7 +51,11 @@ class Settings(BaseSettings):
     live_execution_build_enabled: bool = False
     demo_mode: bool = False
     admin_token: str = ""
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "https://indian-algo-trading-platform.vercel.app"
+    )
     environment: str = "LOCAL"
     public_backend_url: Optional[str] = None
     strategy_scheduler_enabled: bool = False

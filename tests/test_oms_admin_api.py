@@ -161,10 +161,10 @@ def test_oms_status_requires_admin_token(app_with_store):
 def test_oms_status_shape(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""  # no token requirement for this test
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         _seed_order(temp_store, status="FILLED")
-        resp = app_with_store.get("/oms/status")
+        resp = app_with_store.get("/oms/status", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert "oms" in data
@@ -201,10 +201,10 @@ def test_oms_orders_recent_requires_token(app_with_store):
 def test_oms_orders_recent_returns_data(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         rid = _seed_order(temp_store)
-        resp = app_with_store.get("/oms/orders/recent?limit=10")
+        resp = app_with_store.get("/oms/orders/recent?limit=10", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert "orders" in data
@@ -236,11 +236,11 @@ def test_oms_events_recent_requires_token(app_with_store):
 def test_oms_events_recent_returns_list(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         rid = _seed_order(temp_store)
         temp_store.add_order_event(rid, "PAPER_FILLED", "FILLED")
-        resp = app_with_store.get("/oms/events/recent?limit=20")
+        resp = app_with_store.get("/oms/events/recent?limit=20", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert "events" in data
@@ -268,11 +268,11 @@ def test_oms_fills_recent_requires_token(app_with_store):
 def test_oms_fills_recent_returns_fill_list(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         rid = _seed_order(temp_store)
         _seed_fill(temp_store, rid)
-        resp = app_with_store.get("/oms/fills/recent?limit=20")
+        resp = app_with_store.get("/oms/fills/recent?limit=20", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert "fills" in data
@@ -303,12 +303,12 @@ def test_oms_audit_requires_token(app_with_store):
 def test_oms_audit_returns_full_bundle(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         rid = _seed_order(temp_store)
         temp_store.add_order_event(rid, "ORDER_PLACED", "PENDING")
         _seed_fill(temp_store, rid)
-        resp = app_with_store.get(f"/oms/orders/{rid}/audit")
+        resp = app_with_store.get(f"/oms/orders/{rid}/audit", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert data["request_id"] == rid
@@ -324,9 +324,9 @@ def test_oms_audit_returns_full_bundle(app_with_store, temp_store):
 def test_oms_audit_unknown_request_id_returns_404(app_with_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
-        resp = app_with_store.get("/oms/orders/nonexistent-id-9999/audit")
+        resp = app_with_store.get("/oms/orders/nonexistent-id-9999/audit", headers=ADMIN_HEADERS)
         assert resp.status_code == 404
     finally:
         _cfg.settings.admin_token = original
@@ -339,10 +339,10 @@ def test_oms_audit_unknown_request_id_returns_404(app_with_store):
 def test_oms_limit_cap(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         # Request more than 200 — should be server-side capped (FastAPI Query le=200)
-        resp = app_with_store.get("/oms/orders/recent?limit=200")
+        resp = app_with_store.get("/oms/orders/recent?limit=200", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         assert resp.json()["limit"] == 200
     finally:
@@ -367,9 +367,9 @@ def test_oms_recon_status_requires_token(app_with_store):
 def test_oms_recon_status_no_report(app_with_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
-        resp = app_with_store.get("/oms/reconciliation/status")
+        resp = app_with_store.get("/oms/reconciliation/status", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "no_report"
@@ -406,7 +406,7 @@ def test_oms_recon_run_empty_broker_list(app_with_store, temp_store):
     from unittest.mock import MagicMock
 
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         # Need a mock execution_router with order_store + order_state_machine
         mock_er = MagicMock()
@@ -418,7 +418,7 @@ def test_oms_recon_run_empty_broker_list(app_with_store, temp_store):
         resp = app_with_store.post(
             "/oms/reconciliation/run",
             json=[],  # empty broker snapshot
-            headers={"Content-Type": "application/json"},
+            headers={**ADMIN_HEADERS, "Content-Type": "application/json"},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -438,12 +438,12 @@ def test_oms_recon_run_empty_broker_list(app_with_store, temp_store):
 def test_no_credentials_leak_in_status(app_with_store, temp_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         _seed_order(temp_store)
         for path in ["/oms/health", "/oms/status", "/oms/orders/recent",
                      "/oms/events/recent", "/oms/fills/recent"]:
-            resp = app_with_store.get(path)
+            resp = app_with_store.get(path, headers=ADMIN_HEADERS)
             assert resp.status_code == 200, f"Failed: {path}"
             _assert_no_secrets(resp.json())
     finally:
@@ -457,7 +457,7 @@ def test_no_credentials_leak_in_status(app_with_store, temp_store):
 def test_oms_status_includes_rebuild_summary(app_with_store):
     from backend.core import config as _cfg
     original = _cfg.settings.admin_token
-    _cfg.settings.admin_token = ""
+    _cfg.settings.admin_token = "test-admin-token"
     try:
         from datetime import datetime, timezone
         summary = PortfolioRebuildSummary(
@@ -469,7 +469,7 @@ def test_oms_status_includes_rebuild_summary(app_with_store):
         )
         app_with_store.app.state.oms_rebuild_summary = summary
         app_with_store.app.state.oms_rebuild_at = datetime.now(timezone.utc).isoformat()
-        resp = app_with_store.get("/oms/status")
+        resp = app_with_store.get("/oms/status", headers=ADMIN_HEADERS)
         assert resp.status_code == 200
         data = resp.json()
         rb = data.get("portfolio_rebuild")

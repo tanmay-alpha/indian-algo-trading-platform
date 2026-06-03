@@ -75,6 +75,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         symbol: item.symbol,
         name: item.name ?? item.symbol,
         exchange: item.exchange ?? 'NSE',
+        token: item.token ?? null,
         ltp: item.ltp,
         change_pct: item.change_pct,
       }))
@@ -89,14 +90,21 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         symbol,
         name: tick?.name ?? symbol.replace(/-EQ$/, ''),
         exchange: tick?.exchange ?? 'NSE',
+        token: tick?.token ?? null,
         ltp: tick?.ltp ?? null,
         change_pct: tick?.change_pct ?? null,
       }
     })
   }, [activeTab, indices, marketWatch, watchlistGroups])
 
-  const openChart = (symbol: string, exchange: string, name?: string) => {
-    setSelectedInstrument(symbol, exchange, name)
+  const openChart = (
+    symbol: string,
+    exchange: string,
+    name?: string,
+    token?: string | null,
+    source: 'search' | 'watchlist' | 'market-watch' = 'watchlist'
+  ) => {
+    setSelectedInstrument(symbol, exchange, name, token, source)
     onNavigate?.('chart')
   }
 
@@ -191,7 +199,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                 <div key={`${instrument.exchange}-${instrument.token}-${instrument.symbol}`} className="reflection-card grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => openChart(instrument.symbol, instrument.exchange, instrument.name)}
+                    onClick={() => openChart(instrument.symbol, instrument.exchange, instrument.name, instrument.token, 'search')}
                     className="min-w-0 text-left"
                     aria-label={`Open chart for ${instrument.symbol}`}
                   >
@@ -238,7 +246,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                 changePct={row.change_pct}
                 offline={isBackendOffline || row.ltp == null}
                 selected={selectedSymbol === row.symbol}
-                onOpen={() => openChart(row.symbol, row.exchange, row.name)}
+                onOpen={() => openChart(row.symbol, row.exchange, row.name, row.token, 'watchlist')}
                 onRemove={activeTab !== 'indices' ? () => void removeRow(row.symbol) : undefined}
               />
             ))}

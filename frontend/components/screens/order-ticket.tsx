@@ -19,6 +19,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
   const setOmsAdminToken = useTerminalStore((s) => s.setOmsAdminToken)
   const clearOmsAdminToken = useTerminalStore((s) => s.clearOmsAdminToken)
   const fetchManualOrderTickets = useTerminalStore((s) => s.fetchManualOrderTickets)
+  const fetchManualOrderStatus = useTerminalStore((s) => s.fetchManualOrderStatus)
   const validateOrder = useTerminalStore((s) => s.validateManualOrder)
 
   const [tokenInput, setTokenInput] = useState('')
@@ -59,6 +60,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
       return
     }
     setTokenInput('')
+    void fetchManualOrderStatus()
     pushToast({ type: 'info', title: 'Validation unlocked', body: 'Admin token is held in memory for dry-run checks.' })
   }
 

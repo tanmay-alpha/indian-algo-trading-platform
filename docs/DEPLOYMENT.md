@@ -19,7 +19,8 @@ Use these Vercel settings:
 
 Frontend environment variables:
 
-- `NEXT_PUBLIC_API_URL=https://api.your-domain.com`
+- `NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com`
+- `NEXT_PUBLIC_API_URL=https://api.your-domain.com` (legacy alias)
 - `NEXT_PUBLIC_WS_URL=wss://api.your-domain.com/ws/market_stream`
 
 ## VPS Backend

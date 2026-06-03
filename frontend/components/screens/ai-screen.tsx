@@ -38,8 +38,8 @@ export function AiScreen() {
         {
           role: 'assistant',
           content:
-            `Advisory interface preview for "${trimmed}": review price context, indicator agreement, and downside risk before any paper validation. ` +
-            'execution_allowed=false. This interface cannot route or authorize a broker order.',
+            `AI advisory backend not connected yet for "${trimmed}". ` +
+            'execution_allowed=false. This interface cannot route, authorize, or place broker orders.',
         },
       ])
     }, 750)
@@ -52,7 +52,7 @@ export function AiScreen() {
           <h1 className="font-heading text-xl font-bold text-maet-text">AI Advisory</h1>
           <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Ask for market context, indicator explanations, and risk framing.</p>
         </div>
-        <StatusBadge tone="ai">Advisory only - no execution</StatusBadge>
+        <StatusBadge tone="ai">Backend not connected - advisory only</StatusBadge>
       </div>
 
       <div className="reflection-card min-h-0 flex-1 overflow-hidden border-maet-violet/25 bg-maet-bg-deep/58">
@@ -65,7 +65,9 @@ export function AiScreen() {
                     <Bot className="h-6 w-6" />
                   </div>
                   <h2 className="mt-4 font-heading text-lg font-bold text-maet-text">Start with a research question</h2>
-                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">Example prompts are advisory-only interface previews. execution_allowed=false.</p>
+                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">
+                    AI advisory backend not connected yet. execution_allowed=false. This interface cannot route, authorize, or place broker orders.
+                  </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {EXAMPLE_PROMPTS.map((prompt) => (
                       <button

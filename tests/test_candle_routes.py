@@ -35,7 +35,11 @@ def candle_app():
 @pytest_asyncio.fixture
 async def client(candle_app):
     transport = ASGITransport(app=candle_app)
-    async with AsyncClient(transport=transport, base_url="http://test") as async_client:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"X-Admin-Token": "test-admin-token"},
+    ) as async_client:
         yield async_client
 
 

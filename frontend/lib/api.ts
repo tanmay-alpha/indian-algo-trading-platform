@@ -1,6 +1,7 @@
 import { API_URL, ENDPOINTS } from './constants'
 import type {
   HealthResponse,
+  ReadyResponse,
   Instrument,
   TerminalStatus,
   IndexSnapshot,
@@ -68,6 +69,13 @@ export class APIError extends Error {
   }
 }
 
+export type ApiResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; adminRequired: true }
+  | { ok: false; backendUnavailable: true }
+  | { ok: false; notFound: true }
+  | { ok: false; error: string }
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_URL}${path}`
   let res: Response
@@ -108,8 +116,20 @@ async function fetchWithTimeout(
   }
 }
 
+function safeApiErrorMessage(err: unknown, fallback = 'Request failed'): string {
+  if (err instanceof APIError) {
+    if (err.status === 0) return 'Backend unreachable'
+    if (err.status === 401 || err.status === 403) return 'Admin authentication required'
+    if (err.status === 404) return 'Endpoint or resource not found'
+    return `HTTP ${err.status}`
+  }
+  return fallback
+}
+
 // ----- Health / Status -----
 export const fetchHealth = () => request<HealthResponse>(ENDPOINTS.health)
+
+export const fetchReady = () => request<ReadyResponse>(ENDPOINTS.ready)
 
 export const fetchTerminalStatus = () =>
   request<TerminalStatus>(ENDPOINTS.terminalStatus)
@@ -153,10 +173,21 @@ export const setMarketWatch = (symbols: string[]) =>
   })
 
 // ----- Candles -----
-export const fetchCandles = (symbol: string, timeframe = '5m', fetch = true) =>
-  request<{ symbol: string; timeframe: string; candles: Candle[] }>(
-    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}&fetch=${fetch}`
+export interface CandleResponse {
+  symbol: string
+  timeframe: string
+  candles: Candle[]
+  count: number
+  source?: string
+  warning?: string | null
+}
+
+export async function fetchCandles(symbol: string, timeframe = '5m', fetch = true): Promise<CandleResponse> {
+  const data = await request<unknown>(
+    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&fetch=${fetch}`
   )
+  return normalizeCandleResponse(data, symbol, timeframe)
+}
 
 // ----- Indicators -----
 const unavailableIndicatorStatus: IndicatorEngineStatus = {
@@ -755,16 +786,60 @@ function unavailableBacktestResult(payload: StrategyConfig, reason: string): Bac
   }
 }
 
+function normalizeCandleResponse(data: unknown, fallbackSymbol: string, fallbackTimeframe: string): CandleResponse {
+  const record = isRecord(data) ? data : null
+  const rawCandles = Array.isArray(data)
+    ? data
+    : Array.isArray(record?.candles)
+    ? record.candles
+    : Array.isArray(record?.data)
+    ? record.data
+    : []
+
+  const candles = rawCandles
+    .map(normalizeCandle)
+    .filter((row): row is Candle => row !== null)
+
+  return {
+    symbol: typeof record?.symbol === 'string' ? record.symbol : fallbackSymbol,
+    timeframe: typeof record?.timeframe === 'string' ? record.timeframe : fallbackTimeframe,
+    candles,
+    count: candles.length,
+    source: typeof record?.source === 'string' ? record.source : undefined,
+    warning: typeof record?.warning === 'string' ? record.warning : null,
+  }
+}
+
+function normalizeCandle(row: unknown): Candle | null {
+  if (!isRecord(row)) return null
+  const open = numberOrNull(row.open)
+  const high = numberOrNull(row.high)
+  const low = numberOrNull(row.low)
+  const close = numberOrNull(row.close)
+  if (open == null || high == null || low == null || close == null) return null
+  const rawTime = row.time ?? row.timestamp ?? row.datetime ?? row.date
+  if (typeof rawTime !== 'string' && typeof rawTime !== 'number') return null
+  const volume = numberOrNull(row.volume)
+  return {
+    time: rawTime,
+    open,
+    high,
+    low,
+    close,
+    ...(volume == null ? {} : { volume }),
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 // =====================================================
 // OMS API Client (Phase 18L) — all read-only
 // =====================================================
 
 /** Result wrapper for OMS calls that may require admin auth or be unavailable. */
-export type OmsResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; adminRequired: true }
-  | { ok: false; backendUnavailable: true }
-  | { ok: false; error: string }
+export type OmsResult<T> = ApiResult<T>
 
 /** Build admin-token headers only when a token is provided. Never hardcode. */
 function adminHeaders(adminToken?: string | null): Record<string, string> {
@@ -779,7 +854,7 @@ export async function getOmsHealth(): Promise<OmsResult<OmsHealthResponse>> {
     return { ok: true, data }
   } catch (err) {
     if (err instanceof APIError && err.status === 0) return { ok: false, backendUnavailable: true }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -795,7 +870,7 @@ export async function getOmsStatus(adminToken?: string | null): Promise<OmsResul
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -815,7 +890,7 @@ export async function getRecentOmsOrders(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -835,7 +910,7 @@ export async function getRecentOmsEvents(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -855,7 +930,7 @@ export async function getRecentOmsFills(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -875,7 +950,7 @@ export async function getOrderAudit(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -893,7 +968,7 @@ export async function getOmsReconciliationStatus(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -966,7 +1041,7 @@ export async function getWatchlist(id: number): Promise<OmsResult<PersistentWatc
     if (err instanceof APIError) {
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -999,7 +1074,7 @@ export async function addWatchlistItem(
       if (err.status === 400) return { ok: false, error: 'Watchlist cap reached (100 items)' }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1026,7 +1101,7 @@ export async function removeWatchlistItem(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1047,7 +1122,7 @@ export async function createWatchlist(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1069,7 +1144,7 @@ export async function renameWatchlist(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1089,7 +1164,7 @@ export async function deleteWatchlist(
       if (err.status === 403 || err.status === 401) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 // =====================================================
@@ -1123,7 +1198,7 @@ export async function startStrategy(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1143,7 +1218,7 @@ export async function stopStrategy(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1163,7 +1238,7 @@ export async function pauseStrategy(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1183,7 +1258,7 @@ export async function evaluateStrategy(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1213,7 +1288,7 @@ export async function startScheduler(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1232,7 +1307,7 @@ export async function stopScheduler(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1253,7 +1328,7 @@ export async function getPendingSignals(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1276,7 +1351,7 @@ export async function getSignalHistory(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1296,7 +1371,7 @@ export async function approveSignalForPaper(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1318,7 +1393,7 @@ export async function dismissSignal(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1355,7 +1430,7 @@ export async function getBrokerAccountSnapshot(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1373,7 +1448,7 @@ export async function getBrokerHoldings(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1391,7 +1466,7 @@ export async function getBrokerPositions(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1409,7 +1484,7 @@ export async function getBrokerFunds(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1427,7 +1502,7 @@ export async function getBrokerOrderBook(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1445,7 +1520,7 @@ export async function getBrokerTradeBook(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1467,7 +1542,7 @@ export async function syncBrokerAccountReadOnly(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1501,7 +1576,7 @@ export async function importHistoricalTrades(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1524,7 +1599,7 @@ export async function getManualOrderStatus(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1545,7 +1620,7 @@ export async function validateManualOrder(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 
@@ -1565,7 +1640,7 @@ export async function getManualOrderTickets(
       if (err.status === 401 || err.status === 403) return { ok: false, adminRequired: true }
       if (err.status === 0) return { ok: false, backendUnavailable: true }
     }
-    return { ok: false, error: String(err) }
+    return { ok: false, error: safeApiErrorMessage(err) }
   }
 }
 

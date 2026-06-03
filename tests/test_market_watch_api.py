@@ -45,14 +45,22 @@ def test_market_watch_route_works():
 
 
 def test_post_market_watch_rejects_unknown_symbols():
-    response = client.post("/market-watch", json={"symbols": ["SBIN", "NOT_A_SYMBOL"]})
+    response = client.post(
+        "/market-watch",
+        headers={"X-Admin-Token": "test-admin-token"},
+        json={"symbols": ["SBIN", "NOT_A_SYMBOL"]},
+    )
 
     assert response.status_code == 400
     assert "NOT_A_SYMBOL" in response.json()["detail"]["invalid_symbols"]
 
 
 def test_post_market_watch_accepts_valid_symbols():
-    response = client.post("/market-watch", json={"symbols": ["SBIN", "RELIANCE"]})
+    response = client.post(
+        "/market-watch",
+        headers={"X-Admin-Token": "test-admin-token"},
+        json={"symbols": ["SBIN", "RELIANCE"]},
+    )
 
     assert response.status_code == 200
     assert response.json()["symbols"] == ["SBIN", "RELIANCE"]

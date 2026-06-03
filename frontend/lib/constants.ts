@@ -11,7 +11,10 @@ const LOCAL_API_FALLBACK = 'http://localhost:8000'
 const CLOUD_API_FALLBACK = 'https://maet-backend.onrender.com'
 const WS_MARKET_STREAM_PATH = '/ws/market_stream'
 
-export const API_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL)
+const configuredApiUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL
+
+export const API_URL = normalizeBaseUrl(configuredApiUrl)
 
 export const WS_URL =
   normalizeWsUrl(process.env.NEXT_PUBLIC_WS_URL, API_URL)
@@ -23,6 +26,7 @@ export const CONNECTIVITY_TARGETS = {
 
 export const ENDPOINTS = {
   health: '/health',
+  ready: '/ready',
   terminalStatus: '/terminal/status',
   marketWatch: '/market-watch',
   searchInstruments: '/instruments/search',

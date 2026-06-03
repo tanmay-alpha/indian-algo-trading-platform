@@ -30,9 +30,11 @@ def test_sanitize_response_list():
 
 
 @pytest.mark.asyncio
-async def test_require_admin_token_passes_when_disabled(monkeypatch):
+async def test_require_admin_token_fails_when_not_configured(monkeypatch):
     monkeypatch.setattr(settings, "admin_token", "")
-    await require_admin_token()
+    with pytest.raises(HTTPException) as exc_info:
+        await require_admin_token()
+    assert exc_info.value.status_code == 403
 
 
 @pytest.mark.asyncio

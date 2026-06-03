@@ -96,6 +96,8 @@ export function BrokerAccountPanel() {
         setError('Admin token required to import historical trades')
       } else if ('backendUnavailable' in result) {
         setError('Broker API/Backend is unavailable')
+      } else if ('notFound' in result) {
+        setError('Broker history endpoint is unavailable')
       } else {
         setError(result.error || 'Failed to import historical trades')
       }

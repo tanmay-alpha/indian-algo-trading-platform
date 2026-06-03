@@ -33,7 +33,7 @@ export function PortfolioScreen() {
   const loading = useTerminalStore((s) => s.portfolioLoading)
 
   useEffect(() => {
-    if (adminToken) void refreshPortfolio()
+    void refreshPortfolio()
   }, [adminToken, refreshPortfolio])
 
   const reconciliationLabel = useMemo(() => {

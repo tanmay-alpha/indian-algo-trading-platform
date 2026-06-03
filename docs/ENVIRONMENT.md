@@ -39,8 +39,12 @@ MAET Terminal supports dynamic runtime configuration of the database:
 
 ## Frontend
 
+- `NEXT_PUBLIC_API_BASE_URL`
 - `NEXT_PUBLIC_API_URL`
 - `NEXT_PUBLIC_WS_URL`
+
+`NEXT_PUBLIC_API_BASE_URL` is the preferred frontend API base variable.
+`NEXT_PUBLIC_API_URL` remains supported as a legacy alias.
 
 ## Expanding Live Market Data Symbols
 

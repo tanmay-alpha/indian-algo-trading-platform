@@ -244,8 +244,9 @@ async def require_admin_token(
 ) -> None:
     """
     Legacy and production admin verification guard.
-    Passes if X-Admin-Token matches settings.admin_token (if set),
-    or if valid JWT has ADMIN role.
+    Passes if X-Admin-Token matches settings.admin_token,
+    or if valid JWT has ADMIN role. Protected routes remain protected even
+    when ADMIN_TOKEN is not configured.
     """
     if authorization is not None and not isinstance(authorization, str):
         authorization = None
@@ -276,12 +277,10 @@ async def require_admin_token(
                     if user and user.role == "ADMIN" and user.is_active:
                         return
 
-        # Default fallback
-        if settings.admin_token:
-            raise HTTPException(
-                status_code=403,
-                detail="Admin token required. Set X-Admin-Token header.",
-            )
+        raise HTTPException(
+            status_code=403,
+            detail="Admin authentication required.",
+        )
     finally:
         if close_db and db_session:
             db_session.close()

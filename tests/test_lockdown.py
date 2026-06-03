@@ -17,8 +17,9 @@ from backend.execution.broker_mutation_guard import BrokerMutationGuard
 
 
 @pytest.fixture
-def auth_headers():
-    return {"X-Admin-Token": settings.admin_token or "dummy"}
+def auth_headers(monkeypatch):
+    monkeypatch.setattr(settings, "admin_token", "test-admin-token")
+    return {"X-Admin-Token": "test-admin-token"}
 
 
 def test_api_enable_live_returns_disabled_by_policy(auth_headers):

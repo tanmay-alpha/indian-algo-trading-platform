@@ -198,14 +198,16 @@ Do not list real values in documentation or source control.
 - `ENVIRONMENT`
 - `ALLOWED_ORIGINS`
 - `ADMIN_TOKEN`
-- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_API_URL` (legacy alias)
 - `NEXT_PUBLIC_WS_URL`
 
 Frontend variables beginning with `NEXT_PUBLIC_` are visible in the browser. Do not put private secrets in `NEXT_PUBLIC_` variables.
 
 ## Deployment
 ### Frontend
-The frontend is deployed on Vercel and uses `NEXT_PUBLIC_API_URL` plus `NEXT_PUBLIC_WS_URL`.
+The frontend is deployed on Vercel and uses `NEXT_PUBLIC_API_BASE_URL` plus `NEXT_PUBLIC_WS_URL`.
+`NEXT_PUBLIC_API_URL` remains supported as a legacy alias.
 
 ### Backend
 The backend is deployed as a Render Web Service.

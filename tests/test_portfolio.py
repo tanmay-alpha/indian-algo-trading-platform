@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from backend.core.events import OrderStateEvent
+from backend.core.config import settings
 from backend.core.types import OrderSide, OrderStatus, TradingMode
 from backend.portfolio.broker_reconciliation import BrokerReconciliation
 from backend.portfolio.equity_curve import EquityCurve
@@ -145,16 +146,22 @@ def test_portfolio_summary_empty_state():
 
 @pytest.mark.asyncio
 async def test_portfolio_routes_return_safe_json():
+    original_token = settings.admin_token
+    settings.admin_token = "test-admin-token"
     app = FastAPI()
     app.include_router(portfolio_router)
     app.state.portfolio_engine = PortfolioEngine(initial_capital=1000)
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        summary = await client.get("/portfolio/summary")
-        positions = await client.get("/portfolio/positions")
-        holdings = await client.get("/portfolio/holdings")
-        curve = await client.get("/portfolio/equity-curve")
-        rec = await client.get("/portfolio/reconciliation/status")
+    headers = {"X-Admin-Token": "test-admin-token"}
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            summary = await client.get("/portfolio/summary")
+            positions = await client.get("/portfolio/positions", headers=headers)
+            holdings = await client.get("/portfolio/holdings", headers=headers)
+            curve = await client.get("/portfolio/equity-curve", headers=headers)
+            rec = await client.get("/portfolio/reconciliation/status", headers=headers)
+    finally:
+        settings.admin_token = original_token
     assert summary.status_code == 200
     assert positions.json() == {"positions": []}
     assert "summary" in holdings.json()

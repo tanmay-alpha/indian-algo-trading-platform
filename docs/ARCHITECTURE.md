@@ -210,7 +210,7 @@ The backtest engine normalizes posted or cached CandleStore candles, generates l
 ```text
 Vercel
   -> Next.js frontend
-  -> NEXT_PUBLIC_API_URL / NEXT_PUBLIC_WS_URL
+  -> NEXT_PUBLIC_API_BASE_URL / NEXT_PUBLIC_API_URL / NEXT_PUBLIC_WS_URL
 
 Render
   -> FastAPI backend

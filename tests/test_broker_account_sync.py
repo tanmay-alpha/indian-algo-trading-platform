@@ -654,17 +654,16 @@ def test_router_sync_readonly_requires_admin_when_token_configured():
         assert resp.status_code == 403
 
 
-def test_router_holdings_no_admin_token_configured_open_access():
+def test_router_holdings_requires_admin_when_no_token_configured():
     """
-    When ADMIN_TOKEN is empty (default dev mode), holdings is accessible without token.
-    This matches the intentional 'optional admin' design.
+    Protected broker account routes stay closed when ADMIN_TOKEN is empty.
     """
     sm = _make_valid_session_manager()
     with patch("backend.core.security.settings") as mock_settings:
-        mock_settings.admin_token = ""   # no token configured → guard disabled
+        mock_settings.admin_token = ""
         client = TestClient(_make_test_app(session_manager=sm))
         resp = client.get("/broker/account/holdings")
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
 
 def test_router_funds_requires_admin_when_token_configured():
@@ -739,9 +738,12 @@ def test_router_holdings_response_does_not_contain_jwt():
     sm = _make_valid_session_manager()
     # jwtToken is already in mock data for holdings
     with patch("backend.core.security.settings") as mock_settings:
-        mock_settings.admin_token = ""   # open in dev
+        mock_settings.admin_token = "test-secret-token"
         client = TestClient(_make_test_app(session_manager=sm))
-        resp = client.get("/broker/account/holdings")
+        resp = client.get(
+            "/broker/account/holdings",
+            headers={"X-Admin-Token": "test-secret-token"},
+        )
         assert resp.status_code == 200
         data = resp.json()
         for h in data.get("holdings", []):
