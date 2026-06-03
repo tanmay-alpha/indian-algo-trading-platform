@@ -98,7 +98,7 @@ export function SystemHealthTab() {
                 <EmptyLine text="No incidents recorded this session." />
               ) : (
                 incidents.map((incident) => (
-                  <div key={`${incident.component}-${incident.started_at}`} className="rounded-sm border border-border bg-panel/70 px-2 py-1.5 font-mono text-[10px]">
+                  <div key={`${incident.component}-${incident.started_at}`} className="rounded-sm border border-border bg-panel/70 px-2 py-1.5 font-mono text-xs">
                     <div className="flex items-center justify-between">
                       <span className="uppercase text-warn">{incident.component}</span>
                       <span className="text-text-faint">{incident.duration_seconds == null ? 'OPEN' : `${incident.duration_seconds.toFixed(1)}s`}</span>
@@ -116,12 +116,12 @@ export function SystemHealthTab() {
         <div className="flex h-10 items-center justify-between border-b border-border bg-bg/70 px-3">
           <div>
             <div className="text-xs font-semibold text-text">Event Log</div>
-            <div className="text-[10px] font-mono text-text-faint">Last 50 entries</div>
+            <div className="text-xs font-mono text-text-faint">Last 50 entries</div>
           </div>
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value as EventFilter)}
-            className="h-7 rounded-sm border border-border bg-bg px-2 font-mono text-[10px] text-text"
+            className="h-7 rounded-sm border border-border bg-bg px-2 font-mono text-xs text-text"
           >
             {['ALL', 'TICK', 'SIGNAL', 'ERROR', 'GATEWAY_STATUS'].map((item) => <option key={item}>{item}</option>)}
           </select>
@@ -133,7 +133,7 @@ export function SystemHealthTab() {
             events.map((entry) => <EventRow key={entry.id} entry={entry} />)
           )}
         </div>
-        <div className="h-[42px] border-t border-border bg-bg/70 px-3 flex items-center justify-between font-mono text-[10px]">
+        <div className="h-[42px] border-t border-border bg-bg/70 px-3 flex items-center justify-between font-mono text-xs">
           <span className="text-text-faint">Total errors: <span className="text-down">{status?.error_count ?? 0}</span></span>
           <button onClick={() => setFilter('ERROR')} className="rounded-sm border border-border bg-panel px-2 py-1 text-text-dim hover:text-text">
             View all errors
@@ -148,7 +148,7 @@ function PanelHeader({ title, subtitle, compact = false }: { title: string; subt
   return (
     <div className={cn('border-b border-border bg-bg/70 px-3', compact ? 'py-1.5' : 'py-2')}>
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-xs font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }
@@ -156,9 +156,9 @@ function PanelHeader({ title, subtitle, compact = false }: { title: string; subt
 function MetricCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-sm border border-border bg-bg p-2 font-mono">
-      <div className="text-[10px] uppercase text-text-faint">{label}</div>
+      <div className="text-xs uppercase text-text-faint">{label}</div>
       <div className="mt-1 text-xs text-text">{value}</div>
-      {sub && <div className="mt-0.5 text-[10px] text-text-faint">{sub}</div>}
+      {sub && <div className="mt-0.5 text-xs text-text-faint">{sub}</div>}
     </div>
   )
 }
@@ -166,7 +166,7 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub?:
 function SparkPanel({ label, points }: { label: string; points: number[] }) {
   return (
     <div className="flex items-center justify-between rounded-sm border border-border bg-bg p-2">
-      <div className="font-mono text-[10px] text-text-faint">{label}</div>
+      <div className="font-mono text-xs text-text-faint">{label}</div>
       <svg width="120" height="30" viewBox="0 0 120 30" role="img" aria-label={`${label} sparkline`}>
         <polyline points={pointsToSvgPolyline(points, 120, 30)} fill="none" stroke="#16c784" strokeWidth="1.5" />
       </svg>
@@ -176,7 +176,7 @@ function SparkPanel({ label, points }: { label: string; points: number[] }) {
 
 function TimelineRow({ event }: { event: HealthTimelineEvent }) {
   return (
-    <div className="grid grid-cols-[58px_52px_18px_1fr] items-center gap-2 rounded-sm border border-border bg-panel/70 px-2 py-1.5 font-mono text-[10px]">
+    <div className="grid grid-cols-[58px_52px_18px_1fr] items-center gap-2 rounded-sm border border-border bg-panel/70 px-2 py-1.5 font-mono text-xs">
       <span className="text-text-faint">{fmtTime(event.ts)}</span>
       <span className="text-info">{componentBadge(event.component)}</span>
       <span className={cn('h-2 w-2 rounded-full', stateDot(event.state))} />
@@ -187,9 +187,9 @@ function TimelineRow({ event }: { event: HealthTimelineEvent }) {
 
 function EventRow({ entry }: { entry: ObservabilityEventEntry }) {
   return (
-    <div className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
+    <div className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-xs">
       <div className="flex items-center gap-2">
-        <span className={cn('rounded border px-1.5 py-0.5 text-[10px]', eventTypeClass(entry.event_type))}>{entry.event_type}</span>
+        <span className={cn('rounded border px-1.5 py-0.5 text-xs', eventTypeClass(entry.event_type))}>{entry.event_type}</span>
         <span className="text-text-faint">{fmtTime(entry.ts)}</span>
       </div>
       <div className="mt-1 truncate text-text-2">{entry.summary}</div>
@@ -198,7 +198,7 @@ function EventRow({ entry }: { entry: ObservabilityEventEntry }) {
 }
 
 function EmptyLine({ text }: { text: string }) {
-  return <div className="rounded-sm border border-border bg-bg px-2 py-2 text-center font-mono text-[10px] text-text-faint">{text}</div>
+  return <div className="rounded-sm border border-border bg-bg px-2 py-2 text-center font-mono text-xs text-text-faint">{text}</div>
 }
 
 export function pointsToSvgPolyline(points: number[], w: number, h: number): string {

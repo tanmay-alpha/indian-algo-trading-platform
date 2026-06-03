@@ -38,7 +38,7 @@ export function BacktestMetricsGrid({ result }: { result: BacktestResult | null 
     <div className="grid grid-cols-3 gap-2">
       {items.map(([label, value]) => (
         <div key={label} className="rounded-sm border border-border bg-panel/60 p-3">
-          <div className="text-[10px] font-mono uppercase text-text-faint">{label}</div>
+          <div className="text-xs font-mono uppercase text-text-faint">{label}</div>
           <div className="mt-2 font-mono text-sm text-text">{value}</div>
         </div>
       ))}

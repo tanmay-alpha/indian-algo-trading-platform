@@ -1,16 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { StatusOrb } from '@/components/effects/status-orb'
 
 export function SafetyStrip() {
   return (
     <div
-      className="sticky top-0 z-[80] flex min-h-safety items-center justify-center border-b border-maet-glass-border bg-maet-bg-deep/72 px-3 py-1 font-mono text-[10px] text-maet-text-muted shadow-inner backdrop-blur-xl md:h-safety md:py-0 md:text-[11px]"
+      className="sticky top-0 z-[80] flex min-h-safety items-center justify-center border-b border-maet-amber/20 bg-maet-ink-950/106 px-3 py-1 text-xs font-extrabold text-maet-text-soft shadow-inner backdrop-blur-xl md:h-safety md:py-0"
       role="status"
       aria-label="Live trading locked, paper mode, read only, AI advisory only, broker mutation disabled"
     >
-      <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-safety-locked shadow-[0_0_10px_rgba(255,77,106,0.8)] pulse-soft" />
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        <StatusOrb tone="amber" pulse />
         <SafetyText>LIVE LOCKED</SafetyText>
         <SafetyText>PAPER MODE</SafetyText>
         <SafetyText>READ ONLY</SafetyText>
@@ -23,7 +24,7 @@ export function SafetyStrip() {
 
 function SafetyText({ children }: { children: ReactNode }) {
   return (
-    <span className="whitespace-nowrap text-maet-text-soft after:ml-2 after:text-maet-text-faint after:content-['.'] last:after:content-none">
+    <span className="whitespace-nowrap after:ml-3 after:text-maet-text-faint after:content-['/'] last:after:content-none">
       {children}
     </span>
   )

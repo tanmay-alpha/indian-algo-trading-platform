@@ -45,7 +45,7 @@ interface MetricCardProps {
 export function MetricCard({ label, value, sub, trend, className }: MetricCardProps) {
   return (
     <div className={cn('premium-card p-3', className)}>
-      <div className="text-[11px] font-medium text-text-faint uppercase tracking-wide leading-tight mb-1">
+      <div className="text-xs font-medium text-text-faint uppercase tracking-wide leading-tight mb-1">
         {label}
       </div>
       <div className={cn(

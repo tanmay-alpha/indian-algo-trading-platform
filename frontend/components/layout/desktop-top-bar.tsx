@@ -33,7 +33,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
   }[session ?? 'CLOSED'] ?? 'MARKET CLOSED'
 
   return (
-    <header className="m-3 mb-0 flex min-h-16 shrink-0 items-center justify-between gap-4 rounded-2xl border border-maet-glass-border bg-maet-bg-deep/58 px-5 py-3 shadow-card backdrop-blur-2xl">
+    <header className="m-3 mb-0 flex min-h-16 shrink-0 items-center justify-between gap-4 rounded-2xl border border-maet-glass-border bg-maet-bg-deep/60 px-5 py-3 shadow-card backdrop-blur-2xl">
       <div>
         <h1 className="font-heading text-xl font-bold leading-tight text-maet-text xl-heading">{TITLES[activeTab]}</h1>
         <p className="text-xs font-medium text-maet-text-muted">Market session, backend state, and read-only research context.</p>
@@ -74,7 +74,7 @@ function StatusChip({
   }[tone]
 
   return (
-    <span className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[11px] font-bold uppercase shadow-inner', toneClass)}>
+    <span className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-xs font-bold uppercase shadow-inner', toneClass)}>
       {icon}
       {label}
     </span>

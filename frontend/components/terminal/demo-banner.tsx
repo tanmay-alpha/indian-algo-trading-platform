@@ -30,7 +30,7 @@ export function DemoBanner() {
   if (dismissed) return null
 
   return (
-    <div className="flex h-8 shrink-0 items-center gap-3 border-b border-warn/30 bg-warn-dim px-3 text-[11px] font-mono text-warn">
+    <div className="flex h-8 shrink-0 items-center gap-3 border-b border-warn/30 bg-warn-dim px-3 text-xs font-mono text-warn">
       <span className="font-semibold">MAET Terminal — Research & Paper Demo.</span>
       <span className="text-text-2">
         PAPER mode only. No real orders.

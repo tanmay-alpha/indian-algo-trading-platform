@@ -32,10 +32,10 @@ export function OrderDryRunCard() {
           </div>
           <div>
             <h4 className="text-xs font-semibold text-white tracking-wider uppercase">Order Sandbox</h4>
-            <p className="text-[10px] font-mono text-text-dim">Simulated execution lab</p>
+            <p className="text-xs font-mono text-text-dim">Simulated execution lab</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full border border-down/30 bg-down/10 text-down font-mono text-[10px] font-semibold tracking-wider flex items-center gap-1">
+        <span className="px-2 py-0.5 rounded-full border border-down/30 bg-down/10 text-down font-mono text-xs font-semibold tracking-wider flex items-center gap-1">
           <Lock className="w-3 h-3" />
           LIVE LOCKED
         </span>
@@ -45,7 +45,7 @@ export function OrderDryRunCard() {
       <form onSubmit={handleDryRun} className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[10px] text-text-dim uppercase font-mono block">Instrument</label>
+            <label className="text-xs text-text-dim uppercase font-mono block">Instrument</label>
             <input 
               type="text" 
               value={symbol}
@@ -55,7 +55,7 @@ export function OrderDryRunCard() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] text-text-dim uppercase font-mono block">Quantity</label>
+            <label className="text-xs text-text-dim uppercase font-mono block">Quantity</label>
             <input 
               type="number" 
               value={qty}
@@ -86,7 +86,7 @@ export function OrderDryRunCard() {
         </button>
 
         {message && (
-          <div className="bg-white/[0.01] p-2 rounded border border-[#38bdf8]/20 text-[10px] text-text-2 font-mono flex items-start gap-1.5 leading-normal">
+          <div className="bg-white/[0.01] p-2 rounded border border-[#38bdf8]/20 text-xs text-text-2 font-mono flex items-start gap-1.5 leading-normal">
             <CheckCircle className="w-3.5 h-3.5 text-up shrink-0 mt-0.5" />
             <span>{message}</span>
           </div>

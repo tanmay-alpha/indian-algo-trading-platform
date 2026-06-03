@@ -50,7 +50,7 @@ export function BottomDock() {
                 if (!isOpen) setOpen(true)
               }}
               className={cn(
-                'h-9 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-[10px] font-medium transition-colors whitespace-nowrap',
+                'h-9 px-3 flex items-center gap-1.5 border-r border-border border-b-2 text-xs font-medium transition-colors whitespace-nowrap',
                 tab === dockTab.id && isOpen
                   ? 'text-info bg-info/[0.07] border-b-info'
                   : 'text-text-dim border-b-transparent hover:text-text hover:bg-white/[0.03]'
@@ -96,7 +96,7 @@ function TableEmpty({
 }) {
   return (
     <div className="h-full flex flex-col">
-      <div className="h-7 grid grid-cols-5 gap-2 px-3 items-center border-b border-border bg-bg text-[10px] font-mono uppercase tracking-wider text-text-faint">
+      <div className="h-7 grid grid-cols-5 gap-2 px-3 items-center border-b border-border bg-bg text-xs font-mono uppercase tracking-wider text-text-faint">
         {columns.map((column) => (
           <span key={column}>{column}</span>
         ))}
@@ -183,7 +183,7 @@ function DockTable({
   return (
     <div className="h-full flex flex-col">
       <div
-        className="h-7 grid gap-2 px-3 items-center border-b border-border bg-bg text-[10px] font-mono uppercase tracking-wider text-text-faint"
+        className="h-7 grid gap-2 px-3 items-center border-b border-border bg-bg text-xs font-mono uppercase tracking-wider text-text-faint"
         style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
       >
         {columns.map((column) => (
@@ -199,7 +199,7 @@ function DockTable({
           {rows.map((row, index) => (
             <div
               key={`${row[0]}-${index}`}
-              className="grid gap-2 px-3 py-1.5 border-b border-border/60 font-mono text-[10px] text-text-2"
+              className="grid gap-2 px-3 py-1.5 border-b border-border/60 font-mono text-xs text-text-2"
               style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
             >
               {row.map((cell, cellIndex) => (
@@ -267,7 +267,7 @@ function KeyValueGrid({ rows }: { rows: string[][] }) {
     <div className="p-3 grid grid-cols-4 gap-2">
       {rows.map(([label, value]) => (
         <div key={label} className="border border-border bg-panel/70 rounded-sm p-2">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-text-faint">{label}</div>
+          <div className="text-xs font-mono uppercase tracking-wider text-text-faint">{label}</div>
           <div className="mt-1 text-xs font-mono text-text">{value}</div>
         </div>
       ))}

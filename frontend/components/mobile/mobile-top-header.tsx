@@ -37,7 +37,7 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
 
   return (
     <header
-      className="mx-3 mt-3 flex items-center justify-between rounded-2xl border border-maet-glass-border bg-maet-bg-deep/62 px-3 shadow-card backdrop-blur-2xl shrink-0"
+      className="mx-3 mt-3 flex items-center justify-between rounded-2xl border border-maet-glass-border bg-maet-bg-deep/60 px-3 shadow-card backdrop-blur-2xl shrink-0"
       style={{ height: 'var(--top-header-h)' }}
     >
       {/* Logo / Title */}
@@ -46,22 +46,22 @@ export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
           M
         </div>
         <div>
-          <div className="text-sm font-bold text-text tracking-wide leading-tight">
+          <div className="text-base font-bold text-text leading-tight">
             {title ?? 'MAET'}
           </div>
-          <div className="text-[10px] text-text-faint leading-tight font-mono">
+          <div className="text-xs text-text-faint leading-tight font-semibold">
             Research Terminal
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className={cn('hidden min-[390px]:inline text-[10px] font-semibold font-mono', sessionColor)}>
+        <span className={cn('hidden min-[390px]:inline text-xs font-extrabold', sessionColor)}>
           {sessionLabel}
         </span>
 
         <div className={cn(
-          'flex min-h-7 items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium shadow-inner',
+          'flex min-h-8 items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold shadow-inner',
           isConnected
             ? 'bg-up/10 text-up border border-up/20'
             : 'bg-text-faint/10 text-text-dim border border-border'

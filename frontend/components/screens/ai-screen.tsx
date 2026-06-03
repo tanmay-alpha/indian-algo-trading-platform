@@ -1,17 +1,26 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Send, Sparkles } from 'lucide-react'
+import { Bot, CheckCircle2, Send, ShieldCheck, Sparkles } from 'lucide-react'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
+import { StatusOrb } from '@/components/effects/status-orb'
+import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
 const EXAMPLE_PROMPTS = [
-  'Summarize RELIANCE technical indicators',
-  'What is the current NIFTY 50 market session state?',
-  'Explain the current strategy signals for BANKNIFTY',
+  'Explain RSI divergence',
+  'Summarize RELIANCE candles',
+  'Risk-check this dry-run order',
+  'Explain why live execution is locked',
+]
+
+const EXPLANATION_CARDS = [
+  ['Indicator context', 'Explains RSI, MACD, VWAP, and trend structure when backend data exists.'],
+  ['Risk framing', 'Can describe risk-gate inputs, but cannot authorize execution.'],
+  ['Safety boundary', 'Always keeps execution_allowed=false and broker_mutation_allowed=false visible.'],
 ]
 
 export function AiScreen() {
@@ -19,6 +28,12 @@ export function AiScreen() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+
+  const apiStatus = useTerminalStore((s) => s.apiStatus)
+  const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
+  const chartTimeframe = useTerminalStore((s) => s.chartTimeframe)
+  const strategyStatus = useTerminalStore((s) => s.strategyStatus)
+  const manualOrderStatus = useTerminalStore((s) => s.manualOrderStatus)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -38,108 +53,178 @@ export function AiScreen() {
         {
           role: 'assistant',
           content:
-            `AI advisory backend not connected yet for "${trimmed}". ` +
-            'execution_allowed=false. This interface cannot route, authorize, or place broker orders.',
+            `Advisory backend is not connected for "${trimmed}". ` +
+            'execution_allowed=false. No orders, broker mutations, predictions, or financial advice are generated here.',
         },
       ])
-    }, 750)
+    }, 520)
   }
 
   return (
-    <MobilePage className="flex h-full flex-col pb-4">
-      <div className="reflection-card mb-3 flex shrink-0 items-center justify-between gap-3 p-4 shadow-[0_18px_60px_rgba(139,92,246,0.10)]">
-        <div>
-          <h1 className="font-heading text-xl font-bold text-maet-text">AI Advisory</h1>
-          <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Ask for market context, indicator explanations, and risk framing.</p>
+    <MobilePage className="flex h-full min-h-0 flex-col gap-3 pb-4 lg:pb-0">
+      <div className="maet-glass-strong shrink-0 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-2xl font-bold text-maet-text">AI Advisory Desk</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
+              Research explanations, indicator context, and risk framing. No predictions are presented as trading truth.
+            </p>
+          </div>
+          <StatusBadge tone="ai" dot>execution_allowed=false</StatusBadge>
         </div>
-        <StatusBadge tone="ai">Backend not connected - advisory only</StatusBadge>
       </div>
 
-      <div className="reflection-card min-h-0 flex-1 overflow-hidden border-maet-violet/25 bg-maet-bg-deep/58">
-        <div className="flex h-full flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            {messages.length === 0 ? (
-              <div className="grid min-h-full place-items-center py-8">
-                <div className="w-full max-w-md text-center">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-md border border-maet-violet/30 bg-maet-violet/12 text-maet-violet">
-                    <Bot className="h-6 w-6" />
-                  </div>
-                  <h2 className="mt-4 font-heading text-lg font-bold text-maet-text">Start with a research question</h2>
-                  <p className="mt-2 text-sm leading-6 text-maet-text-secondary">
-                    AI advisory backend not connected yet. execution_allowed=false. This interface cannot route, authorize, or place broker orders.
-                  </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    {EXAMPLE_PROMPTS.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => sendPrompt(prompt)}
-                        className="glass-button px-3 py-2 text-xs"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {messages.map((message, index) => (
-                  <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                    <div
-                      className={cn(
-                        'max-w-[86%] rounded-xl border px-3 py-2 text-sm leading-6',
-                        message.role === 'user'
-                          ? 'rounded-tr-sm border-maet-border-strong bg-maet-glass-2 text-maet-text'
-                          : 'rounded-tl-sm border-maet-violet/35 border-l-maet-violet bg-maet-violet/10 text-maet-text-secondary'
-                      )}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="mb-1 flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase text-maet-violet">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Research advisor
-                        </div>
-                      )}
-                      {message.content}
+      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="maet-glass-strong min-h-0 overflow-hidden border-maet-violet/25">
+          <div className="flex h-full min-h-[460px] flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {messages.length === 0 ? (
+                <div className="grid min-h-full place-items-center py-8">
+                  <div className="w-full max-w-2xl text-center">
+                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-maet-violet/30 bg-maet-violet/10 text-maet-violet">
+                      <Bot className="h-7 w-7" />
+                    </div>
+                    <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Start with a research question</h2>
+                    <p className="mt-2 text-sm leading-6 text-maet-text-muted">
+                      Backend AI is unavailable unless explicitly connected. This polished empty state does not fabricate advice, prices, or predictions.
+                    </p>
+                    <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                      {EXAMPLE_PROMPTS.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          onClick={() => sendPrompt(prompt)}
+                          className="glass-button justify-start px-3 py-2 text-left text-xs"
+                        >
+                          <Sparkles className="h-4 w-4 text-maet-violet" />
+                          {prompt}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))}
-                {isTyping && (
-                  <div className="inline-flex items-center gap-1 rounded-xl border border-maet-border bg-maet-surface px-3 py-2">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted" />
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:120ms]" />
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:240ms]" />
-                  </div>
-                )}
-                <div ref={endRef} />
-              </div>
-            )}
-          </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                      <div
+                        className={cn(
+                          'max-w-[88%] rounded-xl border px-3 py-2 text-sm leading-6',
+                          message.role === 'user'
+                            ? 'rounded-tr-sm border-maet-cyan/40 bg-maet-cyan/10 text-maet-text'
+                            : 'rounded-tl-sm border-maet-violet/40 bg-maet-violet/10 text-maet-text-soft'
+                        )}
+                      >
+                        {message.role === 'assistant' && (
+                          <div className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase text-maet-violet">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Research advisor
+                          </div>
+                        )}
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && (
+                    <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-maet-panel-soft px-3 py-2">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:120ms]" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-maet-text-muted [animation-delay:240ms]" />
+                    </div>
+                  )}
+                  <div ref={endRef} />
+                </div>
+              )}
+            </div>
 
-          <div className="shrink-0 border-t border-maet-glass-border bg-maet-bg-deep/42 p-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') sendPrompt()
-                }}
-                placeholder="Ask about market context, indicators, or risk..."
-                className="maet-input"
-              />
-              <button
-                type="button"
-                onClick={() => sendPrompt()}
-                aria-label="Send advisory prompt"
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-maet-violet text-white hover:bg-maet-violet/90"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+            <div className="shrink-0 border-t border-white/10 bg-maet-ink-950/42 p-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') sendPrompt()
+                  }}
+                  placeholder="Ask about indicators, candles, risk, or live lock..."
+                  className="maet-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => sendPrompt()}
+                  aria-label="Send advisory prompt"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-maet-violet text-white hover:bg-maet-violet/90"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        <aside className="grid min-h-0 gap-3 xl:content-start">
+          <ContextCard
+            title="Market context"
+            rows={[
+              ['Backend', apiStatus],
+              ['Selected', selectedSymbol ?? 'No symbol selected'],
+              ['Timeframe', chartTimeframe],
+              ['Strategy engine', strategyStatus?.available ? strategyStatus.engine : 'Unavailable'],
+            ]}
+          />
+          <div className="maet-glass p-3">
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-maet-amber" />
+              <div className="font-heading text-sm font-bold text-maet-text">Risk checklist</div>
+            </div>
+            <div className="space-y-2">
+              <SafetyLine label="LIVE LOCKED" />
+              <SafetyLine label="BROKER MUTATION DISABLED" />
+              <SafetyLine label="AI ADVISORY ONLY" />
+              <SafetyLine label="Creates broker order" value={manualOrderStatus?.creates_broker_order ? 'true' : 'false'} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            {EXPLANATION_CARDS.map(([title, body]) => (
+              <div key={title} className="maet-glass p-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-maet-violet" />
+                  <div className="font-heading text-sm font-bold text-maet-text">{title}</div>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-maet-text-muted">{body}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
       </div>
     </MobilePage>
+  )
+}
+
+function ContextCard({ title, rows }: { title: string; rows: [string, string][] }) {
+  return (
+    <div className="maet-glass p-3">
+      <div className="mb-3 flex items-center gap-2">
+        <StatusOrb tone="violet" />
+        <div className="font-heading text-sm font-bold text-maet-text">{title}</div>
+      </div>
+      <div className="space-y-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 text-sm">
+            <span className="text-maet-text-muted">{label}</span>
+            <span className="truncate font-mono text-maet-text-soft">{value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SafetyLine({ label, value = 'true' }: { label: string; value?: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
+      <span className="text-xs font-bold text-maet-amber">{label}</span>
+      <span className="font-mono text-xs font-bold text-maet-text">{value}</span>
+    </div>
   )
 }

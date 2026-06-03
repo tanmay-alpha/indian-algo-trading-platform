@@ -7,7 +7,7 @@ export function StrategySignalFeed({ signals }: { signals: StrategySignal[] }) {
     <section className="rounded-sm border border-border bg-panel/60">
       <div className="border-b border-border bg-bg/60 px-3 py-2">
         <div className="text-xs font-semibold text-text">Signal Preview</div>
-        <div className="text-[10px] font-mono text-text-faint">Research signals only, not routed to execution</div>
+        <div className="text-xs font-mono text-text-faint">Research signals only, not routed to execution</div>
       </div>
       {signals.length === 0 ? (
         <div className="p-3">
@@ -19,7 +19,7 @@ export function StrategySignalFeed({ signals }: { signals: StrategySignal[] }) {
       ) : (
         <div className="max-h-[220px] overflow-auto p-2 space-y-1">
           {signals.slice(-40).map((signal, index) => (
-            <div key={`${signal.timestamp}-${index}`} className="grid grid-cols-[80px_54px_80px_1fr] gap-2 rounded-sm border border-border/70 bg-bg/70 px-2 py-1.5 text-[10px] font-mono">
+            <div key={`${signal.timestamp}-${index}`} className="grid grid-cols-[80px_54px_80px_1fr] gap-2 rounded-sm border border-border/70 bg-bg/70 px-2 py-1.5 text-xs font-mono">
               <span className="truncate text-text-faint">{signal.timestamp}</span>
               <span className={signal.action === 'BUY' ? 'text-up' : signal.action === 'EXIT' ? 'text-warn' : 'text-text-dim'}>
                 {signal.action}

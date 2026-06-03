@@ -503,17 +503,17 @@ export function IndicatorChartShell({
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-text">{cleanSymbol || 'NO SYMBOL'}</span>
           {exchange && (
-            <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] font-bold text-text-dim border border-border/40">
+            <span className="rounded bg-panel px-1.5 py-0.5 text-xs font-bold text-text-dim border border-border/40">
               {exchange}
             </span>
           )}
-          <span className="rounded bg-info/10 text-info px-1.5 py-0.5 text-[10px] font-mono border border-info/25 font-semibold">
+          <span className="rounded bg-info/10 text-info px-1.5 py-0.5 text-xs font-mono border border-info/25 font-semibold">
             {timeframe}
           </span>
         </div>
 
         {candles.length > 0 && (
-          <div className="flex items-center gap-3 text-[11px] font-mono">
+          <div className="flex items-center gap-3 text-xs font-mono">
             <span className="text-text-faint">LTP:</span>
             <span className="text-text font-bold">{ltp}</span>
 
@@ -534,7 +534,7 @@ export function IndicatorChartShell({
         <div className="flex items-center gap-1.5">
           <span
             className={cn(
-              'rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide border',
+              'rounded px-1.5 py-0.5 text-xs font-bold tracking-wide border',
               sourceBadge === 'LIVE TICKS'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 : sourceBadge === 'REAL CANDLES'
@@ -544,7 +544,7 @@ export function IndicatorChartShell({
           >
             {sourceBadge}
           </span>
-          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 text-xs font-bold flex items-center gap-1">
             <Database size={10} />
             <span>ENGINE: PYTHON</span>
           </span>
@@ -558,7 +558,7 @@ export function IndicatorChartShell({
           onClick={onFetchCandles}
           disabled={isFetching || !symbol}
           title="Fetch latest historical candles from broker cache"
-          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-xs font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <RefreshCw size={11} className={cn('text-text-dim', isFetching && 'animate-spin')} />
           <span>{isFetching ? 'Loading...' : 'Refresh'}</span>
@@ -569,7 +569,7 @@ export function IndicatorChartShell({
           onClick={handleResetView}
           disabled={candles.length === 0}
           title="Reset chart timescale zoom to fit all candles"
-          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-xs font-medium text-text transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Maximize2 size={11} className="text-text-dim" />
           <span>Reset</span>
@@ -581,7 +581,7 @@ export function IndicatorChartShell({
           disabled={candles.length === 0}
           title="Toggle visibility of backend pattern markers on the chart"
           className={cn(
-            'flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+            'flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
             showPatterns ? 'bg-info/10 border-info/30 text-info' : 'bg-panel border-border text-text-dim hover:bg-panel-2'
           )}
         >
@@ -595,7 +595,7 @@ export function IndicatorChartShell({
           disabled={candles.length === 0 || !isVolumeAvailable}
           title={isVolumeAvailable ? 'Toggle volume overlay series at the bottom of the chart' : 'Volume data unavailable'}
           className={cn(
-            'flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+            'flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
             showVolume && isVolumeAvailable ? 'bg-info/10 border-info/30 text-info' : 'bg-panel border-border text-text-dim hover:bg-panel-2'
           )}
         >
@@ -609,7 +609,7 @@ export function IndicatorChartShell({
           rel="noopener noreferrer"
           title={`Analyze ${cleanSymbol} in a full TradingView chart`}
           className={cn(
-            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors',
+            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-xs font-medium text-text transition-colors',
             !symbol && 'opacity-40 pointer-events-none'
           )}
         >
@@ -623,7 +623,7 @@ export function IndicatorChartShell({
           rel="noopener noreferrer"
           title="Opens Angel One chart; search symbol there if not auto-selected."
           className={cn(
-            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-[11px] font-medium text-text transition-colors',
+            'flex items-center gap-1 rounded bg-panel hover:bg-panel-2 border border-border px-2 py-1 text-xs font-medium text-text transition-colors',
             !symbol && 'opacity-40 pointer-events-none'
           )}
         >
@@ -690,7 +690,7 @@ export function IndicatorChartShell({
 
           <div className="relative z-10 max-w-[400px]">
             <div className="mb-1.5 text-sm font-semibold text-text-light">{emptyTitle}</div>
-            <div className="text-[11px] leading-relaxed text-text-dim">{emptyDescription}</div>
+            <div className="text-xs leading-relaxed text-text-dim">{emptyDescription}</div>
           </div>
 
           {symbol && apiStatus !== 'OFFLINE' && (
@@ -700,7 +700,7 @@ export function IndicatorChartShell({
                 onClick={onFetchCandles}
                 disabled={isFetching}
                 className={cn(
-                  'flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] font-medium transition-colors shadow-sm',
+                  'flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-xs font-medium transition-colors shadow-sm',
                   'border-info/30 bg-info/5 text-info hover:bg-info/10',
                   'disabled:cursor-not-allowed disabled:opacity-50'
                 )}
@@ -713,7 +713,7 @@ export function IndicatorChartShell({
                 href={tvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-[11px] font-medium border-border bg-panel hover:bg-panel-2 text-text transition-colors shadow-sm"
+                className="flex items-center gap-1.5 rounded border px-3 py-1.5 font-mono text-xs font-medium border-border bg-panel hover:bg-panel-2 text-text transition-colors shadow-sm"
               >
                 <ExternalLink size={11} className="text-text-dim" />
                 <span>Open in TradingView</span>
@@ -721,7 +721,7 @@ export function IndicatorChartShell({
             </div>
           )}
 
-          <div className="relative z-10 max-w-[340px] rounded border border-border/40 bg-panel/30 px-3 py-2 text-[10px] text-text-faint mt-4">
+          <div className="relative z-10 max-w-[340px] rounded border border-border/40 bg-panel/30 px-3 py-2 text-xs text-text-faint mt-4">
             <span className="font-semibold text-text-dim block mb-1">Real Data Policy</span>
             No synthetic candles or dummy prices are used. All chart data maps directly to actual historical broker candles.
           </div>
@@ -746,9 +746,9 @@ export function IndicatorChartShell({
 
       {/* 2. Legend & Summary Row */}
       {layoutMode === 'ANALYSIS' && (
-        <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-[10px] font-mono text-text-dim select-none z-10">
+        <div className="flex flex-wrap items-center justify-between px-4 py-1.5 border-b border-border/40 bg-panel/20 text-xs font-mono text-text-dim select-none z-10">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="text-text-faint font-semibold uppercase tracking-wider text-[10px]">Markers:</span>
+            <span className="text-text-faint font-semibold uppercase tracking-wider text-xs">Markers:</span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
               <span>Bullish / BUY</span>
@@ -764,17 +764,17 @@ export function IndicatorChartShell({
           </div>
           <div className="flex items-center gap-3">
             {showPatterns && (
-              <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-semibold">
+              <span className="text-info bg-info/5 border border-info/10 px-1.5 py-0.5 rounded flex items-center gap-1 text-xs font-semibold">
                 <Sparkles size={10} />
                 <span>Patterns: {patterns.length}</span>
               </span>
             )}
             {!isVolumeAvailable && (
-              <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-[10px]">
+              <span className="text-text-faint border border-border bg-panel px-1.5 py-0.5 rounded text-xs">
                 Volume Unavailable
               </span>
             )}
-            <span className="text-text-faint text-[10px]">Chart Engine: Lightweight Charts v5</span>
+            <span className="text-text-faint text-xs">Chart Engine: Lightweight Charts v5</span>
           </div>
         </div>
       )}
@@ -783,7 +783,7 @@ export function IndicatorChartShell({
       <div className="relative flex-1 bg-[#070b12]">
         {/* Hovered Price Details Panel */}
         {hoveredData && (
-          <div className="absolute right-4 top-4 z-20 rounded border border-border/80 bg-[#070b12]/90 backdrop-blur-sm px-2.5 py-1 text-[10px] flex items-center gap-3.5 font-mono text-text shadow-md select-none">
+          <div className="absolute right-4 top-4 z-20 rounded border border-border/80 bg-[#070b12]/90 backdrop-blur-sm px-2.5 py-1 text-xs flex items-center gap-3.5 font-mono text-text shadow-md select-none">
             <div className="flex items-center gap-1">
               <span className="text-text-faint">O:</span>
               <span className="font-semibold">{hoveredData.open.toFixed(2)}</span>
@@ -812,7 +812,7 @@ export function IndicatorChartShell({
                 {hoveredData.signal && (
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded text-[10px] font-bold border',
+                      'px-1.5 py-0.5 rounded text-xs font-bold border',
                       hoveredData.signal.includes('BUY')
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                         : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -822,7 +822,7 @@ export function IndicatorChartShell({
                   </span>
                 )}
                 {hoveredData.pattern && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
                     {hoveredData.pattern}
                   </span>
                 )}
@@ -834,7 +834,7 @@ export function IndicatorChartShell({
         {/* Pattern/Signal Floating Tooltip */}
         {tooltip && (
           <div
-            className="absolute pointer-events-none z-30 rounded-md border bg-bg-2/95 shadow-xl px-3 py-2 text-[11px] max-w-[220px] select-none"
+            className="absolute pointer-events-none z-30 rounded-md border bg-bg-2/95 shadow-xl px-3 py-2 text-xs max-w-[220px] select-none"
             style={{
               left: `${tooltipX}px`,
               top: `${tooltipY}px`,
@@ -846,7 +846,7 @@ export function IndicatorChartShell({
               <Sparkles size={11} />
               <span>{tooltip.title}</span>
             </div>
-            <div className="text-text-dim text-[10px] leading-relaxed">{tooltip.description}</div>
+            <div className="text-text-dim text-xs leading-relaxed">{tooltip.description}</div>
           </div>
         )}
 

@@ -23,9 +23,9 @@ export function RightTradePanel({ className, onClose }: { className?: string; on
     >
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-text uppercase tracking-wider">Intelligence</span>
+          <span className="text-xs font-bold text-text uppercase tracking-wider">Intelligence</span>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-medium text-info">{selected ?? '---'}</span>
+            <span className="text-xs font-mono font-medium text-info">{selected ?? '---'}</span>
             {onClose && (
               <button
                 onClick={onClose}
@@ -47,7 +47,7 @@ export function RightTradePanel({ className, onClose }: { className?: string; on
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              'flex-1 text-[10px] font-mono uppercase tracking-tight transition-colors border-b-2',
+              'flex-1 text-xs font-mono uppercase tracking-tight transition-colors border-b-2',
               tab === t.id
                 ? 'text-info border-info bg-info/5'
                 : 'text-text-faint border-transparent hover:text-text hover:bg-white/[0.03]'

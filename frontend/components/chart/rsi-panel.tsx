@@ -21,7 +21,7 @@ export function RsiPanel({ points }: { points: IndicatorPoint[] }) {
 
   return (
     <div className="relative h-32 border-t border-border bg-bg-2">
-      <div className="absolute left-3 top-2 z-10 text-[10px] font-mono uppercase text-text-faint">RSI</div>
+      <div className="absolute left-3 top-2 z-10 text-xs font-mono uppercase text-text-faint">RSI</div>
       <svg className="h-full w-full" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none">
         {[30, 50, 70].map((level) => (
           <g key={level}>

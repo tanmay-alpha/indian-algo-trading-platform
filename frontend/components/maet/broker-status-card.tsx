@@ -24,11 +24,11 @@ export function BrokerStatusCard() {
           </div>
           <div>
             <h4 className="text-xs font-semibold text-white tracking-wider uppercase">Broker Status</h4>
-            <p className="text-[10px] font-mono text-text-dim">Read-only connection</p>
+            <p className="text-xs font-mono text-text-dim">Read-only connection</p>
           </div>
         </div>
         <span className={cn(
-          "px-2 py-0.5 rounded-full text-[10px] font-mono tracking-widest font-semibold flex items-center gap-1",
+          "px-2 py-0.5 rounded-full text-xs font-mono tracking-widest font-semibold flex items-center gap-1",
           isConnected 
             ? "border border-purple-500/30 bg-purple-500/10 text-purple-400" 
             : "border border-border bg-panel-3 text-text-dim"
@@ -42,24 +42,24 @@ export function BrokerStatusCard() {
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
           <div className="bg-white/[0.01] p-2 rounded border border-white/[0.02]">
-            <span className="text-[10px] text-text-faint block uppercase">Gateway</span>
+            <span className="text-xs text-text-faint block uppercase">Gateway</span>
             <span className="font-semibold text-white truncate block text-xs">{brokerName}</span>
           </div>
           <div className="bg-white/[0.01] p-2 rounded border border-white/[0.02]">
-            <span className="text-[10px] text-text-faint block uppercase">Client ID</span>
+            <span className="text-xs text-text-faint block uppercase">Client ID</span>
             <span className="font-semibold text-white truncate block text-xs">{clientName}</span>
           </div>
         </div>
 
         <div className="bg-white/[0.01] p-2.5 rounded border border-white/[0.02] flex items-center justify-between">
           <div>
-            <span className="text-[10px] text-text-faint block uppercase">Connection Mode</span>
+            <span className="text-xs text-text-faint block uppercase">Connection Mode</span>
             <span className="text-xs text-purple-400 font-mono flex items-center gap-1 mt-0.5">
               <ShieldCheck className="w-3.5 h-3.5" /> Mutation Disabled
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-text-faint block uppercase font-mono">Last Reconciled</span>
+            <span className="text-xs text-text-faint block uppercase font-mono">Last Reconciled</span>
             <span className="text-xs text-text-dim font-mono block mt-0.5">
               {new Date(reconciledAt).toLocaleTimeString()}
             </span>

@@ -174,7 +174,7 @@ export function OrderTicket() {
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-3.5 w-3.5 text-info" />
           <div>
-            <div className="text-[11px] font-semibold text-text uppercase tracking-wider">Manual Order Ticket</div>
+            <div className="text-xs font-semibold text-text uppercase tracking-wider">Manual Order Ticket</div>
             <div className="text-xs text-text-faint font-mono">DRY-RUN RISK GATE VALIDATION</div>
           </div>
         </div>
@@ -201,10 +201,10 @@ export function OrderTicket() {
                 <LockKeyhole className="h-6 w-6 animate-pulse" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-[11px] font-mono font-bold uppercase tracking-tight text-amber-400">
+                <h4 className="text-xs font-mono font-bold uppercase tracking-tight text-amber-400">
                   Developer admin unlock
                 </h4>
-                <p className="text-[10px] text-text-faint font-mono leading-relaxed">
+                <p className="text-xs text-text-faint font-mono leading-relaxed">
                   Required to view protected local/demo portfolio endpoints and unlock OMS manual order risk gates. Do not enter production secrets in public deployments.
                 </p>
               </div>
@@ -249,7 +249,7 @@ export function OrderTicket() {
             </div>
 
             {/* Permanent Safety Warnings */}
-            <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-[10px] text-text-faint font-mono">
+            <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-xs text-text-faint font-mono">
               <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-xs">
                 <ShieldCheck className="h-3 w-3" />
                 <span>Execution Lock Parameters</span>
@@ -273,7 +273,7 @@ export function OrderTicket() {
                   type="button"
                   onClick={() => setSide('BUY')}
                   className={cn(
-                    'h-10 rounded-lg font-mono font-bold uppercase text-[11px] transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
+                    'h-10 rounded-lg font-mono font-bold uppercase text-xs transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
                     side === 'BUY'
                       ? 'border-up bg-up/10 text-up shadow-[0_0_8px_rgba(34,197,94,0.15)]'
                       : 'border-border bg-bg/20 text-text-dim hover:text-text'
@@ -285,7 +285,7 @@ export function OrderTicket() {
                   type="button"
                   onClick={() => setSide('SELL')}
                   className={cn(
-                    'h-10 rounded-lg font-mono font-bold uppercase text-[11px] transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
+                    'h-10 rounded-lg font-mono font-bold uppercase text-xs transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50',
                     side === 'SELL'
                       ? 'border-down bg-down/10 text-down shadow-[0_0_8px_rgba(239,68,68,0.15)]'
                       : 'border-border bg-bg/20 text-text-dim hover:text-text'
@@ -402,10 +402,10 @@ export function OrderTicket() {
               <div className="rounded border border-rose-500/20 bg-rose-500/5 p-2.5 flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="text-[10px] font-mono font-bold uppercase tracking-tight text-rose-400">
+                  <div className="text-xs font-mono font-bold uppercase tracking-tight text-rose-400">
                     Request / Risk Gate Rejection
                   </div>
-                  <p className="text-[10px] text-text-dim font-mono leading-tight">
+                  <p className="text-xs text-text-dim font-mono leading-tight">
                     {validationError}
                   </p>
                 </div>
@@ -428,7 +428,7 @@ export function OrderTicket() {
                     ) : (
                       <XCircle className="h-4 w-4 text-rose-400" />
                     )}
-                    <span className="text-[11px] font-bold font-mono text-text">
+                    <span className="text-xs font-bold font-mono text-text">
                       {validationResult.symbol} · {validationResult.side}
                     </span>
                   </div>
@@ -443,14 +443,14 @@ export function OrderTicket() {
                 </div>
 
                 {/* Metrics */}
-                <div className="grid grid-cols-2 gap-y-2.5 text-[10px] font-mono">
+                <div className="grid grid-cols-2 gap-y-2.5 text-xs font-mono">
                   <div>
                     <span className="text-text-faint block text-xs uppercase tracking-wide">Notional Exposure</span>
                     <span className="text-text font-bold">₹{fmtPrice(validationResult.estimated_notional)}</span>
                   </div>
                   <div>
                     <span className="text-text-faint block text-xs uppercase tracking-wide">Validation Price</span>
-                    <span className="text-text">₹{fmtPrice(validationResult.price)} <span className="text-[7px] text-text-faint">({validationResult.price_source})</span></span>
+                    <span className="text-text">₹{fmtPrice(validationResult.price)} <span className="text-xs text-text-faint">({validationResult.price_source})</span></span>
                   </div>
                   <div>
                     <span className="text-text-faint block text-xs uppercase tracking-wide">Risk Engine Status</span>
@@ -510,7 +510,7 @@ export function OrderTicket() {
               <div className="space-y-2 pt-2">
                 <div className="flex items-center gap-1.5 text-text-dim border-b border-border/30 pb-1 shrink-0">
                   <History className="h-3.5 w-3.5 text-info" />
-                  <span className="text-[10px] font-bold font-mono uppercase tracking-wider">
+                  <span className="text-xs font-bold font-mono uppercase tracking-wider">
                     Recent Validation Logs ({manualOrderTickets.length})
                   </span>
                 </div>
@@ -523,7 +523,7 @@ export function OrderTicket() {
                         key={ticket.ticket_id}
                         onClick={() => populateFromHistory(ticket)}
                         className={cn(
-                          "p-2 rounded border bg-bg/30 text-[10px] font-mono hover:bg-bg-2 cursor-pointer transition-colors border-l-3 flex flex-col gap-1",
+                          "p-2 rounded border bg-bg/30 text-xs font-mono hover:bg-bg-2 cursor-pointer transition-colors border-l-3 flex flex-col gap-1",
                           isValid ? "border-l-emerald-500 border-border" : "border-l-rose-500 border-border"
                         )}
                       >
@@ -572,14 +572,14 @@ export function OrderTicket() {
             <div className="flex items-center gap-2 border-b border-border/50 px-4 py-3 bg-amber-500/5">
               <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
               <div>
-                <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400">Dry-Run Confirmation</div>
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">Dry-Run Confirmation</div>
                 <div className="text-xs font-mono text-text-faint">VALIDATE ONLY — No broker order will be placed</div>
               </div>
             </div>
 
             {/* Order summary */}
             <div className="px-4 py-3 space-y-2">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] font-mono">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-mono">
                 <div>
                   <span className="text-xs uppercase tracking-wider text-text-faint block">Symbol</span>
                   <span className="text-text font-semibold">{pendingOrder.symbol}</span>
@@ -635,7 +635,7 @@ export function OrderTicket() {
                   onChange={(e) => setConfirmChecked(e.target.checked)}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-amber-400 cursor-pointer"
                 />
-                <span className="text-[10px] font-mono text-text-2 group-hover:text-text transition-colors leading-snug">
+                <span className="text-xs font-mono text-text-2 group-hover:text-text transition-colors leading-snug">
                   I understand this is dry-run validation only and will not place a real broker order.
                 </span>
               </label>
@@ -646,7 +646,7 @@ export function OrderTicket() {
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 h-10 rounded-lg border border-border bg-bg/40 text-[11px] font-mono text-text-dim hover:text-text hover:bg-bg-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50"
+                className="flex-1 h-10 rounded-lg border border-border bg-bg/40 text-xs font-mono text-text-dim hover:text-text hover:bg-bg-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/50"
               >
                 Cancel
               </button>
@@ -654,7 +654,7 @@ export function OrderTicket() {
                 type="button"
                 onClick={handleConfirmValidate}
                 disabled={!confirmChecked}
-                className="flex-1 h-10 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
+                className="flex-1 h-10 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-mono font-bold hover:bg-amber-500/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Validate Dry-Run Order

@@ -26,11 +26,11 @@ export function SectionHeader({
       )}
     >
       <div className="flex items-center gap-2 overflow-hidden mr-2">
-        <span className="text-[10px] font-mono font-semibold text-text uppercase tracking-wider truncate">
+        <span className="text-xs font-mono font-semibold text-text uppercase tracking-wider truncate">
           {title}
         </span>
         {subtitle && (
-          <span className="text-[10px] font-mono text-text-faint truncate hidden xs:inline-block">
+          <span className="text-xs font-mono text-text-faint truncate hidden xs:inline-block">
             {subtitle}
           </span>
         )}

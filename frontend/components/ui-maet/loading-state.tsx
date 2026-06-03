@@ -29,7 +29,7 @@ export function LoadingState({
         <span className="text-xs font-bold uppercase tracking-wider text-[#22D3EE]">
           {message}
         </span>
-        <span className="text-[10px] text-text-faint tracking-wide font-medium">
+        <span className="text-xs text-text-faint tracking-wide font-medium">
           Securing safe connection...
         </span>
       </div>

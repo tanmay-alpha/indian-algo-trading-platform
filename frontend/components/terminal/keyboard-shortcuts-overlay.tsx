@@ -74,7 +74,7 @@ export function KeyboardShortcutsOverlay() {
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           {GROUPS.map((g) => (
             <div key={g.title} className="border border-border rounded-sm">
-              <div className="px-3 h-7 flex items-center border-b border-border text-[10px] font-mono uppercase tracking-wider text-text-faint">
+              <div className="px-3 h-7 flex items-center border-b border-border text-xs font-mono uppercase tracking-wider text-text-faint">
                 {g.title}
               </div>
               <ul className="divide-y divide-border/60">
@@ -88,7 +88,7 @@ export function KeyboardShortcutsOverlay() {
                       {it.keys.map((k) => (
                         <kbd
                           key={k}
-                          className="px-1.5 h-[18px] inline-flex items-center rounded-sm border border-border bg-panel text-[10px] text-text"
+                          className="px-1.5 h-[18px] inline-flex items-center rounded-sm border border-border bg-panel text-xs text-text"
                         >
                           {k}
                         </kbd>
@@ -100,7 +100,7 @@ export function KeyboardShortcutsOverlay() {
             </div>
           ))}
         </div>
-        <div className="border-t border-border h-7 px-3 flex items-center justify-between text-[10px] font-mono text-text-dim">
+        <div className="border-t border-border h-7 px-3 flex items-center justify-between text-xs font-mono text-text-dim">
           <span>MAET.OS keyboard layer</span>
           <span>esc close</span>
         </div>

@@ -17,7 +17,7 @@ export function SafetyBadge({ type, className, size = 'xs' }: SafetyBadgeProps) 
   let icon = null
 
   const sizeClasses = {
-    xs: 'text-[10px] py-0.5 px-1.5 gap-1 rounded-sm border font-mono tracking-wider uppercase',
+    xs: 'text-xs py-0.5 px-1.5 gap-1 rounded-sm border font-mono tracking-wider uppercase',
     sm: 'text-2xs py-1 px-2 gap-1.5 rounded border font-mono tracking-wider uppercase',
     md: 'text-xs py-1.5 px-2.5 gap-2 rounded border font-mono tracking-wider uppercase font-semibold',
   }

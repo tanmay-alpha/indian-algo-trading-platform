@@ -16,7 +16,7 @@ export function OrdersScreen() {
       <div className="flex-1 min-h-[400px]">
         <GlassPanel className="h-full flex flex-col overflow-hidden">
           <div className="h-9 px-3 flex items-center border-b border-white/[0.06] bg-white/[0.02]">
-            <span className="text-[10px] font-mono font-semibold tracking-wider text-text-dim uppercase">ORDER BLOTTER</span>
+            <span className="text-xs font-mono font-semibold tracking-wider text-text-dim uppercase">ORDER BLOTTER</span>
           </div>
           <div className="flex-1 min-h-0">
             <OmsWorkspace />

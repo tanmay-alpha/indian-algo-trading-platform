@@ -7,6 +7,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        'maet-ink-950': 'var(--maet-ink-950)',
+        'maet-ink-900': 'var(--maet-ink-900)',
+        'maet-ink-850': 'var(--maet-ink-850)',
+        'maet-ink-800': 'var(--maet-ink-800)',
+        'maet-panel': 'var(--maet-panel)',
+        'maet-panel-soft': 'var(--maet-panel-soft)',
+        'maet-panel-strong': 'var(--maet-panel-strong)',
+        'maet-glass-bg': 'var(--maet-glass-bg)',
+        'maet-glass-bg-strong': 'var(--maet-glass-bg-strong)',
+        'maet-glass-highlight': 'var(--maet-glass-highlight)',
         'maet-bg-deep': 'var(--maet-bg-deep)',
         'maet-bg-night': 'var(--maet-bg-night)',
         'maet-bg-ink': 'var(--maet-bg-ink)',
@@ -21,6 +31,7 @@ module.exports = {
         'maet-text-soft': 'var(--maet-text-soft)',
         'maet-text-faint': 'var(--maet-text-faint)',
         'maet-cyan': 'var(--maet-cyan)',
+        'maet-blue-soft': 'var(--maet-blue-soft)',
 
         'maet-void': 'var(--bg-void)',
         'maet-base': 'var(--bg-base)',
@@ -97,11 +108,17 @@ module.exports = {
         'safe-b': 'env(safe-area-inset-bottom, 0px)',
       },
       borderRadius: {
+        xs: 'var(--maet-radius-xs)',
+        sm: 'var(--maet-radius-sm)',
+        md: 'var(--maet-radius-md)',
+        lg: 'var(--maet-radius-lg)',
+        xl: 'var(--maet-radius-xl)',
         card: '16px',
         card2: '20px',
         pill: '100px',
       },
       boxShadow: {
+        float: 'var(--maet-shadow-float)',
         card: 'var(--maet-shadow-card)',
         glass: 'var(--maet-shadow-glass)',
         raised: 'var(--shadow-raised)',

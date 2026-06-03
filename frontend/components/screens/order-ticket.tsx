@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Bot, Eye, EyeOff, History, Info, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { useToast } from '@/components/ui-maet/toast'
 import { useTerminalStore } from '@/store/terminal-store'
@@ -111,7 +111,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
 
   if (!adminToken) {
     return (
-      <div className={cn('reflection-card flex h-full flex-col bg-maet-overlay/65', compact ? 'p-3' : 'p-4')}>
+      <div className={cn('reflection-card flex flex-col bg-maet-overlay/105', compact ? 'p-3' : 'h-full p-4')}>
         <div className="mb-4 flex items-start gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
             <LockKeyhole className="h-5 w-5" />
@@ -159,8 +159,8 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className={cn('reflection-card flex h-full flex-col overflow-hidden bg-maet-overlay/65', compact ? '' : '')}>
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-maet-glass-border bg-maet-bg-deep/38 px-4 py-3">
+    <div className={cn('reflection-card flex flex-col overflow-hidden bg-maet-overlay/105', compact ? '' : 'h-full')}>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-maet-glass-border bg-maet-bg-deep/40 px-4 py-3">
         <div>
           <h2 className="font-heading text-base font-bold text-maet-text">Dry-Run Validation</h2>
           <StatusBadge tone="paper" className="mt-1">validation_only=true</StatusBadge>
@@ -168,13 +168,13 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={clearOmsAdminToken}
-          className="rounded-full border border-maet-glass-border bg-maet-glass-1 px-2.5 py-1.5 font-mono text-[11px] font-bold text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text"
+          className="rounded-full border border-maet-glass-border bg-maet-glass-1 px-2.5 py-1.5 font-mono text-xs font-bold text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text"
         >
           Lock
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-4">
+      <form onSubmit={handleSubmit} className={cn('overflow-y-auto p-4', compact ? '' : 'min-h-0 flex-1')}>
         <div className="space-y-4">
           <Field label="Symbol">
             <input value={cleanSymbol} readOnly className="maet-input font-mono font-bold" />
@@ -269,7 +269,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               <ShieldCheck className="h-4 w-4" />
               Validation passed
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-[11px]">
+            <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-xs">
               <Result label="Ticket" value={ticket.ticket_id} />
               <Result label="Status" value={ticket.status} />
               <Result label="Notional" value={fmtPrice(ticket.estimated_notional)} />
@@ -282,6 +282,115 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
           </div>
         )}
       </form>
+    </div>
+  )
+}
+
+export function ChartRightPanel() {
+  const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
+  const selectedExchange = useTerminalStore((s) => s.selectedExchange)
+  const selectedInstrumentName = useTerminalStore((s) => s.selectedInstrumentName)
+  const marketWatch = useTerminalStore((s) => s.marketWatch)
+  const adminToken = useTerminalStore((s) => s.omsAdminToken)
+  const tickets = useTerminalStore((s) => s.manualOrderTickets)
+  const manualOrderStatus = useTerminalStore((s) => s.manualOrderStatus)
+  const fetchManualOrderTickets = useTerminalStore((s) => s.fetchManualOrderTickets)
+  const fetchManualOrderStatus = useTerminalStore((s) => s.fetchManualOrderStatus)
+
+  useEffect(() => {
+    if (!adminToken) return
+    void fetchManualOrderStatus()
+    void fetchManualOrderTickets()
+  }, [adminToken, fetchManualOrderStatus, fetchManualOrderTickets])
+
+  const row = selectedSymbol ? marketWatch[selectedSymbol] : null
+  const cleanSymbol = selectedSymbol?.split(':').pop()?.replace(/-EQ$/, '') ?? 'No symbol'
+  const ltp = row?.ltp ?? null
+  const changePct = row?.change_pct ?? null
+  const recentTickets = tickets.slice(0, 3)
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+      <div className="maet-glass p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-maet-text-muted">Selected symbol</div>
+            <div className="mt-1 truncate font-mono text-xl font-extrabold text-maet-text">{cleanSymbol}</div>
+            <div className="mt-1 truncate text-sm text-maet-text-muted">{selectedInstrumentName ?? 'Choose from watchlist'}</div>
+          </div>
+          <span className="rounded-full border border-white/10 bg-maet-glass-bg px-2.5 py-1 text-xs font-bold text-maet-text-soft">
+            {selectedExchange ?? row?.exchange ?? 'NSE'}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <RightMetric label="LTP" value={formatRightPrice(ltp)} />
+          <RightMetric
+            label="Change"
+            value={changePct == null ? '--' : `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`}
+            tone={changePct == null ? 'muted' : changePct >= 0 ? 'up' : 'down'}
+          />
+        </div>
+      </div>
+
+      <OrderTicket compact />
+
+      <div className="maet-glass p-3">
+        <div className="mb-3 flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-maet-amber" />
+          <div className="font-heading text-sm font-bold text-maet-text">Safety checklist</div>
+        </div>
+        <div className="space-y-2">
+          <SafetyCheck label="LIVE LOCKED" value="true" />
+          <SafetyCheck label="PAPER MODE" value="true" />
+          <SafetyCheck label="READ ONLY" value="broker context" />
+          <SafetyCheck label="AI ADVISORY ONLY" value="true" />
+          <SafetyCheck label="BROKER MUTATION DISABLED" value="true" />
+          <SafetyCheck label="Creates broker order" value={manualOrderStatus?.creates_broker_order ? 'true' : 'false'} />
+        </div>
+      </div>
+
+      <div className="maet-glass p-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-maet-cyan" />
+            <div className="font-heading text-sm font-bold text-maet-text">Recent dry-run history</div>
+          </div>
+          {!adminToken && <span className="text-xs font-bold text-maet-amber">Locked</span>}
+        </div>
+        {adminToken && recentTickets.length > 0 ? (
+          <div className="space-y-2">
+            {recentTickets.map((ticket) => (
+              <div key={ticket.ticket_id} className="rounded-lg border border-white/10 bg-maet-ink-950/40 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-mono text-xs font-bold text-maet-text">{ticket.symbol}</span>
+                  <span className="font-mono text-xs text-maet-text-muted">{ticket.status}</span>
+                </div>
+                <div className="mt-1 text-xs text-maet-text-muted">
+                  {ticket.side} {ticket.quantity} / validation_only=true
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-maet-text-muted">
+            {adminToken ? 'No validation tickets returned by the backend yet.' : 'Unlock validation to view protected dry-run tickets.'}
+          </p>
+        )}
+      </div>
+
+      <div className="maet-glass border-maet-blue/20 p-3">
+        <div className="flex items-start gap-2 text-sm leading-6 text-maet-text-soft">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-maet-blue-soft" />
+          Broker account sync is read-only. Paper fills and dry-run tickets are not broker-confirmed trades.
+        </div>
+      </div>
+
+      <div className="maet-glass border-maet-violet/25 bg-maet-violet/10 p-3">
+        <div className="flex items-start gap-2 text-sm leading-6 text-maet-text-soft">
+          <Bot className="mt-0.5 h-4 w-4 shrink-0 text-maet-violet" />
+          AI advisory can explain risk context, but execution_allowed=false.
+        </div>
+      </div>
     </div>
   )
 }
@@ -312,10 +421,10 @@ function Segment({
 }) {
   const activeClass =
     tone === 'buy'
-      ? 'border-maet-green bg-maet-green/15 text-maet-green'
+      ? 'border-maet-green bg-maet-green/20 text-maet-green'
       : tone === 'sell'
-      ? 'border-maet-red bg-maet-red/15 text-maet-red'
-      : 'border-maet-blue bg-maet-blue/15 text-maet-blue'
+      ? 'border-maet-red bg-maet-red/20 text-maet-red'
+      : 'border-maet-blue bg-maet-blue/20 text-maet-blue'
 
   return (
     <button
@@ -334,8 +443,33 @@ function Segment({
 function Result({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-maet-border bg-maet-surface px-2 py-1.5">
-      <div className="text-[10px] text-maet-text-muted">{label}</div>
+      <div className="text-xs text-maet-text-muted">{label}</div>
       <div className="truncate font-bold text-maet-text">{value}</div>
     </div>
   )
+}
+
+function RightMetric({ label, value, tone = 'muted' }: { label: string; value: string; tone?: 'up' | 'down' | 'muted' }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-maet-ink-950/40 px-3 py-2">
+      <div className="text-xs font-semibold text-maet-text-muted">{label}</div>
+      <div className={cn('maet-number mt-1 font-mono text-sm font-extrabold', tone === 'up' ? 'text-maet-green' : tone === 'down' ? 'text-maet-red' : 'text-maet-text')}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function SafetyCheck({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
+      <span className="text-xs font-bold text-maet-amber">{label}</span>
+      <span className="font-mono text-xs font-bold text-maet-text">{value}</span>
+    </div>
+  )
+}
+
+function formatRightPrice(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '--'
+  return value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }

@@ -78,6 +78,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         token: item.token ?? null,
         ltp: item.ltp,
         change_pct: item.change_pct,
+        volume: null,
       }))
     }
 
@@ -93,6 +94,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         token: tick?.token ?? null,
         ltp: tick?.ltp ?? null,
         change_pct: tick?.change_pct ?? null,
+        volume: tick?.volume ?? null,
       }
     })
   }, [activeTab, indices, marketWatch, watchlistGroups])
@@ -124,16 +126,16 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
 
   return (
     <div className="flex h-full flex-col pb-4">
-      <div className="shrink-0 px-4 pt-3">
+      <div className="shrink-0 px-3 pt-3">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h1 className="font-heading text-xl font-bold text-maet-text">Watchlist</h1>
-            <p className="text-xs text-maet-text-muted">Search symbols, then open the chart workspace.</p>
+            <p className="text-sm text-maet-text-muted">Compact marketwatch and symbol search.</p>
           </div>
           <button
             type="button"
             onClick={() => setQuery((current) => current || 'RELIANCE')}
-            className="glass-button h-9 px-3 text-xs"
+            className="glass-button h-9 min-h-9 px-3 text-xs"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Symbol
@@ -162,7 +164,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         </div>
 
         {!showSearchResults && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-3 no-scrollbar">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-3 no-scrollbar">
             <TabButton active={activeTab === 'nifty'} label="Nifty 50" onClick={() => setActiveTab('nifty')} />
             <TabButton active={activeTab === 'indices'} label="Indices" onClick={() => setActiveTab('indices')} />
             <TabButton active={activeTab === 'my'} label="My List" onClick={() => setActiveTab('my')} />
@@ -171,20 +173,20 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
       </div>
 
       {!showSearchResults && isBackendOffline && (
-        <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
+        <div className="mx-3 mb-3 shrink-0 rounded-lg border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
           Backend offline - values show -- until quotes arrive.
         </div>
       )}
 
       {watchlistError && (
-        <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
+        <div className="mx-3 mb-3 shrink-0 rounded-lg border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
           {watchlistError}
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3">
         {showSearchResults ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="mb-2 text-xs font-bold uppercase text-maet-text-muted">Search results</div>
             {isSearching && <SkeletonRows count={3} />}
             {searchError && !isSearching && (
@@ -205,7 +207,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="truncate font-mono text-sm font-bold text-maet-text">{instrument.symbol}</span>
-                      <StatusBadge tone="muted" className="min-h-6 px-1.5 text-[10px]">{instrument.exchange}</StatusBadge>
+                      <StatusBadge tone="muted" className="min-h-6 px-1.5 text-xs">{instrument.exchange}</StatusBadge>
                     </div>
                     <div className="mt-0.5 truncate text-xs text-maet-text-muted">{instrument.name}</div>
                   </button>
@@ -235,7 +237,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {rows.map((row) => (
               <WatchlistRow
                 key={row.symbol}
@@ -244,6 +246,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                 exchange={row.exchange}
                 price={row.ltp}
                 changePct={row.change_pct}
+                volume={row.volume}
                 offline={isBackendOffline || row.ltp == null}
                 selected={selectedSymbol === row.symbol}
                 onOpen={() => openChart(row.symbol, row.exchange, row.name, row.token, 'watchlist')}
@@ -267,7 +270,7 @@ function TabButton({ active, label, onClick }: { active: boolean; label: string;
 
 function SkeletonRows({ count }: { count: number }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="reflection-card grid h-14 grid-cols-[minmax(0,1fr)_92px] items-center gap-3 px-3">
           <div className="space-y-2">

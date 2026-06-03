@@ -939,7 +939,16 @@ export interface StrategySchedulerStatus {
   strategy_ids: number[]
 }
 
-export type SignalStatus = 'GENERATED' | 'VALIDATED' | 'APPROVED_PAPER' | 'PAPER_EXECUTED' | 'REJECTED' | 'DISMISSED' | 'ERROR'
+export type SignalStatus =
+  | 'GENERATED'
+  | 'VALIDATED'
+  | 'APPROVED_PAPER'
+  | 'PAPER_PENDING'
+  | 'PAPER_EXECUTED'
+  | 'REJECTED'
+  | 'PAPER_FAILED'
+  | 'DISMISSED'
+  | 'ERROR'
 
 export interface PendingSignal {
   id: number

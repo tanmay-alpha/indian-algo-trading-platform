@@ -30,7 +30,7 @@ export function IndexTicker({ label, snapshot, className }: Props) {
         className
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-[10px] font-medium uppercase tracking-wide text-text-2">
+      <span className="min-w-0 flex-1 truncate text-xs font-medium uppercase tracking-wide text-text-2">
         {label}
       </span>
       <span

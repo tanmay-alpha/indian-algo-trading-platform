@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { BarChart2, GripVertical, MinusCircle, WifiOff } from 'lucide-react'
+import { MinusCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { StatusBadge } from './status-badge'
 
 interface WatchlistRowProps {
   symbol: string
@@ -11,6 +10,7 @@ interface WatchlistRowProps {
   exchange?: string
   price?: number | null
   changePct?: number | null
+  volume?: number | null
   offline?: boolean
   selected?: boolean
   onOpen?: () => void
@@ -23,6 +23,7 @@ export function WatchlistRow({
   exchange = 'NSE',
   price,
   changePct,
+  volume,
   offline = false,
   selected = false,
   onOpen,
@@ -69,7 +70,7 @@ export function WatchlistRow({
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${cleanSymbol} from watchlist`}
-          className="absolute inset-y-0 right-0 flex w-24 items-center justify-center gap-1 bg-maet-red/18 font-mono text-[11px] font-bold text-maet-red"
+          className="absolute inset-y-0 right-0 flex w-24 items-center justify-center gap-1 bg-maet-red/20 font-mono text-xs font-bold text-maet-red"
         >
           <MinusCircle className="h-3.5 w-3.5" />
           Remove
@@ -81,55 +82,55 @@ export function WatchlistRow({
         onClick={onOpen}
         aria-label={`Open chart for ${cleanSymbol}`}
         className={cn(
-          'wl-row reflection-card relative z-10 grid h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 text-left transition-transform',
+          'wl-row relative z-10 grid h-[62px] w-full grid-cols-[minmax(0,1fr)_minmax(86px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-transform sm:h-[56px]',
           selected ? 'selected border-maet-blue/40' : 'hover-glass',
           revealed && onRemove ? '-translate-x-24' : 'translate-x-0',
           flash
         )}
       >
-        <div className="flex min-w-0 items-center gap-2">
-          <GripVertical className="hidden h-4 w-4 shrink-0 text-maet-text-muted sm:block" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate font-mono text-sm font-extrabold text-maet-text">{cleanSymbol}</span>
-              <span className="shrink-0 rounded-full border border-maet-glass-border bg-maet-glass-1 px-1.5 py-0.5 font-mono text-[10px] font-bold text-maet-text-secondary">
-                {exchange}
-              </span>
-            </div>
-            <div className="mt-0.5 truncate text-xs text-maet-text-muted">{name || 'Awaiting instrument name'}</div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate font-mono text-sm font-extrabold text-maet-text">{cleanSymbol}</span>
+            <span className="shrink-0 rounded-md border border-white/10 bg-maet-glass-bg px-1.5 py-0.5 font-mono text-xs font-bold text-maet-text-soft">
+              {exchange}
+            </span>
+          </div>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+            <span className="truncate text-xs text-maet-text-muted">{name || 'Awaiting instrument name'}</span>
+            <span className="shrink-0 text-xs font-semibold text-maet-text-faint">{formatVolume(volume)}</span>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="shrink-0 text-right">
           {hasPrice ? (
-            <div className="text-right">
+            <>
               <div className={cn('font-mono text-base font-extrabold tabular-nums', isUp ? 'text-maet-green' : 'text-maet-red')}>
                 {price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               {hasChange && (
-                <div className={cn('mt-0.5 inline-flex rounded-full px-2 py-0.5 font-mono text-[11px] font-bold', isUp ? 'bg-maet-green/12 text-maet-green' : 'bg-maet-red/12 text-maet-red')}>
+                <div className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 font-mono text-xs font-bold', isUp ? 'bg-maet-green/10 text-maet-green' : 'bg-maet-red/10 text-maet-red')}>
                   {isUp ? '+' : ''}{changePct.toFixed(2)}%
                 </div>
               )}
-            </div>
+            </>
           ) : (
-            <div className="text-right">
+            <>
               <div className="font-mono text-base font-extrabold text-maet-text-muted">--</div>
-              <StatusBadge tone={offline ? 'warning' : 'muted'} className="mt-1 min-w-[84px] justify-center">
-                {offline ? (
-                  <>
-                    <WifiOff className="h-3 w-3" />
-                    Offline
-                  </>
-                ) : (
-                  'Awaiting'
-                )}
-              </StatusBadge>
-            </div>
+              <div className={cn('mt-0.5 text-xs font-bold', offline ? 'text-maet-amber' : 'text-maet-text-faint')}>
+                {offline ? 'No quote' : 'Awaiting'}
+              </div>
+            </>
           )}
-          <BarChart2 className="hidden h-4 w-4 text-maet-blue sm:block" />
         </div>
       </button>
     </div>
   )
+}
+
+function formatVolume(value?: number | null): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return 'vol --'
+  if (value >= 10000000) return `vol ${(value / 10000000).toFixed(1)}Cr`
+  if (value >= 100000) return `vol ${(value / 100000).toFixed(1)}L`
+  if (value >= 1000) return `vol ${(value / 1000).toFixed(1)}K`
+  return `vol ${value}`
 }

@@ -43,11 +43,11 @@ export function StrategyLab() {
       <div className="flex items-center justify-between rounded-sm border border-border bg-panel/60 px-3 py-2">
         <div>
           <div className="text-xs font-semibold text-text">Strategy Lab</div>
-          <div className="text-[10px] font-mono text-text-faint">
+          <div className="text-xs font-mono text-text-faint">
             Offline research and backtesting only. No execution route is called.
           </div>
         </div>
-        <div className="flex items-center gap-2 font-mono text-[10px]">
+        <div className="flex items-center gap-2 font-mono text-xs">
           <span className="rounded border border-border bg-bg px-2 py-1 text-text-faint">
             Engine <span className="text-text">{status?.engine ?? 'python'}</span>
           </span>
@@ -58,7 +58,7 @@ export function StrategyLab() {
       </div>
 
       {error && (
-        <div className="rounded-sm border border-down/25 bg-down-dim px-3 py-2 text-[10px] font-mono text-down">
+        <div className="rounded-sm border border-down/25 bg-down-dim px-3 py-2 text-xs font-mono text-down">
           {error}
         </div>
       )}

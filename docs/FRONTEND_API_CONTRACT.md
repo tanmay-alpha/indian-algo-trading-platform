@@ -315,7 +315,7 @@ Calculates the current unrealized portfolio PnL based on latest broker position 
 The UI's Order Ticket form must display ticket validation results without actually routing orders.
 
 ### `POST /manual-order/validate`
-Validates a mock order ticket structure against pre-trade risk controls and instrument specifications.
+Validates a dry-run order ticket structure against pre-trade risk controls and instrument specifications.
 
 - **Headers**: JWT Admin / X-Admin-Token
 - **Request Body**:

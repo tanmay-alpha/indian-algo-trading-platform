@@ -27,7 +27,7 @@ export function WorkspacePresetSelector() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border text-[10px] font-mono uppercase tracking-wider',
+          'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border text-xs font-mono uppercase tracking-wider',
           active
             ? 'text-info border-info/30 bg-info-dim'
             : 'text-text-2 border-border bg-panel/60 hover:border-border-strong'
@@ -40,7 +40,7 @@ export function WorkspacePresetSelector() {
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 min-w-[280px] bg-panel-2 border border-border-strong rounded-sm shadow-modal py-1">
-          <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-text-faint border-b border-border">
+          <div className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-text-faint border-b border-border">
             Workspace Presets
           </div>
           {PRESETS.map((p) => (
@@ -56,7 +56,7 @@ export function WorkspacePresetSelector() {
               )}
             >
               <span className="text-xs font-mono text-text">{p.label}</span>
-              <span className="text-[10px] text-text-dim font-mono leading-tight">
+              <span className="text-xs text-text-dim font-mono leading-tight">
                 {p.description}
               </span>
             </button>

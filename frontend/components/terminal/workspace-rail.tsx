@@ -46,7 +46,7 @@ export function WorkspaceRail() {
       aria-label="Workspace navigation"
     >
       <div className="h-topbar flex items-center justify-center border-b border-border bg-panel/40">
-        <div className="w-9 h-8 grid place-items-center rounded-md bg-info/10 border border-info/25 text-info font-mono text-[10px] font-bold tracking-tight">
+        <div className="w-9 h-8 grid place-items-center rounded-md bg-info/10 border border-info/25 text-info font-mono text-xs font-bold tracking-tight">
           MAET
         </div>
       </div>
@@ -72,13 +72,13 @@ export function WorkspaceRail() {
                 {ICONS[workspace.id]}
                 <span
                   className={cn(
-                    'max-w-[58px] truncate text-[10px] font-medium leading-none',
+                    'max-w-[58px] truncate text-xs font-medium leading-none',
                     active ? 'text-info' : 'text-text-dim group-hover:text-text-2'
                   )}
                 >
                   {railLabel(workspace.label)}
                 </span>
-                <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded border border-border bg-bg text-[10px] font-mono text-text-faint">
+                <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded border border-border bg-bg text-xs font-mono text-text-faint">
                   {workspace.shortcut}
                 </span>
               </button>

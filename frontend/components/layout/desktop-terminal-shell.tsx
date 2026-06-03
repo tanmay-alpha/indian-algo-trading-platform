@@ -10,7 +10,7 @@ import { ChartScreen } from '@/components/screens/chart-screen'
 import { PortfolioScreen } from '@/components/screens/portfolio-screen'
 import { AiScreen } from '@/components/screens/ai-screen'
 import { SystemScreen } from '@/components/screens/system-screen'
-import { OrderTicket } from '@/components/screens/order-ticket'
+import { ChartRightPanel, OrderTicket } from '@/components/screens/order-ticket'
 import { AppCard } from '@/components/ui-maet/app-card'
 import { SectionHeader } from '@/components/ui-maet/section-header'
 import { ReflectionCard } from '@/components/effects/reflection-card'
@@ -27,7 +27,7 @@ export function DesktopTerminalShell({ activeTab, onNavigate }: DesktopTerminalS
       <DesktopSidebar active={activeTab} onNavigate={onNavigate} />
       <div className="flex min-w-0 flex-1 flex-col">
         <DesktopTopBar activeTab={activeTab} />
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 xl:p-5">
+        <main className="min-h-0 flex-1 overflow-y-auto p-3 xl:p-4">
           <DesktopWorkspace activeTab={activeTab} onNavigate={onNavigate} />
         </main>
       </div>
@@ -42,15 +42,15 @@ function DesktopWorkspace({ activeTab, onNavigate }: DesktopTerminalShellProps) 
 
   if (activeTab === 'chart') {
     return (
-      <div className="grid min-h-[calc(100dvh-112px)] grid-cols-[240px_minmax(0,1fr)_280px] gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
-        <DesktopPane title="Watchlist" icon={<List className="h-4 w-4" />}>
+      <div className="grid min-h-[calc(100dvh-104px)] gap-3 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px] 2xl:grid-cols-[340px_minmax(720px,1fr)_380px]">
+        <DesktopPane title="Market Watch" icon={<List className="h-4 w-4" />} compact>
           <WatchlistScreen onNavigate={onNavigate} />
         </DesktopPane>
-        <DesktopPane title="Chart and Indicators" icon={<BarChart2 className="h-4 w-4" />} primary>
+        <section className="min-h-0">
           <ChartScreen />
-        </DesktopPane>
-        <DesktopPane title="Dry-Run Order Ticket" icon={<ShieldCheck className="h-4 w-4" />}>
-          <OrderTicket compact />
+        </section>
+        <DesktopPane title="Safety And Validation" icon={<ShieldCheck className="h-4 w-4" />} compact className="lg:col-span-2 xl:col-span-1">
+          <ChartRightPanel />
         </DesktopPane>
       </div>
     )
@@ -140,7 +140,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
               </button>
             </div>
             <div className="rounded-card border border-maet-border bg-maet-base p-4">
-              <div className="font-mono text-[11px] text-maet-text-muted">Market session panel</div>
+              <div className="font-mono text-xs text-maet-text-muted">Market session panel</div>
               <div className="mt-3 grid gap-2">
                 <StatusLine label="Backend API" value={apiStatus === 'ONLINE' ? 'Online' : 'Offline'} good={apiStatus === 'ONLINE'} />
                 <StatusLine label="Market stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
@@ -183,17 +183,19 @@ function DesktopPane({
   children,
   primary = false,
   compact = false,
+  className = '',
 }: {
   title: string
   icon: ReactNode
   children: ReactNode
   primary?: boolean
   compact?: boolean
+  className?: string
 }) {
   return (
-    <ReflectionCard as="section" className="desktop-pane flex min-h-0 flex-col overflow-hidden shadow-card">
+    <ReflectionCard as="section" className={`desktop-pane flex min-h-0 flex-col overflow-hidden shadow-card ${className}`}>
       <SectionHeader title={title} icon={icon} className="shrink-0 px-4 py-3" />
-      <div className={primary ? 'min-h-0 flex-1' : compact ? 'min-h-0' : 'min-h-0 flex-1'}>
+      <div className={primary || compact ? 'min-h-0 flex-1' : 'min-h-0 flex-1'}>
         {children}
       </div>
     </ReflectionCard>
@@ -204,7 +206,7 @@ function StatusLine({ label, value, good }: { label: string; value: string; good
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-maet-border bg-maet-surface px-3 py-2">
       <span className="text-xs text-maet-text-muted">{label}</span>
-      <span className="flex items-center gap-2 font-mono text-[11px] font-bold text-maet-text">
+      <span className="flex items-center gap-2 font-mono text-xs font-bold text-maet-text">
         {good != null && <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-red'} />}
         {value}
       </span>

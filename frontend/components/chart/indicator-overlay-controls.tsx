@@ -65,7 +65,7 @@ export function IndicatorOverlayControls({
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2 text-[10px] font-mono">
+      <div className="flex items-center gap-2 text-xs font-mono">
         <span className="rounded border border-border bg-panel/70 px-2 py-1 text-text-faint">
           Engine <span className="text-text-2">{engineLabel}</span>
         </span>
@@ -91,7 +91,7 @@ export function IndicatorOverlayControls({
 
 function indicatorButtonClass(active: boolean): string {
   return cn(
-    'h-6 px-2 rounded border text-[10px] font-mono transition-colors',
+    'h-6 px-2 rounded border text-xs font-mono transition-colors',
     active
       ? 'border-info/40 bg-info-dim text-info'
       : 'border-border bg-panel/70 text-text-dim hover:text-text'

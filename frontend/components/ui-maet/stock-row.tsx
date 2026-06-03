@@ -37,7 +37,7 @@ export function StockRow({ symbol, name, exchange = 'NSE', price, change = 0, is
             {exchange}
           </span>
         </div>
-        {name && <span className="text-[10px] text-text-faint mt-0.5 truncate max-w-[180px]">{name}</span>}
+        {name && <span className="text-xs text-text-faint mt-0.5 truncate max-w-[180px]">{name}</span>}
       </div>
       
       <div className="text-right shrink-0 ml-4">
@@ -47,7 +47,7 @@ export function StockRow({ symbol, name, exchange = 'NSE', price, change = 0, is
             : '—'}
         </div>
         <span className={cn(
-          "text-[10px] font-semibold font-mono inline-block mt-0.5 tabular-nums",
+          "text-xs font-semibold font-mono inline-block mt-0.5 tabular-nums",
           hasChange ? (isPositive ? "text-[#16C784]" : "text-[#EA3943]") : "text-text-faint"
         )}>
           {hasChange ? `${isPositive ? '+' : ''}${change.toFixed(2)}%` : '—'}

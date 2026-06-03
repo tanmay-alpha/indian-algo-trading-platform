@@ -18,7 +18,7 @@ export function GlassButton({
   const variantClass = {
     primary: 'maet-btn-primary',
     neutral: 'glass-button',
-    danger: 'border-maet-red/40 bg-maet-red/12 text-maet-red hover:border-maet-red/60',
+    danger: 'border-maet-red/40 bg-maet-red/10 text-maet-red hover:border-maet-red/100',
   }[variant]
 
   return (

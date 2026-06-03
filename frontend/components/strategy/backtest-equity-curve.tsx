@@ -10,7 +10,7 @@ export function BacktestEquityCurve({ points }: { points: BacktestEquityPoint[] 
     return (
       <StrategyEmptyState
         title="No equity curve"
-        hint="Equity points appear after completed simulated trades."
+        hint="Equity points appear after completed backtest trades."
       />
     )
   }
@@ -26,7 +26,7 @@ export function BacktestEquityCurve({ points }: { points: BacktestEquityPoint[] 
     <div className="rounded-sm border border-border bg-panel/60 p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-text">Equity Curve</span>
-        <span className="text-[10px] font-mono text-text-faint">{points.length} points</span>
+        <span className="text-xs font-mono text-text-faint">{points.length} points</span>
       </div>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-[150px] w-full" preserveAspectRatio="none">
         {[0, 1, 2, 3].map((line) => (
@@ -54,4 +54,3 @@ function yAt(value: number, min: number, max: number): number {
   if (min === max) return HEIGHT / 2
   return HEIGHT - PAD - ((value - min) / (max - min)) * (HEIGHT - PAD * 2)
 }
-

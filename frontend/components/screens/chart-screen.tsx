@@ -1,7 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart2, ChevronDown, ExternalLink, ListChecks, PanelRightOpen, ShieldCheck } from 'lucide-react'
+import {
+  BarChart2,
+  ChevronDown,
+  ExternalLink,
+  ListChecks,
+  PanelRightOpen,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { ChartFrame } from '@/components/ui-maet/chart-frame'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { MobileActionSheet } from '@/components/mobile/mobile-action-sheet'
@@ -10,6 +19,7 @@ import { OrderTicket } from '@/components/screens/order-ticket'
 import { IndicatorChartShell } from '@/components/chart/indicator-chart-shell'
 import { RsiPanel } from '@/components/chart/rsi-panel'
 import { MacdPanel } from '@/components/chart/macd-panel'
+import { StatusOrb } from '@/components/effects/status-orb'
 import { mapLineSeries, mapMacdSeries } from '@/lib/indicator-series'
 import { getAngelOneChartUrl, getTradingViewChartUrl } from '@/lib/symbol-links'
 import { cn } from '@/lib/utils'
@@ -70,37 +80,63 @@ export function ChartScreen() {
   const displayName = selectedInstrumentName ?? row?.name ?? 'Select from watchlist'
   const tvUrl = selectedSymbol ? getTradingViewChartUrl(selectedSymbol, displayExchange) : '#'
   const aoUrl = selectedSymbol ? getAngelOneChartUrl(selectedSymbol, displayExchange) : '#'
+  const ltp = row?.ltp ?? null
+  const changePct = row?.change_pct ?? null
+  const hasLiveQuote = ltp != null && row?.stale !== true
+  const candleLabel = candles.length > 0 ? `${candles.length} candles` : indicatorLoading ? 'Fetching candles' : 'No candle data'
 
   return (
-    <MobilePage className="flex h-full flex-col space-y-3 pb-4">
-      <div className="reflection-card shrink-0 overflow-hidden">
-        <div className="flex min-h-10 items-center gap-2 border-b border-maet-glass-border px-2 py-2">
-          <label className="relative min-w-[144px] flex-1 sm:max-w-[220px]">
+    <MobilePage className="flex h-full min-h-0 flex-col gap-3 pb-4 lg:pb-0">
+      <div className="maet-glass-strong shrink-0 overflow-hidden">
+        <div className="grid gap-3 border-b border-white/10 p-3 xl:grid-cols-[minmax(220px,0.7fr)_minmax(0,1fr)_auto] xl:items-center">
+          <label className="relative min-w-0">
             <span className="sr-only">Select chart symbol</span>
             <select
               value={selectedSymbol ?? ''}
               onChange={(event) => setSelectedSymbol(event.target.value || null)}
-              className="h-9 w-full appearance-none rounded-xl border border-maet-glass-border bg-maet-bg-deep/48 px-3 pr-8 font-mono text-sm font-bold text-maet-text"
+              className="maet-input h-11 appearance-none pr-10 font-mono font-extrabold"
             >
               <option value="">Select symbol</option>
               {symbolOptions.map((symbol) => (
                 <option key={symbol} value={symbol}>{symbol.replace(/-EQ$/, '')}</option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-maet-text-muted" />
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-maet-text-muted" />
           </label>
 
-          <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-mono text-xl font-extrabold text-maet-text">{cleanSymbol ?? 'No symbol selected'}</h1>
+              <span className="rounded-full border border-white/10 bg-maet-glass-bg px-2.5 py-1 text-xs font-bold text-maet-text-muted">{displayExchange}</span>
+              <StatusBadge tone={candles.length > 0 ? 'success' : 'warning'} dot>
+                {candleLabel}
+              </StatusBadge>
+            </div>
+            <div className="mt-1 truncate text-sm text-maet-text-muted">{displayName}</div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <Metric label="LTP" value={hasLiveQuote ? formatPrice(ltp) : '--'} />
+            <Metric
+              label="Change"
+              value={changePct == null || !hasLiveQuote ? '--' : `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`}
+              tone={changePct == null || !hasLiveQuote ? 'muted' : changePct >= 0 ? 'up' : 'down'}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+          <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
             {TIMEFRAMES.map((item) => (
               <button
                 key={item.value}
                 type="button"
                 onClick={() => setChartTimeframe(item.value)}
                 className={cn(
-                  'h-8 shrink-0 rounded-full border px-2.5 font-mono text-[11px] font-bold transition-colors',
+                  'h-9 shrink-0 rounded-full border px-3 font-mono text-xs font-extrabold transition-colors',
                   chartTimeframe === item.value
-                    ? 'border-maet-blue bg-maet-blue/20 text-maet-blue'
-                    : 'border-maet-border text-maet-text-muted hover:bg-maet-elevated hover:text-maet-text'
+                    ? 'border-maet-cyan/50 bg-maet-cyan/20 text-maet-cyan'
+                    : 'border-white/10 bg-maet-glass-bg text-maet-text-muted hover:text-maet-text'
                 )}
               >
                 {item.label}
@@ -108,109 +144,87 @@ export function ChartScreen() {
             ))}
           </div>
 
+          <ExternalButton href={tvUrl} disabled={!selectedSymbol} label="TradingView" />
+          <ExternalButton href={aoUrl} disabled={!selectedSymbol} label="Angel One" />
           <button
             type="button"
             onClick={() => setDrawerOpen((current) => !current)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text"
-            aria-label="Toggle indicator drawer"
+            className="glass-button h-9 min-h-9 px-3 text-xs"
+            aria-expanded={drawerOpen}
+            aria-label="Toggle indicator workbench"
           >
             <PanelRightOpen className="h-4 w-4" />
+            Indicators
           </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-          <StatusBadge tone={apiStatus === 'ONLINE' ? 'success' : 'warning'} dot>{apiStatus === 'ONLINE' ? 'Backend online' : 'Backend offline'}</StatusBadge>
-          <a
-            href={selectedSymbol ? tvUrl : undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-disabled={!selectedSymbol}
-            className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[11px] font-bold shadow-inner', selectedSymbol ? 'border-[#2962ff]/40 bg-[#2962ff]/10 text-[#7ca0ff]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
-          >
-            TradingView
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          <a
-            href={selectedSymbol ? aoUrl : undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-disabled={!selectedSymbol}
-            className={cn('inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[11px] font-bold shadow-inner', selectedSymbol ? 'border-[#f05822]/40 bg-[#f05822]/10 text-[#ff8b61]' : 'pointer-events-none border-maet-border text-maet-text-muted opacity-50')}
-          >
-            Angel One
-            <ExternalLink className="h-3 w-3" />
-          </a>
-          <span className="font-mono text-[11px] text-maet-text-muted">(Paper research only)</span>
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <ChartFrame className="flex min-h-[360px] flex-col">
-          {selectedSymbol ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-                <div className="flex items-center justify-between border-b border-maet-glass-border px-4 py-3">
-                <div>
-                  <div className="font-mono text-lg font-extrabold text-maet-text">{cleanSymbol}</div>
-                  <div className="text-xs text-maet-text-muted">{displayExchange} / {displayName}</div>
-                </div>
-                <StatusBadge tone={candles.length > 0 ? 'success' : 'warning'}>
-                  {candles.length > 0 ? `${candles.length} candles` : 'Awaiting candles'}
-                </StatusBadge>
-              </div>
-
-              <div className="relative min-h-0 flex-1">
-                {candles.length === 0 && !indicatorLoading ? (
-                  <OfflineChartState
-                    symbol={cleanSymbol ?? selectedSymbol}
-                    exchange={displayExchange}
-                    apiStatus={apiStatus}
-                    diagnostics={chartFetchDiagnostics}
-                    onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
-                  />
-                ) : (
-                  <IndicatorChartShell
-                    symbol={selectedSymbol}
-                    timeframe={chartTimeframe}
-                    candles={candles}
-                    result={indicatorResults}
-                    overlays={chartOverlays}
-                    signalMarkers={chartSignalMarkers}
-                    apiStatus={apiStatus}
-                    backendWakeState={backendWakeState}
-                    isFetching={indicatorLoading}
-                    onFetchCandles={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
-                  />
-                )}
-              </div>
-
-              {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
-              {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
+      <ChartFrame className="flex min-h-[420px] flex-1 flex-col lg:min-h-0">
+        {selectedSymbol ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1">
+              {candles.length === 0 && !indicatorLoading ? (
+                <OfflineChartState
+                  symbol={cleanSymbol ?? selectedSymbol}
+                  exchange={displayExchange}
+                  apiStatus={apiStatus}
+                  diagnostics={chartFetchDiagnostics}
+                  onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                />
+              ) : (
+                <IndicatorChartShell
+                  symbol={selectedSymbol}
+                  timeframe={chartTimeframe}
+                  candles={candles}
+                  result={indicatorResults}
+                  overlays={chartOverlays}
+                  signalMarkers={chartSignalMarkers}
+                  apiStatus={apiStatus}
+                  backendWakeState={backendWakeState}
+                  isFetching={indicatorLoading}
+                  onFetchCandles={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                />
+              )}
             </div>
-          ) : (
-            <div className="grid min-h-[340px] place-items-center p-6 text-center">
-              <div>
-                <BarChart2 className="mx-auto h-10 w-10 text-maet-text-muted" />
-                <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">Select a symbol</h2>
-                <p className="mt-2 max-w-xs text-sm leading-6 text-maet-text-muted">Open the watchlist and choose an instrument to load candles and indicators.</p>
-              </div>
-            </div>
-          )}
-        </ChartFrame>
 
-        <IndicatorDrawer
-          open={drawerOpen}
+            {indicatorSubpanels.rsi && <RsiPanel points={rsiPoints} />}
+            {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
+          </div>
+        ) : (
+          <div className="grid min-h-[420px] flex-1 place-items-center p-6 text-center">
+            <div>
+              <BarChart2 className="mx-auto h-10 w-10 text-maet-text-muted" />
+              <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Select a symbol</h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">Open the watchlist and choose an instrument to load real candles and indicators.</p>
+            </div>
+          </div>
+        )}
+      </ChartFrame>
+
+      {drawerOpen ? (
+        <IndicatorWorkbench
           overlays={chartOverlays}
           subpanels={indicatorSubpanels}
           onOverlay={toggleChartOverlay}
           onSubpanel={toggleIndicatorSubpanel}
         />
-      </div>
+      ) : (
+        <div className="maet-glass hidden shrink-0 items-center justify-between gap-3 px-3 py-2 lg:flex">
+          <div className="flex items-center gap-2 text-sm font-semibold text-maet-text-muted">
+            <SlidersHorizontal className="h-4 w-4 text-maet-cyan" />
+            Indicator workbench collapsed
+          </div>
+          <button type="button" onClick={() => setDrawerOpen(true)} className="glass-button h-9 min-h-9 px-3 text-xs">
+            Open
+          </button>
+        </div>
+      )}
 
       <button
         type="button"
         onClick={() => selectedSymbol && setOrderSheetOpen(true)}
         disabled={!selectedSymbol}
-        className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-maet-blue text-sm font-bold text-white disabled:opacity-40 lg:hidden"
+        className="maet-btn maet-btn-primary h-12 shrink-0 text-sm disabled:opacity-40 lg:hidden"
       >
         <ShieldCheck className="h-4 w-4" />
         Validate Dry-Run Order
@@ -226,6 +240,37 @@ export function ChartScreen() {
         </div>
       </MobileActionSheet>
     </MobilePage>
+  )
+}
+
+function Metric({ label, value, tone = 'muted' }: { label: string; value: string; tone?: 'up' | 'down' | 'muted' }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-maet-ink-950/40 px-3 py-2 text-right">
+      <div className="text-xs font-semibold text-maet-text-muted">{label}</div>
+      <div className={cn('maet-number mt-0.5 font-mono text-sm font-extrabold', tone === 'up' ? 'text-maet-green' : tone === 'down' ? 'text-maet-red' : 'text-maet-text')}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function ExternalButton({ href, label, disabled }: { href: string; label: string; disabled: boolean }) {
+  return (
+    <a
+      href={disabled ? undefined : href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-disabled={disabled}
+      className={cn(
+        'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 font-mono text-xs font-extrabold shadow-inner',
+        disabled
+          ? 'pointer-events-none border-white/10 text-maet-text-faint opacity-50'
+          : 'border-maet-blue/40 bg-maet-blue/10 text-maet-blue-soft hover:border-maet-cyan/40 hover:text-maet-cyan'
+      )}
+    >
+      {label}
+      <ExternalLink className="h-3.5 w-3.5" />
+    </a>
   )
 }
 
@@ -250,14 +295,16 @@ function OfflineChartState({
   onRetry: () => void
 }) {
   return (
-    <div className="grid h-full min-h-[320px] place-items-center bg-maet-bg-deep/48 p-6 text-center" aria-label={`Price chart diagnostics for ${symbol}`}>
-      <div className="reflection-card max-w-md p-5">
-        <BarChart2 className="mx-auto h-8 w-8 text-maet-text-muted" />
-        <h2 className="mt-4 font-heading text-lg font-bold text-maet-text-secondary">No Candle Data</h2>
-        <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">
+    <div className="grid h-full min-h-[420px] flex-1 place-items-center bg-maet-ink-950/40 p-6 text-center" aria-label={`Price chart diagnostics for ${symbol}`}>
+      <div className="maet-card max-w-lg p-5">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
+          <BarChart2 className="h-6 w-6" />
+        </div>
+        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">No Candle Data</h2>
+        <p className="mt-2 max-w-md text-sm leading-6 text-maet-text-muted">
           Real backend candles were requested for {symbol}. Current backend status: {apiStatus.toLowerCase()}.
         </p>
-        <div className="mt-4 space-y-1 rounded-md border border-maet-border bg-maet-base/70 p-3 text-left font-mono text-[11px] text-maet-text-muted">
+        <div className="mt-4 grid gap-2 rounded-lg border border-white/10 bg-maet-ink-950/56 p-3 text-left text-xs text-maet-text-muted">
           <DiagnosticLine label="Exchange" value={exchange} />
           <DiagnosticLine label="Timeframe" value={diagnostics.timeframe} />
           <DiagnosticLine label="Route" value={diagnostics.route ?? 'Not requested yet'} />
@@ -266,11 +313,8 @@ function OfflineChartState({
           <DiagnosticLine label="Source" value={diagnostics.source ?? 'Unavailable'} />
           {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
         </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="glass-button mt-4 h-10 px-4 font-mono text-xs text-maet-blue"
-        >
+        <button type="button" onClick={onRetry} className="glass-button mt-4 h-10 px-4 text-xs text-maet-cyan">
+          <RefreshCw className="h-4 w-4" />
           Retry Fetch
         </button>
       </div>
@@ -280,9 +324,9 @@ function OfflineChartState({
 
 function DiagnosticLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[84px_minmax(0,1fr)] gap-2">
+    <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
       <span>{label}</span>
-      <span className="break-words text-maet-text-secondary">{value}</span>
+      <span className="break-words font-mono text-maet-text-soft">{value}</span>
     </div>
   )
 }
@@ -292,35 +336,39 @@ function formatLastFetch(value: number | null): string {
   return new Date(value).toLocaleTimeString()
 }
 
-function IndicatorDrawer({
-  open,
+function IndicatorWorkbench({
   overlays,
   subpanels,
   onOverlay,
   onSubpanel,
 }: {
-  open: boolean
   overlays: { ema: boolean; vwap: boolean; bollinger_bands: boolean }
   subpanels: { rsi: boolean; macd: boolean }
   onOverlay: (name: 'ema' | 'vwap' | 'bollinger_bands') => void
   onSubpanel: (name: 'rsi' | 'macd') => void
 }) {
   return (
-    <aside className={cn('reflection-card p-3 lg:block', open ? 'block' : 'hidden')}>
-      <div className="mb-3 flex items-center gap-2">
-        <ListChecks className="h-4 w-4 text-maet-violet" />
-        <h2 className="font-heading text-base font-bold text-maet-text">Indicators</h2>
-      </div>
-      <div className="space-y-2">
-        <IndicatorToggle label="EMA" checked={overlays.ema} onClick={() => onOverlay('ema')} />
-        <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/42 px-3 py-2">
-          <div className="mb-1 text-xs text-maet-text-muted">EMA period</div>
-          <input type="number" defaultValue={20} min={1} className="maet-input h-9 font-mono" />
+    <aside className="maet-glass shrink-0 p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-4 w-4 text-maet-violet" />
+          <h2 className="font-heading text-base font-bold text-maet-text">Indicator Workbench</h2>
         </div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-maet-text-muted">
+          <StatusOrb tone="violet" />
+          Overlays are research only
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+        <IndicatorToggle label="EMA" checked={overlays.ema} onClick={() => onOverlay('ema')} />
         <IndicatorToggle label="VWAP" checked={overlays.vwap} onClick={() => onOverlay('vwap')} />
-        <IndicatorToggle label="Bollinger Bands" checked={overlays.bollinger_bands} onClick={() => onOverlay('bollinger_bands')} />
-        <IndicatorToggle label="RSI subpanel" checked={subpanels.rsi} onClick={() => onSubpanel('rsi')} />
-        <IndicatorToggle label="MACD subpanel" checked={subpanels.macd} onClick={() => onSubpanel('macd')} />
+        <IndicatorToggle label="Bollinger" checked={overlays.bollinger_bands} onClick={() => onOverlay('bollinger_bands')} />
+        <IndicatorToggle label="RSI panel" checked={subpanels.rsi} onClick={() => onSubpanel('rsi')} />
+        <IndicatorToggle label="MACD panel" checked={subpanels.macd} onClick={() => onSubpanel('macd')} />
+        <div className="rounded-lg border border-white/10 bg-maet-ink-950/40 px-3 py-2">
+          <div className="text-xs font-semibold text-maet-text-muted">EMA period</div>
+          <input type="number" defaultValue={20} min={1} className="maet-input mt-1 h-9 font-mono" aria-label="EMA period" />
+        </div>
       </div>
     </aside>
   )
@@ -332,14 +380,19 @@ function IndicatorToggle({ label, checked, onClick }: { label: string; checked: 
       type="button"
       onClick={onClick}
       className={cn(
-        'flex h-10 w-full items-center justify-between rounded-xl border px-3 text-sm font-bold transition-colors',
-        checked ? 'border-maet-violet bg-maet-violet/15 text-maet-violet' : 'border-maet-border bg-maet-base text-maet-text-secondary hover:bg-maet-elevated hover:text-maet-text'
+        'flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-bold transition-colors',
+        checked ? 'border-maet-violet/40 bg-maet-violet/20 text-maet-violet' : 'border-white/10 bg-maet-ink-950/40 text-maet-text-soft hover:bg-maet-glass-bg-strong hover:text-maet-text'
       )}
     >
       {label}
-      <span className={cn('h-4 w-7 rounded-full border p-0.5', checked ? 'border-maet-violet bg-maet-violet/20' : 'border-maet-border bg-maet-surface')}>
-        <span className={cn('block h-2.5 w-2.5 rounded-full bg-current transition-transform', checked && 'translate-x-3')} />
+      <span className={cn('h-4 w-8 rounded-full border p-0.5', checked ? 'border-maet-violet/40 bg-maet-violet/20' : 'border-white/10 bg-maet-panel-soft')}>
+        <span className={cn('block h-2.5 w-2.5 rounded-full bg-current transition-transform', checked && 'translate-x-4')} />
       </span>
     </button>
   )
+}
+
+function formatPrice(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '--'
+  return value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }

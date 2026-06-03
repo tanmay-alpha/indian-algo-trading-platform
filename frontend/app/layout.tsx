@@ -26,6 +26,9 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'MAET Terminal OS',
   description: 'Safety-first market analytics for Indian markets.',
+  icons: {
+    icon: '/icon.svg',
+  },
 }
 
 export const viewport: Viewport = {

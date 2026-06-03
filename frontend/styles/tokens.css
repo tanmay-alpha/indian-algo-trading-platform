@@ -1,64 +1,92 @@
 :root {
-  --maet-bg-deep: #020617;
-  --maet-bg-night: #06111f;
-  --maet-bg-ink: #09111f;
-  --maet-bg-panel: #0f172a;
-  --maet-bg-soft: #111827;
-  --maet-bg-panel-strong: var(--maet-bg-soft);
-  --maet-bg-raised: #172033;
+  --maet-ink-950: #020617;
+  --maet-ink-900: #06111f;
+  --maet-ink-850: #081827;
+  --maet-ink-800: #0b1b2e;
+  --maet-ink-760: #10243a;
 
-  --maet-glass-1: rgba(255,255,255,0.055);
-  --maet-glass-2: rgba(255,255,255,0.085);
-  --maet-glass-3: rgba(255,255,255,0.13);
-  --maet-glass-border: rgba(255,255,255,0.16);
-  --maet-glass-border-strong: rgba(125,211,252,0.38);
-  --maet-glass-edge: rgba(255,255,255,0.34);
+  --maet-panel: rgba(9, 17, 31, 0.86);
+  --maet-panel-soft: rgba(15, 23, 42, 0.72);
+  --maet-panel-strong: rgba(15, 23, 42, 0.94);
+  --maet-panel-raised: rgba(18, 31, 50, 0.88);
 
-  --maet-text-main: #f8fafc;
+  --maet-glass-bg: rgba(255, 255, 255, 0.065);
+  --maet-glass-bg-strong: rgba(255, 255, 255, 0.105);
+  --maet-glass-border: rgba(255, 255, 255, 0.15);
+  --maet-glass-border-strong: rgba(125, 211, 252, 0.34);
+  --maet-glass-highlight: rgba(255, 255, 255, 0.28);
+
+  --maet-text: #f8fafc;
   --maet-text-soft: #cbd5e1;
   --maet-text-muted: #94a3b8;
   --maet-text-faint: #64748b;
 
-  --maet-blue: #38bdf8;
-  --maet-blue-strong: #2563eb;
   --maet-cyan: #22d3ee;
+  --maet-blue: #2f80ff;
+  --maet-blue-soft: #60a5fa;
+  --maet-blue-strong: #1d4ed8;
   --maet-green: #16c784;
   --maet-red: #ea3943;
   --maet-amber: #f59e0b;
   --maet-violet: #8b5cf6;
 
-  --maet-glow-cyan: rgba(34,211,238,0.28);
-  --maet-glow-blue: rgba(37,99,235,0.24);
-  --maet-glow-violet: rgba(139,92,246,0.22);
-  --maet-glow-green: rgba(22,199,132,0.18);
-  --maet-glow-red: rgba(234,57,67,0.16);
-  --maet-glow-amber: rgba(245,158,11,0.22);
+  --maet-glow-cyan: rgba(34, 211, 238, 0.28);
+  --maet-glow-blue: rgba(47, 128, 255, 0.30);
+  --maet-glow-green: rgba(22, 199, 132, 0.16);
+  --maet-glow-red: rgba(234, 57, 67, 0.14);
+  --maet-glow-violet: rgba(139, 92, 246, 0.20);
+  --maet-glow-amber: rgba(245, 158, 11, 0.20);
 
-  --maet-shadow-glass: 0 24px 80px rgba(0,0,0,0.45);
-  --maet-shadow-card: 0 14px 40px rgba(15,23,42,0.45);
-  --maet-shadow-inner: inset 0 1px 0 rgba(255,255,255,0.12);
-  --maet-shadow-rail: 0 18px 64px rgba(0,0,0,0.52);
+  --maet-shadow-float: 0 32px 90px rgba(0, 0, 0, 0.52);
+  --maet-shadow-card: 0 20px 55px rgba(2, 6, 23, 0.42);
+  --maet-shadow-glass: 0 28px 80px rgba(2, 6, 23, 0.52);
+  --maet-shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --maet-shadow-rail: 0 18px 64px rgba(0, 0, 0, 0.52);
+
+  --maet-radius-xs: 8px;
+  --maet-radius-sm: 10px;
+  --maet-radius-md: 12px;
+  --maet-radius-lg: 16px;
+  --maet-radius-xl: 20px;
 
   --safety-locked: var(--maet-red);
   --safety-paper: var(--maet-amber);
-  --safety-read: var(--maet-blue);
+  --safety-read: var(--maet-blue-soft);
   --safety-ai: var(--maet-violet);
   --safety-broker: var(--maet-cyan);
 
-  --bottom-nav-h: 64px;
-  --top-header-h: 62px;
-  --safety-strip-h: 44px;
+  --bottom-nav-h: 68px;
+  --top-header-h: 64px;
+  --safety-strip-h: 46px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* Backwards-compatible aliases used by older MAET components. */
-  --bg-void: var(--maet-bg-deep);
-  --bg-base: var(--maet-bg-night);
-  --bg-surface: rgba(15,23,42,0.78);
-  --bg-elevated: rgba(23,32,51,0.86);
-  --bg-overlay: rgba(9,17,31,0.88);
-  --border-subtle: rgba(148,163,184,0.18);
+  /* Backwards-compatible aliases used by existing MAET components. */
+  --maet-bg-deep: var(--maet-ink-950);
+  --maet-bg-night: var(--maet-ink-900);
+  --maet-bg-ink: var(--maet-ink-850);
+  --maet-bg-panel: var(--maet-panel);
+  --maet-bg-soft: var(--maet-ink-800);
+  --maet-bg-panel-strong: var(--maet-panel-strong);
+  --maet-bg-raised: var(--maet-panel-raised);
+
+  --maet-glass-1: var(--maet-glass-bg);
+  --maet-glass-2: var(--maet-glass-bg-strong);
+  --maet-glass-3: rgba(255, 255, 255, 0.14);
+  --maet-glass-edge: var(--maet-glass-highlight);
+
+  --maet-text-main: var(--maet-text);
+  --maet-text-secondary: var(--maet-text-soft);
+  --shadow-panel: var(--maet-shadow-card);
+  --shadow-raised: var(--maet-shadow-glass);
+
+  --bg-void: var(--maet-ink-950);
+  --bg-base: var(--maet-ink-900);
+  --bg-surface: var(--maet-panel-soft);
+  --bg-elevated: var(--maet-panel-raised);
+  --bg-overlay: var(--maet-panel-strong);
+  --border-subtle: rgba(148, 163, 184, 0.18);
   --border-strong: var(--maet-glass-border-strong);
-  --text-primary: var(--maet-text-main);
+  --text-primary: var(--maet-text);
   --text-secondary: var(--maet-text-soft);
   --text-muted: var(--maet-text-muted);
   --accent-green: var(--maet-green);
@@ -66,33 +94,37 @@
   --accent-amber: var(--maet-amber);
   --accent-blue: var(--maet-blue);
   --accent-violet: var(--maet-violet);
-  --shadow-panel: var(--maet-shadow-card);
-  --shadow-raised: var(--maet-shadow-glass);
 
   --bg: var(--bg-base);
   --bg-2: var(--bg-surface);
   --panel: var(--bg-surface);
-  --panel-2: rgba(2,6,23,0.72);
+  --panel-2: rgba(2, 6, 23, 0.72);
   --panel-3: var(--bg-elevated);
   --border: var(--border-subtle);
-  --border-accent: rgba(56,189,248,0.32);
+  --border-accent: rgba(96, 165, 250, 0.32);
   --border-card: var(--border-subtle);
   --text: var(--text-primary);
   --text-2: var(--text-secondary);
   --text-dim: var(--text-secondary);
   --text-faint: var(--maet-text-faint);
   --up: var(--accent-green);
-  --up-dim: rgba(22,199,132,0.12);
+  --up-dim: rgba(22, 199, 132, 0.12);
   --up-glow: var(--maet-glow-green);
   --down: var(--accent-red);
-  --down-dim: rgba(234,57,67,0.12);
+  --down-dim: rgba(234, 57, 67, 0.12);
   --warn: var(--accent-amber);
-  --warn-dim: rgba(245,158,11,0.12);
+  --warn-dim: rgba(245, 158, 11, 0.12);
   --info: var(--accent-blue);
-  --info-dim: rgba(56,189,248,0.12);
+  --info-dim: rgba(47, 128, 255, 0.12);
   --locked: var(--safety-locked);
   --violet: var(--accent-violet);
-  --violet-dim: rgba(139,92,246,0.12);
+  --violet-dim: rgba(139, 92, 246, 0.12);
   --paper: var(--safety-paper);
   --live: var(--safety-locked);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --safety-strip-h: 34px;
+  }
 }

@@ -73,7 +73,7 @@ export function TradeWorkspace() {
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 className={cn(
-                  'h-5 px-1.5 rounded-sm text-[10px] font-mono uppercase transition-colors',
+                  'h-5 px-1.5 rounded-sm text-xs font-mono uppercase transition-colors',
                   timeframe === tf
                     ? 'text-info bg-info/10'
                     : 'text-text-faint hover:text-text-dim'
@@ -85,12 +85,12 @@ export function TradeWorkspace() {
           </div>
           <div className="w-px h-3 bg-border mx-1" />
           <div className="flex items-baseline gap-2">
-            <div className="text-[11px] font-mono font-bold text-text tracking-wide">
+            <div className="text-xs font-mono font-bold text-text tracking-wide">
               {selected ?? tick?.symbol ?? 'SELECT SYMBOL'}
             </div>
             {ltp != null && (
               <div className={cn(
-                "text-[10px] font-mono font-medium",
+                "text-xs font-mono font-medium",
                 chg != null && chg > 0 ? "text-up" : chg != null && chg < 0 ? "text-down" : "text-text-2"
               )}>
                 {fmtPrice(ltp)}
@@ -204,7 +204,7 @@ export function PortfolioWorkspace() {
             </div>
 
             {unlockError && (
-              <p className="text-[10px] text-rose-400 font-mono text-left">{unlockError}</p>
+              <p className="text-xs text-rose-400 font-mono text-left">{unlockError}</p>
             )}
 
             <button
@@ -218,8 +218,8 @@ export function PortfolioWorkspace() {
             </button>
           </div>
 
-          <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-[10px] text-text-faint font-mono text-left">
-            <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-[10px]">
+          <div className="border border-border/40 bg-white/[0.01] rounded p-3 space-y-2 text-xs text-text-faint font-mono text-left">
+            <div className="flex items-center gap-1.5 text-amber-500 font-bold uppercase tracking-wider text-xs">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Read-Only Advisory Mode</span>
             </div>
@@ -247,7 +247,7 @@ export function PortfolioWorkspace() {
         <div className="flex items-center justify-between rounded-sm border border-border bg-panel/60 px-3 py-2">
           <div>
             <div className="text-xs font-semibold text-text">Portfolio Control</div>
-            <div className="mt-0.5 text-[10px] font-mono text-text-faint">
+            <div className="mt-0.5 text-xs font-mono text-text-faint">
               Source of truth: {summary?.trading_mode === 'LIVE' ? 'LIVE broker' : 'PAPER internal'} / {source}
             </div>
           </div>
@@ -256,7 +256,7 @@ export function PortfolioWorkspace() {
             <button
               onClick={() => refreshPortfolio()}
               disabled={loading}
-              className="h-7 px-2 rounded-sm border border-border bg-bg text-[10px] font-mono text-text-dim hover:text-text disabled:opacity-50"
+              className="h-7 px-2 rounded-sm border border-border bg-bg text-xs font-mono text-text-dim hover:text-text disabled:opacity-50"
             >
               <RefreshCw className="inline w-3 h-3 mr-1" />
               {loading ? 'Loading' : 'Refresh'}
@@ -322,7 +322,7 @@ export function PortfolioWorkspace() {
             ) : (
               <div className="p-2 space-y-1">
                 {equityCurve.slice(-8).map((point) => (
-                  <div key={`${point.timestamp}-${point.equity}`} className="grid grid-cols-3 gap-2 border border-border bg-bg/70 px-2 py-1 text-[10px] font-mono">
+                  <div key={`${point.timestamp}-${point.equity}`} className="grid grid-cols-3 gap-2 border border-border bg-bg/70 px-2 py-1 text-xs font-mono">
                     <span className="truncate text-text-faint">{new Date(point.timestamp).toLocaleTimeString()}</span>
                     <span className="text-text">{fmtPrice(point.equity)}</span>
                     <span className="text-warn">{fmtPrice(point.drawdown)}</span>
@@ -376,7 +376,7 @@ function PortfolioPanel({
       <div className="h-9 px-3 flex items-center justify-between border-b border-border bg-bg/60">
         <div>
           <div className="text-xs font-semibold text-text">{title}</div>
-          <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
+          <div className="text-xs font-mono text-text-faint">{subtitle}</div>
         </div>
       </div>
       {children}
@@ -398,7 +398,7 @@ function PortfolioTable({
   return (
     <div className="h-full min-h-[160px] flex flex-col">
       <div
-        className="grid gap-2 px-2 py-1.5 border-b border-border bg-bg text-[10px] font-mono uppercase tracking-wider text-text-faint"
+        className="grid gap-2 px-2 py-1.5 border-b border-border bg-bg text-xs font-mono uppercase tracking-wider text-text-faint"
         style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
       >
         {columns.map((column) => (
@@ -414,7 +414,7 @@ function PortfolioTable({
           {rows.map((row, index) => (
             <div
               key={`${row[0]}-${index}`}
-              className="grid gap-2 px-2 py-1.5 border-b border-border/60 text-[10px] font-mono text-text-2"
+              className="grid gap-2 px-2 py-1.5 border-b border-border/60 text-xs font-mono text-text-2"
               style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
             >
               {row.map((cell, cellIndex) => (
@@ -440,7 +440,7 @@ function StrategyWorkspace() {
       <div className="h-80 min-h-[18rem] flex overflow-hidden shrink-0">
         <div className="w-1/2 border-r border-border min-h-0 overflow-hidden">
           <div className="h-8 px-3 flex items-center border-b border-border bg-panel/60">
-            <span className="text-[10px] font-mono font-semibold text-text uppercase tracking-wider">Control Panel</span>
+            <span className="text-xs font-mono font-semibold text-text uppercase tracking-wider">Control Panel</span>
           </div>
           <div className="h-[calc(100%-2rem)] overflow-auto">
             <StrategyControlPanel />
@@ -542,7 +542,7 @@ export function PremiumChartPanel() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-panel/40 border border-border/40">
-      <span className="text-text-dim uppercase text-[10px] tracking-tight">{label}</span>
+      <span className="text-text-dim uppercase text-xs tracking-tight">{label}</span>
       <span className="text-text font-medium tabular-nums">{value}</span>
     </span>
   )
@@ -551,7 +551,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Stat({ title, value }: { title: string; value: string }) {
   return (
     <div className="border border-border bg-panel/50 p-2.5 rounded-sm">
-      <div className="text-[10px] font-mono uppercase tracking-widest text-text-faint">{title}</div>
+      <div className="text-xs font-mono uppercase tracking-widest text-text-faint">{title}</div>
       <div className="mt-1 text-sm font-mono text-text tabular-nums">{value}</div>
     </div>
   )

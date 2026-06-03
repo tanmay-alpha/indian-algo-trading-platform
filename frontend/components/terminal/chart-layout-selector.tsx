@@ -22,7 +22,7 @@ export function ChartLayoutSelector() {
             key={m.id}
             onClick={() => setMode(m.id)}
             className={cn(
-              'px-2 h-[20px] rounded-sm text-[10px] font-mono uppercase tracking-wider transition-colors border',
+              'px-2 h-[20px] rounded-sm text-xs font-mono uppercase tracking-wider transition-colors border',
               active
                 ? 'text-info border-info/30 bg-info-dim font-bold'
                 : 'border-transparent text-text-dim hover:text-text hover:bg-white/[0.02]'

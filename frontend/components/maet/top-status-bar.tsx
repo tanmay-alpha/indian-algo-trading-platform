@@ -84,14 +84,14 @@ export function TopStatusBar() {
           </div>
           <div>
             <h1 className="text-xs font-bold tracking-tight text-white leading-none">MAET Terminal</h1>
-            <span className="text-[10px] text-text-dim font-mono">Market Analytics & Execution</span>
+            <span className="text-xs text-text-dim font-mono">Market Analytics & Execution</span>
           </div>
         </div>
 
         <div className="hidden sm:block h-4 w-px bg-white/[0.08]" />
 
         {/* Live Ticker Status */}
-        <div className={`hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono ${
+        <div className={`hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-mono ${
           isMarketOpen ? 'bg-up/10 border-up/20 text-up' : 'bg-white/[0.02] border-white/[0.06] text-text-dim'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${isMarketOpen ? 'bg-up animate-pulse' : 'bg-text-faint'}`} />

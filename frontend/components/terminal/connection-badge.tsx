@@ -15,7 +15,7 @@ export function ConnectionBadge({ label, state, detail, className }: Props) {
     <span
       title={detail ? `${label}: ${state} — ${detail}` : `${label}: ${state}`}
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border text-[10px] font-mono uppercase tracking-wider',
+        'inline-flex items-center gap-1.5 px-2 h-[22px] rounded-sm border text-xs font-mono uppercase tracking-wider',
         operatorClass(state),
         className
       )}

@@ -17,10 +17,10 @@ Today, the MAET project is a highly robust, clean, and test-hardened **paper tra
 | **Scanner** | Simple in-memory technical scanner. | DB-driven multi-timeframe screener running queries on computed indicators. | Medium | Excessive CPU utilization during scans. |
 | **Strategy Runtime** | Static classes initialized at boot. | Dynamic upload, registration, validation, starting, and stopping of strategies. | High | Unchecked user scripts crashing the main loop. |
 | **Paper Trading** | Realistic execution modeling with fees/slippage. | Margin calculations, balance simulated deposits, multi-account support. | Low | Low risk. |
-| **Live Execution** | Disabled and mock-locked. | Full API connection to Angel One for placing real orders on NSE/BSE. | Critical | Extreme real-money financial risk. |
+| **Live Execution** | Disabled and build-locked. | Full API connection to Angel One for placing real orders on NSE/BSE. | Critical | Extreme real-money financial risk. |
 | **OMS** | Local SQLite OrderStore with recovery. | Live order status polling, synchronization with real exchange records. | High | Local/Broker order status desynchronization. |
 | **Risk** | Static PreTradeRiskGate checks. | Real-time exposure limits, margin requirements tracking, circuit breakers. | High | Latency overhead inside risk loop. |
-| **Reconciliation** | Local reconciler comparing local vs mock broker. | Automatic daily end-of-day trade book and ledger reconciliation. | Medium | API token expiry mid-process. |
+| **Reconciliation** | Local reconciler comparing paper records vs broker snapshots. | Automatic daily end-of-day trade book and ledger reconciliation. | Medium | API token expiry mid-process. |
 | **Portfolio** | In-memory reconstruction from local fills. | Historical equity curve tracking, tax/charge reports. | Medium | Inaccurate cost-basis math. |
 | **Funds/Margin** | Mock capital ($50,000 / Rs 50,000). | Synchronization with real Angel One RMS limits and funds. | High | Trading on stale/insufficient balance records. |
 | **Auth** | Static ADMIN_TOKEN in env. | Multi-user support, dynamic login, OTP/TOTP, session encryption. | Critical | Unauthorized trading bot control. |
@@ -138,8 +138,8 @@ Today, the MAET project is a highly robust, clean, and test-hardened **paper tra
 - **Features**: UI panel to configure max drawdown, max order quantity, and daily loss limits.
 - **Files affected**: `backend/risk/risk_manager.py`, `frontend/components/risk-console.tsx`.
 - **Risks**: Changing limits during an active trade session.
-- **Tests**: Validate that a newly applied limit immediately blocks subsequent mock orders.
-- **Stop condition**: Reducing maximum order size to 1 immediately rejects a mock order of size 2.
+- **Tests**: Validate that a newly applied limit immediately blocks subsequent paper orders.
+- **Stop condition**: Reducing maximum order size to 1 immediately rejects a paper order of size 2.
 
 ### Phase 25 — Manual Order Approval & Execution Gate
 - **Goal**: Eliminate runaway trading bot risks.
@@ -155,7 +155,7 @@ Today, the MAET project is a highly robust, clean, and test-hardened **paper tra
 - **Files affected**: `backend/execution/execution_router.py`, `backend/gateway/market_gateway.py`.
 - **Risks**: Real-money losses, account lockouts.
 - **Tests**: Dry run placements of limit orders far from market price; immediate cancel tests.
-- **Stop condition**: Send a live buy order for 1 share of liquid stock, see it executed on exchange, and verified in terminal ledger.
+- **Stop condition**: In a separately audited live-build sandbox only, verify the complete opt-in order lifecycle without enabling live execution in this repository.
 
 ### Phase 27 — C++ Indicators & Backtesting Integration
 - **Goal**: Native performance speedup.

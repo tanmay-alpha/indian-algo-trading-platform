@@ -69,15 +69,15 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       <div className="px-3 py-2 border-b border-border bg-panel/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-text uppercase tracking-wider">Market Watch</span>
+            <span className="text-xs font-bold text-text uppercase tracking-wider">Market Watch</span>
             {watchlistSource === 'db' ? (
-              <span className="text-[10px] text-up font-mono">●</span>
+              <span className="text-xs text-up font-mono">●</span>
             ) : (
-              <span className="text-[10px] text-warn font-mono animate-pulse">●</span>
+              <span className="text-xs text-warn font-mono animate-pulse">●</span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-text-faint">
+            <span className="text-xs font-mono text-text-faint">
               {watchlistLoading ? '...' : `${symbols.length} items`}
             </span>
             {onClose && (
@@ -100,7 +100,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
           <div ref={groupRef} className="relative">
             <button
               onClick={() => setGroupOpen((open) => !open)}
-              className="h-7 px-2 flex items-center gap-1 rounded-sm border border-border bg-bg text-[10px] font-mono text-text-2 hover:text-text transition-colors"
+              className="h-7 px-2 flex items-center gap-1 rounded-sm border border-border bg-bg text-xs font-mono text-text-2 hover:text-text transition-colors"
             >
               <span className="max-w-[60px] truncate">{activeGroup?.name ?? '\u2014'}</span>
               <ChevronDown className="w-2.5 h-3 text-text-faint" />
@@ -115,12 +115,12 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                       setGroupOpen(false)
                     }}
                     className={cn(
-                      'w-full px-2.5 h-7 flex items-center justify-between text-[11px] font-mono hover:bg-white/[0.04]',
+                      'w-full px-2.5 h-7 flex items-center justify-between text-xs font-mono hover:bg-white/[0.04]',
                       group.id === groupId ? 'text-info bg-info/5' : 'text-text-dim'
                     )}
                   >
                     <span className="truncate">{group.name}</span>
-                    <span className="text-[10px] opacity-40">{group.symbols.length}</span>
+                    <span className="text-xs opacity-40">{group.symbols.length}</span>
                   </button>
                 ))}
               </div>
@@ -135,21 +135,21 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       </div>
 
       {watchlistAdminRequired && (
-        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-[10px] text-warn leading-tight">
+        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-xs text-warn leading-tight">
           Admin token required to write to DB. Changes are local-only.
         </div>
       )}
       {watchlistError && !watchlistAdminRequired && (
-        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-[10px] text-warn leading-tight">
+        <div className="mx-3 mt-2 rounded border border-warn/25 bg-warn/5 px-2 py-1 text-xs text-warn leading-tight">
           {watchlistError}
         </div>
       )}
 
       <div className="flex h-7 items-center border-b border-border bg-panel/50 px-2 mt-1">
-        <div className="flex-1 font-mono text-[10px] uppercase tracking-widest text-text-faint">INSTRUMENT</div>
-        <div className="w-[68px] text-right font-mono text-[10px] tracking-wide text-text-faint">LTP</div>
-        <div className="w-[48px] text-right font-mono text-[10px] tracking-wide text-text-faint">CHG%</div>
-        <div className="w-[36px] text-right font-mono text-[10px] tracking-wide text-text-faint">VOL</div>
+        <div className="flex-1 font-mono text-xs uppercase tracking-widest text-text-faint">INSTRUMENT</div>
+        <div className="w-[68px] text-right font-mono text-xs tracking-wide text-text-faint">LTP</div>
+        <div className="w-[48px] text-right font-mono text-xs tracking-wide text-text-faint">CHG%</div>
+        <div className="w-[36px] text-right font-mono text-xs tracking-wide text-text-faint">VOL</div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -213,7 +213,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                   <span className="shrink-0 font-mono text-[12px] font-semibold tracking-wide text-text leading-tight">
                     {cleanSymbol}
                   </span>
-                  <span className="min-w-0 truncate text-[10px] text-text-faint leading-tight">
+                  <span className="min-w-0 truncate text-xs text-text-faint leading-tight">
                     {displayName || meta}
                   </span>
                 </div>
@@ -222,7 +222,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                   <span className={cn(
                     'w-[68px] text-right font-mono text-[12px] font-semibold tabular-nums',
                     displayLtp == null
-                      ? 'text-text-faint/70 text-[10px]'
+                      ? 'text-text-faint/70 text-xs'
                       : displayChgPct != null && displayChgPct > 0
                       ? 'text-up'
                       : displayChgPct != null && displayChgPct < 0
@@ -232,7 +232,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                     {displayLtp != null ? formatLtp(displayLtp) : 'No tick'}
                   </span>
                   <span className={cn(
-                    'w-[48px] text-right font-mono text-[10px] tabular-nums',
+                    'w-[48px] text-right font-mono text-xs tabular-nums',
                     displayLtp == null
                       ? 'text-text-faint/45'
                       : displayChgPct != null && displayChgPct > 0
@@ -244,7 +244,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
                     {displayLtp != null ? formatChange(displayChgPct) : '-'}
                   </span>
                   <span className={cn(
-                    'w-[36px] text-right font-mono text-[10px] tabular-nums',
+                    'w-[36px] text-right font-mono text-xs tabular-nums',
                     displayLtp == null
                       ? 'text-text-faint/45'
                       : 'text-text-faint'
@@ -268,7 +268,7 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
           })
         )}
         {symbols.length > 0 && !terminalStatus && apiStatus !== 'ONLINE' && (
-          <div className="border-t border-border bg-bg/60 px-3 py-2 text-[10px] font-mono text-text-faint">
+          <div className="border-t border-border bg-bg/60 px-3 py-2 text-xs font-mono text-text-faint">
             Loading terminal status...
           </div>
         )}

@@ -35,7 +35,7 @@ export function JournalWorkspace() {
             key={item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              'h-7 rounded-sm border px-2 font-mono text-[10px]',
+              'h-7 rounded-sm border px-2 font-mono text-xs',
               tab === item.id
                 ? 'border-info/40 bg-info-dim text-info'
                 : 'border-border bg-bg text-text-dim hover:text-text'
@@ -101,18 +101,18 @@ function EventLogPanel() {
             className="h-8 rounded-sm border border-border bg-bg px-2 font-mono text-xs text-text outline-none"
           />
         </div>
-        <div className="font-mono text-[10px] text-text-faint">
+        <div className="font-mono text-xs text-text-faint">
           {total} matched / page {page + 1}
         </div>
       </div>
-      <div className="h-7 grid grid-cols-[70px_95px_110px_100px_1fr_220px] gap-2 border border-border bg-bg px-3 items-center font-mono text-[10px] uppercase text-text-faint">
+      <div className="h-7 grid grid-cols-[70px_95px_110px_100px_1fr_220px] gap-2 border border-border bg-bg px-3 items-center font-mono text-xs uppercase text-text-faint">
         <span>ID</span><span>Time</span><span>Type</span><span>Symbol</span><span>Summary</span><span>Details</span>
       </div>
       <div className="flex-1 overflow-auto border-x border-border">
         {entries.length === 0 ? (
           <EmptyRows text="No events match the current filters." />
         ) : entries.map((entry) => (
-          <div key={entry.id} className="grid min-h-8 grid-cols-[70px_95px_110px_100px_1fr_220px] gap-2 border-b border-border/60 px-3 py-1.5 font-mono text-[10px]">
+          <div key={entry.id} className="grid min-h-8 grid-cols-[70px_95px_110px_100px_1fr_220px] gap-2 border-b border-border/60 px-3 py-1.5 font-mono text-xs">
             <span className="text-text-faint">{entry.id}</span>
             <span className="text-text-faint">{fmtTime(entry.ts)}</span>
             <span className="text-info">{entry.event_type}</span>
@@ -123,10 +123,10 @@ function EventLogPanel() {
         ))}
       </div>
       <div className="h-9 shrink-0 border border-border bg-panel/60 px-3 flex items-center justify-between">
-        <button disabled={page === 0} onClick={() => setPage((value) => Math.max(value - 1, 0))} className="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-[10px] text-text-dim disabled:opacity-40">
+        <button disabled={page === 0} onClick={() => setPage((value) => Math.max(value - 1, 0))} className="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-xs text-text-dim disabled:opacity-40">
           Prev
         </button>
-        <button disabled={(page + 1) * limit >= total} onClick={() => setPage((value) => value + 1)} className="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-[10px] text-text-dim disabled:opacity-40">
+        <button disabled={(page + 1) * limit >= total} onClick={() => setPage((value) => value + 1)} className="rounded-sm border border-border bg-bg px-2 py-1 font-mono text-xs text-text-dim disabled:opacity-40">
           Next
         </button>
       </div>
@@ -161,7 +161,7 @@ function HealthTimelinePanel() {
         <PanelTitle title="Incidents" subtitle="Disconnect/error intervals in this session" />
         <div className="p-2 space-y-1">
           {incidents.length === 0 ? <EmptyRows text="No incidents recorded this session." /> : incidents.map((incident) => (
-            <div key={`${incident.component}-${incident.started_at}`} className="grid grid-cols-[120px_130px_130px_1fr] gap-2 rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
+            <div key={`${incident.component}-${incident.started_at}`} className="grid grid-cols-[120px_130px_130px_1fr] gap-2 rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-xs">
               <span className="uppercase text-warn">{incident.component}</span>
               <span>{fmtTime(incident.started_at)}</span>
               <span>{incident.ended_at ? fmtTime(incident.ended_at) : 'OPEN'}</span>
@@ -175,7 +175,7 @@ function HealthTimelinePanel() {
         <PanelTitle title="Timeline" subtitle="State transition history" />
         <div className="p-2 space-y-1">
           {events.length === 0 ? <EmptyRows text="No health timeline events recorded." /> : events.map((event, index) => (
-            <div key={`${event.ts}-${index}`} className="grid grid-cols-[110px_34px_120px_1fr] gap-2 rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
+            <div key={`${event.ts}-${index}`} className="grid grid-cols-[110px_34px_120px_1fr] gap-2 rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-xs">
               <span className="text-text-faint">{fmtTime(event.ts)}</span>
               <span className="text-text-faint">&lt;-&gt;</span>
               <span className={stateClass(event.state)}>{event.component}: {event.state}</span>
@@ -208,18 +208,18 @@ function StrategyRunsPanel() {
 
   return (
     <section className="h-full min-h-0 overflow-auto p-3">
-      <div className="mb-2 rounded-sm border border-border bg-info-dim px-3 py-2 font-mono text-[10px] text-info">
+      <div className="mb-2 rounded-sm border border-border bg-info-dim px-3 py-2 font-mono text-xs text-info">
         Research backtests only. No live execution.
       </div>
       <div className="rounded-sm border border-border bg-panel/60">
-        <div className="grid grid-cols-[120px_160px_100px_80px_70px_90px_90px_90px] gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase text-text-faint">
+        <div className="grid grid-cols-[120px_160px_100px_80px_70px_90px_90px_90px] gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-xs uppercase text-text-faint">
           <span>Time</span><span>Strategy</span><span>Symbol</span><span>TF</span><span>Trades</span><span>Net PnL</span><span>Return%</span><span>Max DD</span>
         </div>
         {runs.length === 0 ? <EmptyRows text="No strategy runs recorded this session." /> : runs.map((run, index) => {
           const key = `${run.ts}-${index}`
           return (
             <button key={key} onClick={() => setExpanded(expanded === key ? null : key)} className="block w-full border-b border-border/60 text-left hover:bg-bg">
-              <div className="grid grid-cols-[120px_160px_100px_80px_70px_90px_90px_90px] gap-2 px-3 py-1.5 font-mono text-[10px]">
+              <div className="grid grid-cols-[120px_160px_100px_80px_70px_90px_90px_90px] gap-2 px-3 py-1.5 font-mono text-xs">
                 <span className="text-text-faint">{fmtTime(run.ts)}</span>
                 <span className="text-text">{run.strategy_name}</span>
                 <span>{run.symbol}</span>
@@ -230,7 +230,7 @@ function StrategyRunsPanel() {
                 <span>{fmtPct(run.metrics.max_drawdown ?? null)}</span>
               </div>
               {expanded === key && (
-                <pre className="mx-3 mb-2 overflow-auto rounded-sm border border-border bg-bg p-2 text-[10px] text-text-faint">
+                <pre className="mx-3 mb-2 overflow-auto rounded-sm border border-border bg-bg p-2 text-xs text-text-faint">
                   {JSON.stringify(run.metrics, null, 2)}
                 </pre>
               )}
@@ -247,7 +247,7 @@ function TradeJournalPanel() {
     <div className="grid h-full place-items-center p-6 text-center">
       <div>
         <div className="text-sm font-semibold text-text">Paper trades will appear here after orders are placed.</div>
-        <div className="mt-2 font-mono text-[10px] text-text-faint">
+        <div className="mt-2 font-mono text-xs text-text-faint">
           Journal data is session-scoped. Not persisted on Render Free.
         </div>
       </div>
@@ -259,13 +259,13 @@ function PanelTitle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="border-b border-border bg-bg/70 px-3 py-2">
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="font-mono text-[10px] text-text-faint">{subtitle}</div>
+      <div className="font-mono text-xs text-text-faint">{subtitle}</div>
     </div>
   )
 }
 
 function EmptyRows({ text }: { text: string }) {
-  return <div className="p-4 text-center font-mono text-[10px] text-text-faint">{text}</div>
+  return <div className="p-4 text-center font-mono text-xs text-text-faint">{text}</div>
 }
 
 function stateClass(state: string): string {

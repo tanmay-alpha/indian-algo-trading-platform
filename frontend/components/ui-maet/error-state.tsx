@@ -34,7 +34,7 @@ export function ErrorState({
         <span className="text-xs font-bold uppercase tracking-wider text-[#EA3943]">
           {title}
         </span>
-        <span className="text-[10px] text-text-dim max-w-xs leading-normal font-medium">
+        <span className="text-xs text-text-dim max-w-xs leading-normal font-medium">
           {message}
         </span>
       </div>
@@ -42,7 +42,7 @@ export function ErrorState({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#EA3943]/30 bg-black/40 text-[11px] font-bold text-[#EA3943] hover:bg-[#EA3943]/15 transition-all duration-150 active:scale-[0.97]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#EA3943]/30 bg-black/40 text-xs font-bold text-[#EA3943] hover:bg-[#EA3943]/15 transition-all duration-150 active:scale-[0.97]"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>RETRY</span>

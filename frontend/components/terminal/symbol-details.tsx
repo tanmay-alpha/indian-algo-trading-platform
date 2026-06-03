@@ -31,11 +31,11 @@ export function SymbolDetails() {
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-[14px] font-bold text-text tracking-wide font-mono uppercase">{selected}</span>
-          <span className="px-1.5 py-0.5 rounded-sm bg-panel border border-border text-[10px] font-mono text-text-faint">
+          <span className="px-1.5 py-0.5 rounded-sm bg-panel border border-border text-xs font-mono text-text-faint">
             {row?.exchange ?? 'NSE'}
           </span>
         </div>
-        <div className="text-[10px] text-text-dim truncate uppercase tracking-tight">
+        <div className="text-xs text-text-dim truncate uppercase tracking-tight">
           {row?.name ?? 'Instrument metadata'}
         </div>
       </div>
@@ -44,7 +44,7 @@ export function SymbolDetails() {
         <div className="text-[24px] font-bold font-mono tracking-tighter tabular-nums text-text leading-none">
           {fmtPrice(ltp)}
         </div>
-        <div className="flex items-center gap-2 font-mono text-[11px] font-medium">
+        <div className="flex items-center gap-2 font-mono text-xs font-medium">
           <span className={priceDirClass(change)}>{change != null && change > 0 ? '+' : ''}{fmtPrice(change)}</span>
           <span className={cn("px-1 rounded-sm", changePct != null && changePct > 0 ? "bg-up/10 text-up" : changePct != null && changePct < 0 ? "bg-down/10 text-down" : "text-text-faint")}>
             {fmtPct(changePct)}
@@ -64,7 +64,7 @@ export function SymbolDetails() {
       <div className="flex-1 min-h-0 pt-2">
         <div className="mb-2 flex items-center gap-2 border-b border-border pb-1">
           <BarChart3 className="h-3 w-3 text-info" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-text-dim">Analytics</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-text-dim">Analytics</span>
         </div>
         {indicatorAvailable ? (
           <div className="grid grid-cols-2 gap-2">
@@ -73,7 +73,7 @@ export function SymbolDetails() {
           </div>
         ) : (
           <div className="p-4 rounded-sm border border-dashed border-border bg-panel/20 text-center">
-            <div className="text-[10px] text-text-faint italic leading-relaxed">
+            <div className="text-xs text-text-faint italic leading-relaxed">
               Real-time candle history is required for depth analysis.
             </div>
           </div>
@@ -86,8 +86,8 @@ export function SymbolDetails() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 bg-bg-2 p-2 min-w-0">
-      <span className="text-[10px] uppercase tracking-wider text-text-faint font-mono">{label}</span>
-      <span className="text-[11px] text-text font-mono truncate tabular-nums">{value}</span>
+      <span className="text-xs uppercase tracking-wider text-text-faint font-mono">{label}</span>
+      <span className="text-xs text-text font-mono truncate tabular-nums">{value}</span>
     </div>
   )
 }
@@ -95,7 +95,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function AnalyticCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-panel/30 border border-border p-2 rounded-sm">
-      <div className="text-[10px] uppercase tracking-widest text-text-faint font-mono">{label}</div>
+      <div className="text-xs uppercase tracking-widest text-text-faint font-mono">{label}</div>
       <div className="mt-1 text-[13px] font-bold text-info font-mono tabular-nums">{value}</div>
     </div>
   )

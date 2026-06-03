@@ -10,7 +10,7 @@ interface ChartFrameProps {
 
 export function ChartFrame({ children, className }: ChartFrameProps) {
   return (
-    <div className={cn('glass-glow-border min-h-[320px] overflow-hidden rounded-card border border-maet-glass-border bg-maet-bg-deep/72 shadow-inner backdrop-blur-xl', className)}>
+    <div className={cn('maet-premium-border min-h-[320px] overflow-hidden rounded-lg border border-maet-glass-border bg-maet-ink-950/72 shadow-inner backdrop-blur-xl', className)}>
       {children}
     </div>
   )

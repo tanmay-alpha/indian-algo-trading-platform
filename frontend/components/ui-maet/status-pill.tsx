@@ -19,7 +19,7 @@ export function StatusPill({ variant = 'default', children, className }: StatusP
 
   return (
     <span className={cn(
-      "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border tracking-wider uppercase font-mono",
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border tracking-wider uppercase font-mono",
       variantStyles,
       className
     )}>

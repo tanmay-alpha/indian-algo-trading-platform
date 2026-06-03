@@ -20,11 +20,11 @@ export function MetricCard({ title, value, subtext, change, changeLabel, classNa
   return (
     <PremiumCard glow={glow} className={cn("p-4 flex flex-col justify-between min-h-[105px]", className)}>
       <div>
-        <div className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">{title}</div>
+        <div className="text-xs text-text-dim uppercase tracking-wider font-semibold">{title}</div>
         <div className="text-lg font-bold text-text mt-1.5 font-mono tracking-tight">{value}</div>
       </div>
       {(subtext || change !== undefined) && (
-        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-white/[0.04] text-[10px]">
+        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-white/[0.04] text-xs">
           {change !== undefined ? (
             <span className={cn(
               "font-semibold font-mono",

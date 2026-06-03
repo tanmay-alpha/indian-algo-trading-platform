@@ -41,7 +41,7 @@ export function SafetyStatusCard() {
           <div className="text-xs text-text-faint">Live trading permanently locked</div>
         </div>
         <div className="ml-auto">
-          <span className="text-[10px] font-mono font-bold bg-down/10 text-down border border-down/25 px-2 py-0.5 rounded-full">
+          <span className="text-xs font-mono font-bold bg-down/10 text-down border border-down/25 px-2 py-0.5 rounded-full">
             LIVE LOCKED
           </span>
         </div>
@@ -121,7 +121,7 @@ function SafetyPill({ children, color }: { children: React.ReactNode; color: 'do
   }[color]
 
   return (
-    <span className={cn('text-[10px] font-mono font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border', cls)}>
+    <span className={cn('text-xs font-mono font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full border', cls)}>
       {children}
     </span>
   )

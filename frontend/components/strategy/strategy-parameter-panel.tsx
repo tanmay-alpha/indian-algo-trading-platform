@@ -15,7 +15,7 @@ export function StrategyParameterPanel({
       <PanelHeader title="Parameters" subtitle={template?.display_name || 'Select a template'} />
       <div className="grid grid-cols-2 gap-2 p-3">
         {entries.length === 0 ? (
-          <div className="col-span-2 text-[10px] font-mono text-text-faint">
+          <div className="col-span-2 text-xs font-mono text-text-faint">
             No strategy selected.
           </div>
         ) : (
@@ -24,7 +24,7 @@ export function StrategyParameterPanel({
             const value = params[key] ?? meta.default ?? ''
             return (
               <label key={key} className="space-y-1">
-                <span className="text-[10px] font-mono uppercase text-text-faint">{key}</span>
+                <span className="text-xs font-mono uppercase text-text-faint">{key}</span>
                 <input
                   type={meta.type === 'integer' || meta.type === 'number' ? 'number' : 'text'}
                   value={String(value)}
@@ -49,7 +49,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="border-b border-border bg-bg/60 px-3 py-2">
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-xs font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }

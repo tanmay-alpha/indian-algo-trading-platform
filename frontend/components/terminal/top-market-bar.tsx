@@ -32,7 +32,7 @@ export function TopMarketBar() {
   return (
     <header className="flex h-topbar shrink-0 items-center border-b border-[#38bdf8]/10 bg-bg/85 backdrop-blur-sm glass-panel">
       {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
-        <div className="absolute left-1/2 top-[48px] -translate-x-1/2 z-40 rounded border border-info/20 bg-bg-2/95 px-4 py-1.5 text-[10px] font-mono text-info shadow-modal backdrop-blur-sm">
+        <div className="absolute left-1/2 top-[48px] -translate-x-1/2 z-40 rounded border border-info/20 bg-bg-2/95 px-4 py-1.5 text-xs font-mono text-info shadow-modal backdrop-blur-sm">
           <span className="mr-2 inline-block h-1 w-1 rounded-full bg-info animate-pulse-soft" />
           {backendWakeState === 'WAKING'
             ? 'Backend waking up... this can take about 30 seconds.'
@@ -41,15 +41,15 @@ export function TopMarketBar() {
       )}
 
       <div className="flex h-full w-rail shrink-0 items-center justify-center border-r border-border bg-panel/50">
-        <span className="font-mono text-[11px] font-black tracking-wider text-info">MAET</span>
+        <span className="font-mono text-xs font-black tracking-wider text-info">MAET</span>
       </div>
 
       <div className="flex h-full shrink-0 items-center gap-2 border-r border-border px-3">
         <div>
-          <div className="text-[11px] font-semibold leading-tight text-text">MAET Terminal</div>
-          <div className="text-[10px] font-mono text-text-faint">Market Analytics / Paper Demo</div>
+          <div className="text-xs font-semibold leading-tight text-text">MAET Terminal</div>
+          <div className="text-xs font-mono text-text-faint">Market Analytics / Paper Demo</div>
         </div>
-        <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-[10px] font-mono text-text-faint">
+        <span className="rounded border border-border bg-panel px-1.5 py-0.5 text-xs font-mono text-text-faint">
           {BUILD_ENV}
         </span>
       </div>
@@ -73,7 +73,7 @@ export function TopMarketBar() {
       <div className="flex h-full shrink-0 items-center gap-2 px-3">
         <ChartLayoutSelector />
         <WorkspacePresetSelector />
-        <div className="font-mono text-[11px] tabular-nums text-text">
+        <div className="font-mono text-xs tabular-nums text-text">
           {istTime || '--:--:--'} IST
         </div>
         <SessionBadge session={session} />
@@ -94,14 +94,14 @@ function IndexTile({
   const change = snapshot?.change_pct ?? null
   return (
     <div className="flex h-full min-w-[120px] flex-col items-start justify-center border-r border-border px-4">
-      <div className="font-mono text-[10px] text-text-faint">{label}</div>
+      <div className="font-mono text-xs text-text-faint">{label}</div>
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-[12px] font-semibold tabular-nums text-text">
           {value != null ? value.toLocaleString('en-IN') : '-'}
         </span>
         <span
           className={cn(
-            'font-mono text-[10px] tabular-nums',
+            'font-mono text-xs tabular-nums',
             change != null && change > 0
               ? 'text-up'
               : change != null && change < 0
@@ -131,7 +131,7 @@ function SessionBadge({ session }: { session: NseMarketSession }) {
   return (
     <div
       className={cn(
-        'rounded border px-2 py-0.5 text-[10px] font-mono font-semibold tracking-widest',
+        'rounded border px-2 py-0.5 text-xs font-mono font-semibold tracking-widest',
         session === 'OPEN' || session === 'LIVE'
           ? 'border-up/20 bg-up/15 text-up'
           : 'border-border bg-panel-3 text-text-faint'

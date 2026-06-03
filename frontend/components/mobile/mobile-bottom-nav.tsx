@@ -40,7 +40,7 @@ export function MobileBottomNav({ active, onNavigate }: MobileBottomNavProps) {
           >
             <div className={cn(
               'flex h-8 w-8 items-center justify-center rounded-2xl transition-all duration-150',
-              isActive ? 'border border-maet-glass-border-strong bg-maet-blue/15 shadow-cyan' : 'bg-transparent'
+              isActive ? 'border border-maet-glass-border-strong bg-maet-blue/20 shadow-cyan' : 'bg-transparent'
             )}>
               <Icon className={cn('h-5 w-5', isActive ? 'text-maet-blue' : 'text-maet-text-muted')} />
             </div>

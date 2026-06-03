@@ -26,7 +26,7 @@ export function BacktestControlPanel({
     <section className="rounded-sm border border-border bg-panel/60">
       <div className="border-b border-border bg-bg/60 px-3 py-2">
         <div className="text-xs font-semibold text-text">Backtest Controls</div>
-        <div className="text-[10px] font-mono text-text-faint">
+        <div className="text-xs font-mono text-text-faint">
           Research only - does not place orders
         </div>
       </div>
@@ -37,17 +37,17 @@ export function BacktestControlPanel({
         <NumberInput label="Slippage bps" value={config.slippage_bps} onChange={(value) => onConfigChange({ slippage_bps: value })} />
       </div>
       <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <div className="font-mono text-[10px] text-text-faint">
+        <div className="font-mono text-xs text-text-faint">
           Symbol: <span className="text-text">{selectedSymbol || 'Select symbol'}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onClear} className="h-7 rounded-sm border border-border bg-bg px-2 text-[10px] font-mono text-text-dim hover:text-text">
+          <button onClick={onClear} className="h-7 rounded-sm border border-border bg-bg px-2 text-xs font-mono text-text-dim hover:text-text">
             Clear
           </button>
-          <button onClick={onPreview} disabled={disabled} className="h-7 rounded-sm border border-border bg-bg px-2 text-[10px] font-mono text-text-dim hover:text-text disabled:opacity-40">
+          <button onClick={onPreview} disabled={disabled} className="h-7 rounded-sm border border-border bg-bg px-2 text-xs font-mono text-text-dim hover:text-text disabled:opacity-40">
             Preview Signals
           </button>
-          <button onClick={onRun} disabled={disabled} className="h-7 rounded-sm border border-info/40 bg-info-dim px-3 text-[10px] font-mono text-info disabled:opacity-40">
+          <button onClick={onRun} disabled={disabled} className="h-7 rounded-sm border border-info/40 bg-info-dim px-3 text-xs font-mono text-info disabled:opacity-40">
             {loading ? 'Running' : 'Run Backtest'}
           </button>
         </div>
@@ -67,7 +67,7 @@ function NumberInput({
 }) {
   return (
     <label className="space-y-1">
-      <span className="text-[10px] font-mono uppercase text-text-faint">{label}</span>
+      <span className="text-xs font-mono uppercase text-text-faint">{label}</span>
       <input
         type="number"
         value={value}

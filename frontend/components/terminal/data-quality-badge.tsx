@@ -21,7 +21,7 @@ export function DataQualityBadge({
     <span
       className={cn(
         'inline-flex items-center gap-1 px-1.5 rounded-sm border font-mono uppercase tracking-wider whitespace-nowrap',
-        size === 'xs' ? 'text-[10px] leading-[14px] py-px' : 'text-2xs py-0.5',
+        size === 'xs' ? 'text-xs leading-[14px] py-px' : 'text-2xs py-0.5',
         qualityClass(quality),
         quality === 'LIVE' && 'live-dot',
         className

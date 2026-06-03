@@ -258,10 +258,10 @@ function CommandPaletteDialog() {
             placeholder="Search symbols, workspaces, presets, commands..."
             className="flex-1 bg-transparent outline-none text-sm font-mono placeholder:text-text-dim"
           />
-          <span className="text-[10px] font-mono text-text-faint">
+          <span className="text-xs font-mono text-text-faint">
             {searching ? 'searching...' : `${commands.length} results`}
           </span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-[18px] rounded-sm border border-border text-[10px] font-mono text-text-dim">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-[18px] rounded-sm border border-border text-xs font-mono text-text-dim">
             ESC
           </kbd>
         </div>
@@ -291,12 +291,12 @@ function CommandPaletteDialog() {
                     {c.label}
                   </span>
                   {c.hint && (
-                    <span className="text-[10px] font-mono text-text-dim truncate max-w-[260px]">
+                    <span className="text-xs font-mono text-text-dim truncate max-w-[260px]">
                       {c.hint}
                     </span>
                   )}
                   {c.shortcut && (
-                    <kbd className="px-1 h-[16px] rounded-sm border border-border text-[10px] font-mono text-text-dim">
+                    <kbd className="px-1 h-[16px] rounded-sm border border-border text-xs font-mono text-text-dim">
                       {c.shortcut}
                     </kbd>
                   )}
@@ -307,7 +307,7 @@ function CommandPaletteDialog() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-3 h-7 flex items-center justify-between text-[10px] font-mono text-text-dim">
+        <div className="border-t border-border px-3 h-7 flex items-center justify-between text-xs font-mono text-text-dim">
           <span className="flex items-center gap-1.5">
             <Command className="w-3 h-3" />
             <span>MAET.OS Command Layer</span>
@@ -341,7 +341,7 @@ function CmdKindBadge({ kind }: { kind: CommandKind }) {
   return (
     <span
       className={cn(
-        'px-1.5 h-[16px] rounded-sm border text-[10px] font-mono uppercase tracking-wider inline-flex items-center',
+        'px-1.5 h-[16px] rounded-sm border text-xs font-mono uppercase tracking-wider inline-flex items-center',
         cls[kind]
       )}
     >

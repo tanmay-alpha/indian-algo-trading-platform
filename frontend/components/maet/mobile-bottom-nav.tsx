@@ -57,7 +57,7 @@ export function MobileBottomNav() {
               {ICONS[workspace.id]}
             </div>
             <span className={cn(
-              'text-[10px] font-medium leading-none tracking-tight',
+              'text-xs font-medium leading-none tracking-tight',
               active ? 'text-cyan-400 font-semibold' : 'text-text-faint'
             )}>
               {navLabel(workspace.label)}

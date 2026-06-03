@@ -26,6 +26,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mountedRef = useRef(false)
   const connectRef = useRef<() => void>(() => undefined)
+  const wsStartRequestedRef = useRef(false)
 
   const setWsConnected = useTerminalStore((s) => s.setWsConnected)
   const setWsStatus = useTerminalStore((s) => s.setWsStatus)
@@ -314,11 +315,19 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     connectRef.current = connect
   }, [connect])
 
+  const requestWsConnection = useCallback(() => {
+    if (!mountedRef.current || wsStartRequestedRef.current) return
+    wsStartRequestedRef.current = true
+    connectRef.current()
+  }, [])
+
   useEffect(() => {
     mountedRef.current = true
     updateConnectivityDiagnostics({
       apiTarget: CONNECTIVITY_TARGETS.api,
       wsTarget: CONNECTIVITY_TARGETS.ws,
+      wsConstructorCalled: false,
+      wsLastError: 'Waiting for REST health before WebSocket startup',
     })
     ingestEvent({
       event_type: 'log',
@@ -326,16 +335,22 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       severity: 'info',
       message: `Connectivity targets API ${CONNECTIVITY_TARGETS.api} WS ${CONNECTIVITY_TARGETS.ws}`,
     })
-    connect()
+    ingestEvent({
+      event_type: 'log',
+      component: 'WS',
+      severity: 'info',
+      message: 'WebSocket startup waiting for REST health',
+    })
 
     return () => {
       mountedRef.current = false
+      wsStartRequestedRef.current = false
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
       clearPingInterval()
       wsRef.current?.close()
       wsRef.current = null
     }
-  }, [clearPingInterval, connect, ingestEvent, updateConnectivityDiagnostics])
+  }, [clearPingInterval, ingestEvent, updateConnectivityDiagnostics])
 
   useEffect(() => {
     let timer: number | null = null
@@ -366,13 +381,20 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
       let healthOkThisPoll = false
       try {
-        await fetchHealth()
+        const health = await fetchHealth()
         if (!mountedRef.current) return
         healthOkThisPoll = true
         healthSuccess = true
         updateConnectivityDiagnostics({ restHealthOk: true })
-        setApiReachability(true)
-        setBackendWakeState('ONLINE')
+        const healthAvailable = health.status !== 'offline'
+        setApiReachability(
+          healthAvailable,
+          healthAvailable ? undefined : 'Health endpoint reported offline'
+        )
+        setBackendWakeState(healthAvailable ? 'ONLINE' : 'UNAVAILABLE')
+        if (health.status === 'online') {
+          requestWsConnection()
+        }
         if (!healthLogged) {
           healthLogged = true
           ingestEvent({
@@ -394,8 +416,15 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         updateConnectivityDiagnostics({ restTerminalStatusOk: true })
         setTerminalStatus(status)
         setBrokerStatus(status.broker ?? null)
-        setApiReachability(true)
-        setBackendWakeState('ONLINE')
+        const appOnline = status.app?.status === 'online'
+        setApiReachability(
+          appOnline,
+          appOnline ? undefined : 'Terminal status reported offline'
+        )
+        setBackendWakeState(appOnline ? 'ONLINE' : 'UNAVAILABLE')
+        if (status.app?.status === 'online') {
+          requestWsConnection()
+        }
         setStatusSource(useTerminalStore.getState().wsStatus === 'CONNECTED' ? 'WS' : 'REST_FALLBACK')
         if (!statusLogged) {
           statusLogged = true
@@ -448,6 +477,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     ingestEvent,
     setStatusSource,
     setTerminalStatus,
+    requestWsConnection,
     updateConnectivityDiagnostics,
   ])
 

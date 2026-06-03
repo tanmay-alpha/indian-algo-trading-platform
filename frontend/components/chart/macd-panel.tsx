@@ -23,7 +23,7 @@ export function MacdPanel({ points }: { points: MacdPoint[] }) {
   const zeroY = yAt(0, range)
   return (
     <div className="relative h-36 border-t border-border bg-bg-2">
-      <div className="absolute left-3 top-2 z-10 text-[10px] font-mono uppercase text-text-faint">MACD</div>
+      <div className="absolute left-3 top-2 z-10 text-xs font-mono uppercase text-text-faint">MACD</div>
       <svg className="h-full w-full" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none">
         <line x1={PAD_X} x2={WIDTH - PAD_X} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.12)" />
         {points.map((point, index) => {

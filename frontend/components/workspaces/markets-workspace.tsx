@@ -158,7 +158,7 @@ export function MarketsWorkspace() {
                   setTab('all')
                 }}
                 className={cn(
-                  'mb-1 flex h-8 w-full items-center justify-between rounded-sm border px-2 text-left font-mono text-[10px]',
+                  'mb-1 flex h-8 w-full items-center justify-between rounded-sm border px-2 text-left font-mono text-xs',
                   selectedSector === sector
                     ? 'border-info/40 bg-info-dim text-info'
                     : 'border-border bg-bg text-text-dim hover:text-text'
@@ -179,7 +179,7 @@ export function MarketsWorkspace() {
                 key={item.id}
                 onClick={() => setTab(item.id)}
                 className={cn(
-                  'h-7 rounded-sm border px-2 text-[10px] font-mono',
+                  'h-7 rounded-sm border px-2 text-xs font-mono',
                   tab === item.id
                     ? 'border-info/40 bg-info-dim text-info'
                     : 'border-border bg-panel text-text-dim hover:text-text'
@@ -199,7 +199,7 @@ export function MarketsWorkspace() {
                   setSelectedSector(null)
                 }}
                 placeholder="Search NSE instruments"
-                className="w-full bg-transparent font-mono text-[10px] text-text outline-none placeholder:text-text-faint"
+                className="w-full bg-transparent font-mono text-xs text-text outline-none placeholder:text-text-faint"
               />
             </label>
           )}
@@ -240,7 +240,7 @@ export function MarketsWorkspace() {
             <SummaryRow label="Tracked" value={String(board?.summary.total_symbols_tracked ?? 0)} />
             <SummaryRow label="With Data" value={String(board?.summary.symbols_with_data ?? 0)} />
             <SummaryRow label="Stale" value={String(board?.summary.symbols_stale ?? 0)} />
-            <div className="mt-1 text-[10px] leading-4 text-text-faint">
+            <div className="mt-1 text-xs leading-4 text-text-faint">
               {board?.note || 'Data reflects only subscribed symbols.'}
             </div>
           </div>
@@ -252,7 +252,7 @@ export function MarketsWorkspace() {
             {['NIFTY 50', 'NIFTY BANK'].map((label) => {
               const index = indices.find((item) => item.name === label || item.symbol === label.replace(' ', ''))
               return (
-                <div key={label} className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
+                <div key={label} className="rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-text">{label}</span>
                     <span className="text-text-dim">{fmtPrice(index?.ltp)}</span>
@@ -272,7 +272,7 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="border-b border-border bg-bg/70 px-3 py-2">
       <div className="text-xs font-semibold text-text">{title}</div>
-      <div className="text-[10px] font-mono text-text-faint">{subtitle}</div>
+      <div className="text-xs font-mono text-text-faint">{subtitle}</div>
     </div>
   )
 }
@@ -300,7 +300,7 @@ function InstrumentTable({
         <button
           key={`${instrument.symbol}-${instrument.token}`}
           onClick={() => onClick(instrument.symbol)}
-          className="grid w-full grid-cols-[130px_1fr_160px_100px] gap-2 border-b border-border/60 px-3 py-2 text-left font-mono text-[10px] hover:bg-bg"
+          className="grid w-full grid-cols-[130px_1fr_160px_100px] gap-2 border-b border-border/60 px-3 py-2 text-left font-mono text-xs hover:bg-bg"
         >
           <span className="text-text">{instrument.symbol}</span>
           <span className="truncate text-text-dim">{instrument.name}</span>
@@ -321,7 +321,7 @@ function MoverTable({ rows, mode }: { rows: MarketMover[]; mode: 'gainers' | 'lo
     <div>
       <Header columns={columns} />
       {rows.map((row, index) => (
-        <div key={`${row.symbol}-${index}`} className="grid grid-cols-4 gap-2 border-b border-border/60 px-3 py-2 font-mono text-[10px]">
+        <div key={`${row.symbol}-${index}`} className="grid grid-cols-4 gap-2 border-b border-border/60 px-3 py-2 font-mono text-xs">
           <span className="text-text-faint">{index + 1}</span>
           <span className="text-text">{row.symbol}</span>
           <span className="text-text">{fmtPrice(row.ltp)}</span>
@@ -363,7 +363,7 @@ function ScreenerPanel({
         <Input label="RSI above" value={String(filters.rsi_above || '')} onChange={(v) => update('rsi_above', v)} />
         <Input label="Price above EMA" value={String(filters.price_above_ema || '')} onChange={(v) => update('price_above_ema', v)} />
         <Input label="Change % above" value={String(filters.change_pct_above || '')} onChange={(v) => update('change_pct_above', v)} />
-        <label className="flex items-end gap-2 pb-1 font-mono text-[10px] text-text-dim">
+        <label className="flex items-end gap-2 pb-1 font-mono text-xs text-text-dim">
           <input
             type="checkbox"
             checked={Boolean(filters.price_above_vwap)}
@@ -377,12 +377,12 @@ function ScreenerPanel({
         <select value={limit} onChange={(event) => setLimit(Number(event.target.value))} className="h-8 rounded-sm border border-border bg-bg px-2 font-mono text-xs text-text">
           {[10, 20, 50].map((item) => <option key={item}>{item}</option>)}
         </select>
-        <button onClick={onRun} disabled={loading} className="h-8 rounded-sm border border-info/40 bg-info-dim px-3 font-mono text-[10px] text-info disabled:opacity-50">
+        <button onClick={onRun} disabled={loading} className="h-8 rounded-sm border border-info/40 bg-info-dim px-3 font-mono text-xs text-info disabled:opacity-50">
           {loading ? 'Running' : 'Run Screener'}
         </button>
       </div>
 
-      <div className="text-[10px] font-mono text-text-faint">
+      <div className="text-xs font-mono text-text-faint">
         Screener runs on currently loaded candle data only. Symbols must be in your watchlist to have indicator data.
       </div>
 
@@ -394,7 +394,7 @@ function ScreenerPanel({
         <div>
           <Header columns={['Symbol', 'LTP', 'Change%', 'RSI', 'EMA', 'VWAP', 'Live']} />
           {result.results.map((row) => (
-            <div key={row.symbol} className="grid grid-cols-7 gap-2 border-b border-border/60 px-3 py-2 font-mono text-[10px]">
+            <div key={row.symbol} className="grid grid-cols-7 gap-2 border-b border-border/60 px-3 py-2 font-mono text-xs">
               <span className="text-text">{row.symbol}</span>
               <span>{fmtPrice(row.ltp)}</span>
               <span>{fmtPct(row.change_pct)}</span>
@@ -413,7 +413,7 @@ function ScreenerPanel({
 function Header({ columns }: { columns: string[] }) {
   return (
     <div
-      className="grid gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase text-text-faint"
+      className="grid gap-2 border-b border-border bg-bg px-3 py-1.5 font-mono text-xs uppercase text-text-faint"
       style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
     >
       {columns.map((column) => <span key={column}>{column}</span>)}
@@ -424,7 +424,7 @@ function Header({ columns }: { columns: string[] }) {
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="space-y-1">
-      <span className="text-[10px] font-mono uppercase text-text-faint">{label}</span>
+      <span className="text-xs font-mono uppercase text-text-faint">{label}</span>
       <input
         type="number"
         value={value}
@@ -437,7 +437,7 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-[10px]">
+    <div className="flex items-center justify-between rounded-sm border border-border bg-bg px-2 py-1.5 font-mono text-xs">
       <span className="text-text-faint">{label}</span>
       <span className="text-text">{value}</span>
     </div>
@@ -449,7 +449,7 @@ function EmptyBlock({ title, hint }: { title: string; hint: string }) {
     <div className="grid min-h-[180px] place-items-center p-6 text-center">
       <div>
         <div className="text-xs font-semibold text-text">{title}</div>
-        <div className="mt-1 max-w-md text-[10px] font-mono text-text-faint">{hint}</div>
+        <div className="mt-1 max-w-md text-xs font-mono text-text-faint">{hint}</div>
       </div>
     </div>
   )

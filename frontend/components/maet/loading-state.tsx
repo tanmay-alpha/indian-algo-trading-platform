@@ -33,7 +33,7 @@ export function LoadingState({
         )}>
           {message}
         </span>
-        <span className="text-[10px] text-text-faint animate-pulse-soft">
+        <span className="text-xs text-text-faint animate-pulse-soft">
           ESTABLISHING CONTEXT...
         </span>
       </div>

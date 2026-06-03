@@ -115,7 +115,7 @@ export function InstrumentSearch({
                     {r.symbol}
                     <span className="text-text-faint ml-1.5">{r.exchange}</span>
                   </div>
-                  <div className="text-[10px] text-text-dim truncate">{r.name}</div>
+                  <div className="text-xs text-text-dim truncate">{r.name}</div>
                 </div>
                 <Plus className="w-3.5 h-3.5 text-info shrink-0" />
               </button>

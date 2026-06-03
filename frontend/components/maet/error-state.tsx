@@ -35,7 +35,7 @@ export function ErrorState({
         )}>
           {title}
         </span>
-        <span className="text-[10px] text-text-dim max-w-xs leading-relaxed">
+        <span className="text-xs text-text-dim max-w-xs leading-relaxed">
           {message}
         </span>
       </div>

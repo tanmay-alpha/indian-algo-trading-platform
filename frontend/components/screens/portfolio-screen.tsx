@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Briefcase, Eye, EyeOff, LineChart, LockKeyhole, RefreshCw } from 'lucide-react'
+import { Briefcase, Database, Eye, EyeOff, LineChart, LockKeyhole, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
 import { MobilePage } from '@/components/mobile/mobile-page'
-import { Skeleton } from '@/components/ui-maet/skeleton'
+import { SmoothTabs } from '@/components/effects/smooth-tabs'
+import { SkeletonWave } from '@/components/effects/skeleton-wave'
+import { StatusOrb } from '@/components/effects/status-orb'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { useToast } from '@/components/ui-maet/toast'
 import { useTerminalStore } from '@/store/terminal-store'
@@ -11,6 +13,13 @@ import { cn } from '@/lib/utils'
 import type { EquityCurvePoint, PortfolioHolding, PortfolioPosition, PortfolioSummary } from '@/lib/types'
 
 type PortfolioTab = 'overview' | 'positions' | 'holdings' | 'curve'
+
+const tabs: { id: PortfolioTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'positions', label: 'Positions' },
+  { id: 'holdings', label: 'Holdings' },
+  { id: 'curve', label: 'Equity Curve' },
+]
 
 export function PortfolioScreen() {
   const { pushToast } = useToast()
@@ -37,8 +46,8 @@ export function PortfolioScreen() {
   }, [adminToken, refreshPortfolio])
 
   const reconciliationLabel = useMemo(() => {
-    if (!adminToken) return 'Offline'
-    if (!reconciliation || reconciliation.data_status === 'UNAVAILABLE') return 'Offline'
+    if (!adminToken) return 'Locked'
+    if (!reconciliation || reconciliation.data_status === 'UNAVAILABLE') return 'Unavailable'
     if ((reconciliation.summary?.mismatch_count ?? 0) > 0) return 'Mismatch'
     return 'Synced'
   }, [adminToken, reconciliation])
@@ -63,80 +72,44 @@ export function PortfolioScreen() {
   }
 
   return (
-    <MobilePage className="flex h-full flex-col space-y-4 pb-4">
-      <div className="shrink-0 rounded-2xl border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
-        Broker data is read-only. No mutations possible.
-      </div>
-
-      <div className="reflection-card shrink-0 p-4">
-        <div className="flex items-start justify-between gap-3">
+    <MobilePage className="flex h-full min-h-0 flex-col gap-3 pb-4 lg:pb-0">
+      <div className="maet-glass-strong shrink-0 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-heading text-xl font-bold text-maet-text">Portfolio</h1>
-            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Positions, holdings, reconciliation, and equity curve from protected read-only endpoints.</p>
+            <h1 className="font-heading text-2xl font-bold text-maet-text">Read-only Portfolio</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
+              Funds, holdings, positions, reconciliation, and locked states. No fake holdings, PnL, or balances are rendered.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void refreshPortfolio()}
-            disabled={!adminToken || loading}
-            aria-label="Refresh read-only portfolio snapshot"
-            className="grid h-10 w-10 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-secondary hover:bg-maet-glass-2 hover:text-maet-text disabled:opacity-40"
-          >
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
-          </button>
+          <div className="flex items-center gap-2">
+            <StatusBadge tone="warning">READ ONLY</StatusBadge>
+            <button
+              type="button"
+              onClick={() => void refreshPortfolio()}
+              disabled={!adminToken || loading}
+              aria-label="Refresh read-only portfolio snapshot"
+              className="grid h-10 w-10 place-items-center rounded-xl border border-maet-glass-border bg-maet-glass-bg text-maet-text-soft hover:bg-maet-glass-bg-strong hover:text-maet-text disabled:opacity-40"
+            >
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            </button>
+          </div>
         </div>
 
-        <div className="mt-4 no-scrollbar flex gap-2 overflow-x-auto">
-          <TabButton label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <TabButton label="Positions" active={activeTab === 'positions'} onClick={() => setActiveTab('positions')} />
-          <TabButton label="Holdings" active={activeTab === 'holdings'} onClick={() => setActiveTab('holdings')} />
-          <TabButton label="Equity Curve" active={activeTab === 'curve'} onClick={() => setActiveTab('curve')} />
+        <div className="mt-4">
+          <SmoothTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
         </div>
       </div>
 
       {!adminToken && (
-        <div className="reflection-card shrink-0 p-4">
-          <div className="mb-3 flex items-start gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-md border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
-              <LockKeyhole className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-heading text-base font-bold text-maet-text">Read-only unlock required</div>
-              <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Protected portfolio endpoints need an in-memory admin token.</p>
-            </div>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="relative">
-              <input
-                type={showToken ? 'text' : 'password'}
-                value={tokenInput}
-                onChange={(event) => setTokenInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') void handleUnlock()
-                }}
-                placeholder="X-Admin-Token"
-                className="maet-input pr-10 font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken((current) => !current)}
-                aria-label={showToken ? 'Hide admin token' : 'Show admin token'}
-                className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-maet-text-muted hover:bg-maet-elevated hover:text-maet-text"
-              >
-                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={handleUnlock}
-              disabled={isUnlocking || !tokenInput.trim()}
-              className="maet-btn maet-btn-primary h-11 px-4 text-sm disabled:opacity-40"
-            >
-              {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
-              Unlock
-            </button>
-          </div>
-          {unlockError && <div className="mt-3 rounded-md border border-maet-red/25 bg-maet-red/10 px-3 py-2 text-xs text-maet-red">{unlockError}</div>}
-        </div>
+        <UnlockPanel
+          tokenInput={tokenInput}
+          showToken={showToken}
+          isUnlocking={isUnlocking}
+          unlockError={unlockError}
+          onTokenChange={setTokenInput}
+          onToggleToken={() => setShowToken((current) => !current)}
+          onUnlock={() => void handleUnlock()}
+        />
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -157,6 +130,71 @@ export function PortfolioScreen() {
   )
 }
 
+function UnlockPanel({
+  tokenInput,
+  showToken,
+  isUnlocking,
+  unlockError,
+  onTokenChange,
+  onToggleToken,
+  onUnlock,
+}: {
+  tokenInput: string
+  showToken: boolean
+  isUnlocking: boolean
+  unlockError: string | null
+  onTokenChange: (value: string) => void
+  onToggleToken: () => void
+  onUnlock: () => void
+}) {
+  return (
+    <div className="maet-glass shrink-0 p-4">
+      <div className="mb-3 flex items-start gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
+          <LockKeyhole className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="font-heading text-base font-bold text-maet-text">Read-only unlock required</div>
+          <p className="mt-1 text-sm leading-6 text-maet-text-muted">Protected endpoints need an in-memory admin token. Nothing is stored in browser storage.</p>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="relative">
+          <input
+            type={showToken ? 'text' : 'password'}
+            value={tokenInput}
+            onChange={(event) => onTokenChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') onUnlock()
+            }}
+            placeholder="X-Admin-Token"
+            className="maet-input pr-10 font-mono"
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            onClick={onToggleToken}
+            aria-label={showToken ? 'Hide admin token' : 'Show admin token'}
+            className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-maet-text-muted hover:bg-maet-panel-soft hover:text-maet-text"
+          >
+            {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onUnlock}
+          disabled={isUnlocking || !tokenInput.trim()}
+          className="maet-btn maet-btn-primary h-11 px-4 text-sm disabled:opacity-40"
+        >
+          {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
+          Unlock
+        </button>
+      </div>
+      {unlockError && <div className="mt-3 rounded-lg border border-maet-red/25 bg-maet-red/10 px-3 py-2 text-sm text-maet-red">{unlockError}</div>}
+    </div>
+  )
+}
+
 function Overview({
   summary,
   reconciliationLabel,
@@ -169,21 +207,37 @@ function Overview({
   const pnl = summary?.unrealized_pnl ?? null
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Total Invested" value={locked ? 'Unavailable' : formatCurrency(summary?.total_open_notional)} caption="Read-only broker snapshot" />
-        <StatCard label="Current Value" value={locked ? 'Unavailable' : formatCurrency(summary?.equity)} caption="Read-only broker snapshot" />
-        <StatCard label="Unrealized P&L" value={locked ? 'Unavailable' : formatCurrency(pnl)} caption="Paper mode - indicative" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SnapshotCard icon={<WalletCards className="h-5 w-5" />} label="Funds" value={locked ? 'Locked' : formatCurrency(summary?.equity)} caption="Read-only snapshot" />
+        <SnapshotCard icon={<Briefcase className="h-5 w-5" />} label="Open Notional" value={locked ? 'Locked' : formatCurrency(summary?.total_open_notional)} caption="From backend only" />
+        <SnapshotCard icon={<LineChart className="h-5 w-5" />} label="Unrealized PnL" value={locked ? 'Locked' : formatCurrency(pnl)} caption="Unavailable if backend has no value" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
+        <SnapshotCard icon={<Database className="h-5 w-5" />} label="Data status" value={locked ? 'Locked' : summary?.data_status ?? 'Unavailable'} caption="No fake balances" />
       </div>
-      <div className="reflection-card p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="font-heading text-base font-bold text-maet-text">Reconciliation</div>
-          <StatusBadge tone={reconciliationLabel === 'Synced' ? 'success' : reconciliationLabel === 'Mismatch' ? 'warning' : 'muted'}>{reconciliationLabel}</StatusBadge>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="maet-glass p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="font-heading text-lg font-bold text-maet-text">Reconciliation</div>
+            <StatusBadge tone={reconciliationLabel === 'Synced' ? 'success' : reconciliationLabel === 'Mismatch' ? 'warning' : 'muted'}>{reconciliationLabel}</StatusBadge>
+          </div>
+          <p className="text-sm leading-6 text-maet-text-muted">
+            {locked
+              ? 'Unlock protected read-only endpoints to fetch positions, holdings, funds, and reconciliation state.'
+              : 'Reconciliation compares internal paper state with broker snapshot data without changing broker account state.'}
+          </p>
         </div>
-        <p className="text-sm leading-6 text-maet-text-secondary">
-          {locked
-            ? 'Unlock the protected read-only endpoints to fetch positions, holdings, and reconciliation state.'
-            : 'Reconciliation compares internal paper state with broker snapshot data without changing broker account state.'}
-        </p>
+
+        <div className="maet-glass border-maet-amber/25 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-maet-amber" />
+            <div className="font-heading text-base font-bold text-maet-text">Safety boundary</div>
+          </div>
+          <div className="space-y-2">
+            <SafetyRow label="READ ONLY" value="true" />
+            <SafetyRow label="LIVE LOCKED" value="true" />
+            <SafetyRow label="BROKER MUTATION DISABLED" value="true" />
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -192,7 +246,7 @@ function Overview({
 function Positions({ positions, loading, locked }: { positions: PortfolioPosition[]; loading: boolean; locked: boolean }) {
   if (loading) return <TableSkeleton />
   if (locked || positions.length === 0) {
-    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No open positions in paper mode" body={locked ? 'Read-only portfolio endpoint is locked.' : 'No position rows returned by backend.'} />
+    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No open positions visible" body={locked ? 'Read-only portfolio endpoint is locked.' : 'Backend returned no position rows.'} />
   }
   return (
     <DataTable
@@ -203,7 +257,7 @@ function Positions({ positions, loading, locked }: { positions: PortfolioPositio
         formatCurrency(pos.avg_price),
         formatCurrency(pos.ltp),
         formatCurrency(pos.unrealized_pnl),
-        pos.avg_price && pos.ltp ? `${(((pos.ltp - pos.avg_price) / pos.avg_price) * 100).toFixed(2)}%` : 'Offline',
+        pos.avg_price && pos.ltp ? `${(((pos.ltp - pos.avg_price) / pos.avg_price) * 100).toFixed(2)}%` : 'Unavailable',
       ])}
     />
   )
@@ -212,7 +266,7 @@ function Positions({ positions, loading, locked }: { positions: PortfolioPositio
 function Holdings({ holdings, loading, locked }: { holdings: PortfolioHolding[]; loading: boolean; locked: boolean }) {
   if (loading) return <TableSkeleton />
   if (locked || holdings.length === 0) {
-    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No holdings synced" body={locked ? 'Read-only holdings endpoint is locked.' : 'No holdings rows returned by backend.'} />
+    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No holdings visible" body={locked ? 'Read-only holdings endpoint is locked.' : 'Backend returned no holding rows.'} />
   }
   return (
     <DataTable
@@ -248,41 +302,45 @@ function EquityCurve({ points, locked }: { points: EquityCurvePoint[]; locked: b
   const fillPath = `${path} L ${width} ${height} L 0 ${height} Z`
 
   return (
-    <div className="reflection-card bg-maet-bg-deep/52 p-4">
+    <div className="maet-glass bg-maet-ink-950/52 p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[260px] w-full" role="img" aria-label="Portfolio equity curve">
-        <path d={fillPath} fill="rgba(77,156,248,0.20)" />
-        <path d={path} fill="none" stroke="#4d9cf8" strokeWidth="3" />
+        <path d={fillPath} fill="rgba(47,128,255,0.20)" />
+        <path d={path} fill="none" stroke="#22d3ee" strokeWidth="3" />
       </svg>
     </div>
   )
 }
 
-function StatCard({ label, value, caption, tone = 'muted' }: { label: string; value: string; caption: string; tone?: 'up' | 'down' | 'muted' }) {
+function SnapshotCard({ icon, label, value, caption, tone = 'muted' }: { icon: React.ReactNode; label: string; value: string; caption: string; tone?: 'up' | 'down' | 'muted' }) {
   return (
-    <div className="reflection-card p-4">
-      <div className="text-xs font-bold text-maet-text-muted">{label}</div>
-      <div className={cn('mt-2 font-mono text-xl font-extrabold', tone === 'up' ? 'text-maet-green' : tone === 'down' ? 'text-maet-red' : 'text-maet-text')}>
+    <div className="maet-glass p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-maet-glass-bg text-maet-cyan">{icon}</div>
+        <StatusOrb tone={tone === 'up' ? 'green' : tone === 'down' ? 'red' : 'muted'} />
+      </div>
+      <div className="mt-4 text-sm font-bold text-maet-text-muted">{label}</div>
+      <div className={cn('maet-number mt-2 font-mono text-xl font-extrabold', tone === 'up' ? 'text-maet-green' : tone === 'down' ? 'text-maet-red' : 'text-maet-text')}>
         {value}
       </div>
-      <div className="mt-1 text-xs text-maet-text-muted">{caption}</div>
+      <div className="mt-1 text-sm text-maet-text-muted">{caption}</div>
     </div>
   )
 }
 
 function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="reflection-card overflow-auto">
-      <table className="min-w-[620px] w-full text-left text-xs">
-        <thead className="bg-maet-bg-deep/48 text-maet-text-muted">
+    <div className="maet-glass overflow-auto">
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <thead className="bg-maet-ink-950/48 text-maet-text-muted">
           <tr>
             {headers.map((header) => <th key={header} className="px-3 py-3 font-mono font-bold">{header}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={index} className="h-12 border-t border-maet-border">
+            <tr key={index} className="h-12 border-t border-white/10">
               {row.map((cell, cellIndex) => (
-                <td key={`${index}-${cellIndex}`} className="px-3 py-2 font-mono text-maet-text-secondary">{cell}</td>
+                <td key={`${index}-${cellIndex}`} className="px-3 py-2 font-mono text-maet-text-soft">{cell}</td>
               ))}
             </tr>
           ))}
@@ -296,10 +354,10 @@ function TableSkeleton() {
   return (
     <div className="space-y-2">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div key={index} className="reflection-card grid h-12 grid-cols-[1fr_80px_90px] items-center gap-3 px-3">
-          <Skeleton className="h-3 w-28" />
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-3 w-20" />
+        <div key={index} className="maet-glass grid h-12 grid-cols-[1fr_80px_90px] items-center gap-3 px-3">
+          <SkeletonWave className="h-3 w-28" />
+          <SkeletonWave className="h-3 w-16" />
+          <SkeletonWave className="h-3 w-20" />
         </div>
       ))}
     </div>
@@ -308,21 +366,22 @@ function TableSkeleton() {
 
 function EmptyPanel({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
+    <div className="maet-glass grid min-h-[300px] place-items-center p-6 text-center">
       <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-maet-glass-border bg-maet-glass-1 text-maet-text-muted">{icon}</div>
-        <div className="mt-4 font-heading text-base font-bold text-maet-text">{title}</div>
-        <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-secondary">{body}</p>
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-maet-glass-border bg-maet-glass-bg text-maet-text-muted">{icon}</div>
+        <div className="mt-4 font-heading text-lg font-bold text-maet-text">{title}</div>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">{body}</p>
       </div>
     </div>
   )
 }
 
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function SafetyRow({ label, value }: { label: string; value: string }) {
   return (
-    <button type="button" onClick={onClick} className={cn('filter-chip', active && 'active')}>
-      {label}
-    </button>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
+      <span className="text-xs font-bold text-maet-amber">{label}</span>
+      <span className="font-mono text-xs font-bold text-maet-text">{value}</span>
+    </div>
   )
 }
 
@@ -331,6 +390,6 @@ function cleanSymbol(symbol: string) {
 }
 
 function formatCurrency(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return 'Offline'
+  if (value == null || !Number.isFinite(value)) return 'Unavailable'
   return `Rs ${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }

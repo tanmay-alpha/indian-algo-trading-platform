@@ -60,7 +60,7 @@ The current MAET Terminal frontend is functionally robust but visually cluttered
 - **Layout**: 3-Column Split.
 - **Left (280px)**: Compact Watchlist + Mini-Screener.
 - **Center (Fluid)**: Chart-First. Absolute dominance.
-- **Right (320px)**: **Symbol Intelligence**. Shows Symbol Details, L2 Book (simulated), and Order Ticket in a single tabbed sidebar.
+- **Right (320px)**: **Symbol Intelligence**. Shows Symbol Details, market-depth availability, and Order Ticket in a single tabbed sidebar.
 - **Bottom (Floating)**: Active Positions bar (P0 stats only).
 
 ### Markets Workspace

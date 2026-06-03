@@ -24,8 +24,8 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const backendOffline = apiStatus !== 'ONLINE'
 
   return (
-    <MobilePage className="space-y-5 pb-4">
-      <section className="reflection-card p-4 shadow-card">
+    <MobilePage className="space-y-4 pb-4">
+      <section className="maet-glass-strong p-4 shadow-card">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-heading text-2xl font-bold leading-tight text-maet-text">Market desk</h1>
@@ -44,7 +44,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </section>
 
-      <section>
+      <section className="maet-glass p-3">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-heading text-lg font-bold text-maet-text">Mini watchlist</h2>
           <button
@@ -64,7 +64,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {topSymbols.map((symbol) => {
             const row = marketWatch[symbol]
             const clean = symbol.split(':').pop()?.replace(/-EQ$/, '') ?? symbol
@@ -76,6 +76,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 exchange={row?.exchange ?? 'NSE'}
                 price={row?.ltp ?? null}
                 changePct={row?.change_pct ?? null}
+                volume={row?.volume ?? null}
                 offline={backendOffline || row?.ltp == null}
                 selected={selectedSymbol === symbol}
                 onOpen={() => {
@@ -86,7 +87,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
             )
           })}
           {topSymbols.length === 0 && (
-            <div className="reflection-card p-6 text-center">
+            <div className="maet-card p-6 text-center">
               <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
               <div className="mt-3 text-sm font-bold text-maet-text">Add symbols to your watchlist</div>
               <button
@@ -112,7 +113,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
 function StateTile({ label, value, good }: { label: string; value: string; good: boolean }) {
   return (
-    <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/38 px-3 py-2 shadow-inner">
+    <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/40 px-3 py-2 shadow-inner">
       <div className="text-xs text-maet-text-muted">{label}</div>
       <div className="mt-1 flex items-center gap-2 font-mono text-xs font-bold text-maet-text">
         <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-red'} />

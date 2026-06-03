@@ -121,7 +121,7 @@ export function StrategyControlPanel() {
           <Bot className={cn('w-3.5 h-3.5', scheduler?.running ? 'text-up' : 'text-text-faint')} />
           <div>
             <div className="text-xs font-semibold text-text">Autopilot Scheduler</div>
-            <div className="text-[10px] font-mono text-text-faint mt-0.5">
+            <div className="text-xs font-mono text-text-faint mt-0.5">
               {scheduler?.running
                 ? `Tracking ${scheduler.strategies_tracked} strategies · ticks every ${scheduler.tick_interval_seconds}s`
                 : 'Scheduler stopped — strategies evaluated manually only'}
@@ -130,12 +130,12 @@ export function StrategyControlPanel() {
         </div>
         <div className="flex items-center gap-2">
           {scheduler?.running ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[10px] font-mono font-semibold text-up border-up/30 bg-up/10">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-xs font-mono font-semibold text-up border-up/30 bg-up/10">
               <span className="w-1.5 h-1.5 rounded-full bg-up animate-pulse inline-block" />
               AUTOPILOT ON
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[10px] font-mono text-text-faint border-border bg-panel">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-xs font-mono text-text-faint border-border bg-panel">
               AUTOPILOT OFF
             </span>
           )}
@@ -143,7 +143,7 @@ export function StrategyControlPanel() {
             onClick={handleSchedulerToggle}
             disabled={!!actionLoading['scheduler']}
             className={cn(
-              'h-7 px-3 rounded-sm border text-[10px] font-mono font-semibold transition-colors disabled:opacity-50',
+              'h-7 px-3 rounded-sm border text-xs font-mono font-semibold transition-colors disabled:opacity-50',
               scheduler?.running
                 ? 'text-down border-down/30 bg-down/10 hover:bg-down/20'
                 : 'text-up border-up/30 bg-up/10 hover:bg-up/20'
@@ -155,7 +155,7 @@ export function StrategyControlPanel() {
           <button
             onClick={load}
             disabled={loading}
-            className="h-7 px-2 rounded-sm border border-border bg-bg text-[10px] font-mono text-text-dim hover:text-text disabled:opacity-40"
+            className="h-7 px-2 rounded-sm border border-border bg-bg text-xs font-mono text-text-dim hover:text-text disabled:opacity-40"
           >
             <RefreshCw className={cn('inline w-3 h-3', loading && 'animate-spin')} />
           </button>
@@ -164,7 +164,7 @@ export function StrategyControlPanel() {
 
       {/* Error Banner */}
       {error && (
-        <div className="rounded-sm border border-down/30 bg-down/10 px-3 py-2 text-[10px] font-mono text-down">
+        <div className="rounded-sm border border-down/30 bg-down/10 px-3 py-2 text-xs font-mono text-down">
           {error}
         </div>
       )}
@@ -174,7 +174,7 @@ export function StrategyControlPanel() {
         <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
           <Layers className="w-7 h-7 text-text-faint opacity-60" />
           <div className="text-xs font-mono text-text-faint">No strategy configurations found</div>
-          <div className="text-[10px] text-text-faint opacity-70">
+          <div className="text-xs text-text-faint opacity-70">
             Create a strategy config via API to manage it here
           </div>
         </div>
@@ -196,7 +196,7 @@ export function StrategyControlPanel() {
 
       {/* Last refreshed footer */}
       {lastRefreshed && (
-        <div className="text-[10px] font-mono text-text-faint opacity-60 text-right">
+        <div className="text-xs font-mono text-text-faint opacity-60 text-right">
           <Clock className="inline w-2.5 h-2.5 mr-1" />
           Last refreshed {new Date(lastRefreshed).toLocaleTimeString()}
         </div>
@@ -237,17 +237,17 @@ function StrategyCard({
           <span className={cn('w-2 h-2 rounded-full', STATUS_DOT[config.status] ?? 'bg-text-faint', isRunning && 'animate-pulse')} />
           <div>
             <div className="text-xs font-semibold text-text">{config.name}</div>
-            <div className="text-[10px] font-mono text-text-faint mt-0.5">
+            <div className="text-xs font-mono text-text-faint mt-0.5">
               {config.template_id} · {config.timeframe} · {config.mode}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={cn('px-1.5 py-0.5 rounded-sm border text-[10px] font-mono font-semibold', STATUS_COLOR[config.status] ?? STATUS_COLOR.STOPPED)}>
+          <span className={cn('px-1.5 py-0.5 rounded-sm border text-xs font-mono font-semibold', STATUS_COLOR[config.status] ?? STATUS_COLOR.STOPPED)}>
             {config.status}
           </span>
           {config.auto_paper_enabled && (
-            <span className="px-1.5 py-0.5 rounded-sm border border-info/30 bg-info/10 text-info text-[10px] font-mono">
+            <span className="px-1.5 py-0.5 rounded-sm border border-info/30 bg-info/10 text-info text-xs font-mono">
               AUTO
             </span>
           )}
@@ -255,7 +255,7 @@ function StrategyCard({
       </div>
 
       {/* Card body */}
-      <div className="px-3 py-2 grid grid-cols-3 gap-3 text-[10px] font-mono">
+      <div className="px-3 py-2 grid grid-cols-3 gap-3 text-xs font-mono">
         <MiniStat label="Symbols" value={config.symbols.join(', ') || '—'} />
         <MiniStat label="Eval Interval" value={`${config.evaluation_interval_seconds}s`} />
         <MiniStat label="Cooldown" value={`${config.cooldown_seconds}s`} />
@@ -353,7 +353,7 @@ function ActionButton({
       onClick={onClick}
       disabled={loading}
       className={cn(
-        'inline-flex items-center gap-1 h-6 px-2 rounded-sm border text-[10px] font-mono font-medium transition-colors disabled:opacity-50',
+        'inline-flex items-center gap-1 h-6 px-2 rounded-sm border text-xs font-mono font-medium transition-colors disabled:opacity-50',
         className
       )}
     >
@@ -366,8 +366,8 @@ function ActionButton({
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest text-text-faint">{label}</div>
-      <div className="text-[10px] font-mono text-text truncate" title={value}>{value || '—'}</div>
+      <div className="text-xs uppercase tracking-widest text-text-faint">{label}</div>
+      <div className="text-xs font-mono text-text truncate" title={value}>{value || '—'}</div>
     </div>
   )
 }
