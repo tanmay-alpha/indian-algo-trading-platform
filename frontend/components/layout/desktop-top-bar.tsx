@@ -37,18 +37,18 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
     <header className="m-3 mb-0 flex min-h-16 shrink-0 items-center justify-between gap-4 rounded-2xl border border-maet-glass-border bg-maet-bg-deep/60 px-5 py-3 shadow-card backdrop-blur-2xl">
       <div>
         <h1 className="font-heading text-xl font-bold leading-tight text-maet-text xl-heading">{TITLES[activeTab]}</h1>
-        <p className="text-xs font-medium text-maet-text-muted">Market session, backend state, and read-only research context.</p>
+        <p className="text-xs font-medium text-maet-text-muted">Market session, connection state, and read-only research context.</p>
       </div>
 
       <div className="flex max-w-[640px] flex-wrap items-center justify-end gap-2">
         <StatusChip label={sessionLabel} tone={session === 'OPEN' ? 'good' : 'warn'} icon={<Activity className="h-3.5 w-3.5" />} />
         <StatusChip
-          label={apiOnline ? 'API ONLINE' : 'API OFFLINE'}
+          label={apiOnline ? 'DATA ONLINE' : 'DATA UNAVAILABLE'}
           tone={apiOnline ? 'good' : 'bad'}
           icon={apiOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
         />
         <StatusChip
-          label={wsOnline ? 'WS CONNECTED' : 'WS OFF'}
+          label={wsOnline ? 'STREAM CONNECTED' : 'STREAM OFF'}
           tone={wsOnline ? 'good' : 'muted'}
           icon={wsOnline ? <LivePulseDot color="emerald" size="sm" /> : <Radio className="h-3.5 w-3.5" />}
         />

@@ -70,7 +70,10 @@ export function WatchlistRow({
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${cleanSymbol} from watchlist`}
-          className="absolute inset-y-0 right-0 flex w-24 items-center justify-center gap-1 bg-maet-red/20 font-mono text-xs font-bold text-maet-red"
+          className={cn(
+            'absolute inset-y-0 right-0 flex w-24 items-center justify-center gap-1 bg-maet-red/20 font-mono text-xs font-bold text-maet-red transition-opacity',
+            revealed ? 'opacity-100' : 'pointer-events-none opacity-0'
+          )}
         >
           <MinusCircle className="h-3.5 w-3.5" />
           Remove
@@ -82,7 +85,7 @@ export function WatchlistRow({
         onClick={onOpen}
         aria-label={`Open chart for ${cleanSymbol}`}
         className={cn(
-          'wl-row relative z-10 grid h-[62px] w-full grid-cols-[minmax(0,1fr)_minmax(86px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-transform sm:h-[56px]',
+          'wl-row relative z-10 grid h-[60px] w-full grid-cols-[minmax(0,1fr)_minmax(84px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-transform sm:h-[54px]',
           selected ? 'selected border-maet-blue/40' : 'hover-glass',
           revealed && onRemove ? '-translate-x-24' : 'translate-x-0',
           flash

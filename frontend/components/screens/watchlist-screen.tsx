@@ -37,7 +37,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
   const addSymbol = useTerminalStore((s) => s.addSymbolToBackend)
   const removeSymbol = useTerminalStore((s) => s.removeSymbolFromBackend)
 
-  const isBackendOffline = apiStatus !== 'ONLINE'
+  const marketDataUnavailable = apiStatus !== 'ONLINE'
   const showSearchResults = query.trim().length >= 2
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         const results = await searchInstruments(trimmed)
         if (!cancelled) setSearchResults(results)
       } catch {
-        if (!cancelled) setSearchError('Backend offline - instrument search unavailable.')
+        if (!cancelled) setSearchError('Connection unavailable - instrument search is paused.')
       } finally {
         if (!cancelled) setIsSearching(false)
       }
@@ -115,7 +115,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
     pushToast({
       type: 'info',
       title: 'Symbol added',
-      body: `${instrument.symbol} is saved locally${isBackendOffline ? ' while backend is offline.' : '.'}`,
+      body: `${instrument.symbol} is saved locally${marketDataUnavailable ? ' while market data is unavailable.' : '.'}`,
     })
   }
 
@@ -172,9 +172,9 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         )}
       </div>
 
-      {!showSearchResults && isBackendOffline && (
+      {!showSearchResults && marketDataUnavailable && (
         <div className="mx-3 mb-3 shrink-0 rounded-lg border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
-          Backend offline - values show -- until quotes arrive.
+          Market connection unavailable - values show -- until quotes arrive.
         </div>
       )}
 
@@ -247,7 +247,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                 price={row.ltp}
                 changePct={row.change_pct}
                 volume={row.volume}
-                offline={isBackendOffline || row.ltp == null}
+                offline={marketDataUnavailable || row.ltp == null}
                 selected={selectedSymbol === row.symbol}
                 onOpen={() => openChart(row.symbol, row.exchange, row.name, row.token, 'watchlist')}
                 onRemove={activeTab !== 'indices' ? () => void removeRow(row.symbol) : undefined}

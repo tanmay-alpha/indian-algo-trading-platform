@@ -314,7 +314,7 @@ function InstrumentTable({
 
 function MoverTable({ rows, mode }: { rows: MarketMover[]; mode: 'gainers' | 'losers' | 'active' }) {
   if (rows.length === 0) {
-    return <EmptyBlock title="No data" hint="Only subscribed symbols are available for movers. No fake prices are shown." />
+    return <EmptyBlock title="No data" hint="Only subscribed symbols are available for movers. Prices are never invented." />
   }
   const columns = mode === 'active' ? ['Rank', 'Symbol', 'LTP', 'Volume'] : ['Rank', 'Symbol', 'LTP', 'Change%']
   return (

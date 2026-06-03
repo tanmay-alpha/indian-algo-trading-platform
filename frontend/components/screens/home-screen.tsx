@@ -21,7 +21,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const symbols = useTerminalStore(selectActiveWatchlistSymbols)
   const session = useMarketSession()
   const topSymbols = symbols.slice(0, 5)
-  const backendOffline = apiStatus !== 'ONLINE'
+  const marketDataUnavailable = apiStatus !== 'ONLINE'
 
   return (
     <MobilePage className="space-y-4 pb-4">
@@ -39,7 +39,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <StateTile label="Backend" value={apiStatus === 'ONLINE' ? 'Online' : 'Offline'} good={apiStatus === 'ONLINE'} />
+          <StateTile label="Market data" value={apiStatus === 'ONLINE' ? 'Online' : 'Unavailable'} good={apiStatus === 'ONLINE'} />
           <StateTile label="Stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
         </div>
       </section>
@@ -57,10 +57,10 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           </button>
         </div>
 
-        {backendOffline && (
+        {marketDataUnavailable && (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber">
             <WifiOff className="h-4 w-4" />
-            Backend offline - symbol names only until quotes arrive.
+            Market connection unavailable - symbol names only until quotes arrive.
           </div>
         )}
 
@@ -77,7 +77,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 price={row?.ltp ?? null}
                 changePct={row?.change_pct ?? null}
                 volume={row?.volume ?? null}
-                offline={backendOffline || row?.ltp == null}
+                offline={marketDataUnavailable || row?.ltp == null}
                 selected={selectedSymbol === symbol}
                 onOpen={() => {
                   setSelectedSymbol(symbol)

@@ -42,7 +42,7 @@ function DesktopWorkspace({ activeTab, onNavigate }: DesktopTerminalShellProps) 
 
   if (activeTab === 'chart') {
     return (
-      <div className="grid min-h-[calc(100dvh-104px)] gap-3 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px] 2xl:grid-cols-[340px_minmax(720px,1fr)_380px]">
+      <div className="grid min-h-[calc(100dvh-104px)] gap-3 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px] 2xl:grid-cols-[320px_minmax(0,1fr)_360px]">
         <DesktopPane title="Market Watch" icon={<List className="h-4 w-4" />} compact>
           <WatchlistScreen onNavigate={onNavigate} />
         </DesktopPane>
@@ -119,7 +119,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
   ]
 
   return (
-    <div className="grid min-h-[calc(100dvh-112px)] grid-cols-[minmax(0,1fr)_360px] gap-4">
+    <div className="grid min-h-[calc(100dvh-112px)] gap-4 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-4">
         <AppCard className="p-6 hover-glass">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -142,7 +142,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
             <div className="rounded-card border border-maet-border bg-maet-base p-4">
               <div className="font-mono text-xs text-maet-text-muted">Market session panel</div>
               <div className="mt-3 grid gap-2">
-                <StatusLine label="Backend API" value={apiStatus === 'ONLINE' ? 'Online' : 'Offline'} good={apiStatus === 'ONLINE'} />
+                <StatusLine label="Market data" value={apiStatus === 'ONLINE' ? 'Online' : 'Unavailable'} good={apiStatus === 'ONLINE'} />
                 <StatusLine label="Market stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
                 <StatusLine label="Selected symbol" value={selectedSymbol ?? 'None selected'} />
               </div>
@@ -168,11 +168,45 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
         </div>
       </div>
 
-      <div className="grid gap-4">
-        <DesktopPane title="System Snapshot" icon={<Activity className="h-4 w-4" />}>
-          <SystemScreen />
+      <div className="min-w-0">
+        <DesktopPane title="Trading Guardrails" icon={<ShieldCheck className="h-4 w-4" />}>
+          <HomeGuardrails apiStatus={apiStatus} wsStatus={wsStatus} selectedSymbol={selectedSymbol} onNavigate={onNavigate} />
         </DesktopPane>
       </div>
+    </div>
+  )
+}
+
+function HomeGuardrails({
+  apiStatus,
+  wsStatus,
+  selectedSymbol,
+  onNavigate,
+}: {
+  apiStatus: string
+  wsStatus: string
+  selectedSymbol: string | null
+  onNavigate: (tab: AppTab) => void
+}) {
+  return (
+    <div className="grid gap-3 p-3">
+      <div className="rounded-xl border border-maet-amber/25 bg-maet-amber/10 p-3">
+        <div className="font-heading text-sm font-bold text-maet-text">Safe research mode</div>
+        <p className="mt-2 text-sm leading-6 text-maet-text-muted">
+          Paper validation only. Live execution is locked and broker context stays read-only.
+        </p>
+      </div>
+      <StatusLine label="Market data" value={apiStatus === 'ONLINE' ? 'Online' : 'Unavailable'} good={apiStatus === 'ONLINE'} />
+      <StatusLine label="Stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
+      <StatusLine label="Selected" value={selectedSymbol ?? 'None selected'} />
+      <button
+        type="button"
+        onClick={() => onNavigate('chart')}
+        className="maet-btn maet-btn-primary h-10 text-xs"
+      >
+        <BarChart2 className="h-4 w-4" />
+        Open chart workspace
+      </button>
     </div>
   )
 }

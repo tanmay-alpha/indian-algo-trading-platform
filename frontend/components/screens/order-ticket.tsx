@@ -55,7 +55,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
     if (!result.ok) {
       clearOmsAdminToken()
       if ('adminRequired' in result && result.adminRequired) setUnlockError('Invalid administrator token.')
-      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Validation backend is offline.')
+      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Validation service is unavailable.')
       else setUnlockError(('error' in result && result.error) || 'Could not unlock validation.')
       return
     }
@@ -118,7 +118,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
           </div>
           <div>
             <h2 className="font-heading text-base font-bold text-maet-text">Dry-run validation</h2>
-            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Protected endpoint. Enter the admin token to validate a simulation ticket.</p>
+            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Protected validation. Enter the admin token to create a dry-run ticket.</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -221,7 +221,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               value={price}
               disabled={orderType === 'MARKET'}
               onChange={(event) => setPrice(event.target.value)}
-              placeholder={orderType === 'MARKET' ? 'Market price from backend' : 'Validation price'}
+              placeholder={orderType === 'MARKET' ? 'Market price when available' : 'Validation price'}
               className="maet-input font-mono disabled:opacity-45"
             />
           </Field>
@@ -247,7 +247,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               className="mt-1 h-4 w-4 shrink-0 accent-maet-amber"
             />
             <span>
-              I understand this validates a dry-run order only. live_execution_enabled=false and broker_mutation_allowed=false.
+              I understand this is paper validation only. Live execution is locked and broker actions are disabled.
             </span>
           </label>
 
@@ -274,9 +274,9 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               <Result label="Status" value={ticket.status} />
               <Result label="Notional" value={fmtPrice(ticket.estimated_notional)} />
               <Result label="Price" value={fmtPrice(ticket.price)} />
-              <Result label="validation_only" value="true" />
-              <Result label="live_execution_enabled" value="false" />
-              <Result label="broker_mutation_allowed" value="false" />
+              <Result label="Validation mode" value="Dry-run only" />
+              <Result label="Live execution" value="Locked" />
+              <Result label="Broker actions" value="Disabled" />
             </div>
             <p className="mt-3 text-xs leading-5 text-maet-text-secondary">{ticket.validation_summary}</p>
           </div>
@@ -340,12 +340,12 @@ export function ChartRightPanel() {
           <div className="font-heading text-sm font-bold text-maet-text">Safety checklist</div>
         </div>
         <div className="space-y-2">
-          <SafetyCheck label="LIVE LOCKED" value="true" />
-          <SafetyCheck label="PAPER MODE" value="true" />
-          <SafetyCheck label="READ ONLY" value="broker context" />
-          <SafetyCheck label="AI ADVISORY ONLY" value="true" />
-          <SafetyCheck label="BROKER MUTATION DISABLED" value="true" />
-          <SafetyCheck label="Creates broker order" value={manualOrderStatus?.creates_broker_order ? 'true' : 'false'} />
+          <SafetyCheck label="LIVE LOCKED" value="Locked" />
+          <SafetyCheck label="PAPER MODE" value="Paper only" />
+          <SafetyCheck label="READ ONLY" value="Broker context" />
+          <SafetyCheck label="AI ADVISORY ONLY" value="Research only" />
+          <SafetyCheck label="BROKER MUTATION DISABLED" value="Disabled" />
+          <SafetyCheck label="Broker order creation" value={manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'} />
         </div>
       </div>
 
@@ -373,7 +373,7 @@ export function ChartRightPanel() {
           </div>
         ) : (
           <p className="text-sm leading-6 text-maet-text-muted">
-            {adminToken ? 'No validation tickets returned by the backend yet.' : 'Unlock validation to view protected dry-run tickets.'}
+            {adminToken ? 'No validation tickets have been returned yet.' : 'Unlock validation to view protected dry-run tickets.'}
           </p>
         )}
       </div>
@@ -388,7 +388,7 @@ export function ChartRightPanel() {
       <div className="maet-glass border-maet-violet/25 bg-maet-violet/10 p-3">
         <div className="flex items-start gap-2 text-sm leading-6 text-maet-text-soft">
           <Bot className="mt-0.5 h-4 w-4 shrink-0 text-maet-violet" />
-          AI advisory can explain risk context, but execution_allowed=false.
+          AI advisory can explain risk context, but it cannot approve or place trades.
         </div>
       </div>
     </div>
@@ -462,9 +462,9 @@ function RightMetric({ label, value, tone = 'muted' }: { label: string; value: s
 
 function SafetyCheck({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
       <span className="text-xs font-bold text-maet-amber">{label}</span>
-      <span className="font-mono text-xs font-bold text-maet-text">{value}</span>
+      <span className="text-right font-mono text-xs font-bold text-maet-text">{value}</span>
     </div>
   )
 }

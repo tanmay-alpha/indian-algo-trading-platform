@@ -62,7 +62,7 @@ export function PortfolioScreen() {
     if (!result.ok) {
       clearOmsAdminToken()
       if ('adminRequired' in result && result.adminRequired) setUnlockError('Invalid administrator token.')
-      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Portfolio backend is offline.')
+      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Portfolio service is unavailable.')
       else setUnlockError(('error' in result && result.error) || 'Could not unlock read-only snapshot.')
       return
     }
@@ -78,7 +78,7 @@ export function PortfolioScreen() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-maet-text">Read-only Portfolio</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
-              Funds, holdings, positions, reconciliation, and locked states. No fake holdings, PnL, or balances are rendered.
+              Funds, holdings, positions, reconciliation, and locked states. Holdings, PnL, and balances are never invented.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -209,9 +209,9 @@ function Overview({
     <div className="space-y-3">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SnapshotCard icon={<WalletCards className="h-5 w-5" />} label="Funds" value={locked ? 'Locked' : formatCurrency(summary?.equity)} caption="Read-only snapshot" />
-        <SnapshotCard icon={<Briefcase className="h-5 w-5" />} label="Open Notional" value={locked ? 'Locked' : formatCurrency(summary?.total_open_notional)} caption="From backend only" />
-        <SnapshotCard icon={<LineChart className="h-5 w-5" />} label="Unrealized PnL" value={locked ? 'Locked' : formatCurrency(pnl)} caption="Unavailable if backend has no value" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
-        <SnapshotCard icon={<Database className="h-5 w-5" />} label="Data status" value={locked ? 'Locked' : summary?.data_status ?? 'Unavailable'} caption="No fake balances" />
+        <SnapshotCard icon={<Briefcase className="h-5 w-5" />} label="Open Notional" value={locked ? 'Locked' : formatCurrency(summary?.total_open_notional)} caption="From read-only service only" />
+        <SnapshotCard icon={<LineChart className="h-5 w-5" />} label="Unrealized PnL" value={locked ? 'Locked' : formatCurrency(pnl)} caption="Unavailable when no read-only value exists" tone={pnl == null ? 'muted' : pnl >= 0 ? 'up' : 'down'} />
+        <SnapshotCard icon={<Database className="h-5 w-5" />} label="Data status" value={locked ? 'Locked' : summary?.data_status ?? 'Unavailable'} caption="No invented balances" />
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -223,7 +223,7 @@ function Overview({
           <p className="text-sm leading-6 text-maet-text-muted">
             {locked
               ? 'Unlock protected read-only endpoints to fetch positions, holdings, funds, and reconciliation state.'
-              : 'Reconciliation compares internal paper state with broker snapshot data without changing broker account state.'}
+              : 'Reconciliation compares paper records with broker snapshot data without changing broker account state.'}
           </p>
         </div>
 
@@ -246,7 +246,7 @@ function Overview({
 function Positions({ positions, loading, locked }: { positions: PortfolioPosition[]; loading: boolean; locked: boolean }) {
   if (loading) return <TableSkeleton />
   if (locked || positions.length === 0) {
-    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No open positions visible" body={locked ? 'Read-only portfolio endpoint is locked.' : 'Backend returned no position rows.'} />
+    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No open positions visible" body={locked ? 'Read-only portfolio access is locked.' : 'No position rows are available.'} />
   }
   return (
     <DataTable
@@ -266,7 +266,7 @@ function Positions({ positions, loading, locked }: { positions: PortfolioPositio
 function Holdings({ holdings, loading, locked }: { holdings: PortfolioHolding[]; loading: boolean; locked: boolean }) {
   if (loading) return <TableSkeleton />
   if (locked || holdings.length === 0) {
-    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No holdings visible" body={locked ? 'Read-only holdings endpoint is locked.' : 'Backend returned no holding rows.'} />
+    return <EmptyPanel icon={<Briefcase className="h-6 w-6" />} title="No holdings visible" body={locked ? 'Read-only holdings access is locked.' : 'No holding rows are available.'} />
   }
   return (
     <DataTable
@@ -285,7 +285,7 @@ function Holdings({ holdings, loading, locked }: { holdings: PortfolioHolding[];
 
 function EquityCurve({ points, locked }: { points: EquityCurvePoint[]; locked: boolean }) {
   if (locked || points.length === 0) {
-    return <EmptyPanel icon={<LineChart className="h-6 w-6" />} title="Equity curve unavailable" body={locked ? 'Unlock read-only portfolio endpoints to load equity curve.' : 'Backend returned no equity curve points.'} />
+    return <EmptyPanel icon={<LineChart className="h-6 w-6" />} title="Equity curve unavailable" body={locked ? 'Unlock read-only portfolio access to load the equity curve.' : 'No equity curve points are available.'} />
   }
 
   const width = 640

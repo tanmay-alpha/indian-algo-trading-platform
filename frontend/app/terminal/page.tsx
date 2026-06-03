@@ -33,7 +33,7 @@ function TerminalInitializer() {
         setBackendOffline(false)
         ingestEvent({
           event_type: 'log',
-          component: 'API',
+          component: 'Connection',
           severity: 'info',
           message: `Terminal initialized in ${health.mode} mode`,
         })
@@ -41,9 +41,9 @@ function TerminalInitializer() {
         setBackendOffline(true)
         ingestEvent({
           event_type: 'log',
-          component: 'API',
+          component: 'Connection',
           severity: 'warning',
-          message: 'Backend API unavailable - running in offline mode',
+          message: 'Market connection unavailable - showing safe offline states',
         })
       }
 

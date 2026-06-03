@@ -78,7 +78,7 @@ export function SystemScreen() {
             : ready.broker?.configured
             ? 'Configured read-only context'
             : 'Unavailable',
-          liveTrading: ready.live_trading_enabled ? 'Enabled by backend setting' : 'Disabled',
+          liveTrading: ready.live_trading_enabled ? 'Unexpectedly enabled' : 'Locked',
           error: null,
           checkedAt: Date.now(),
         })
@@ -107,20 +107,20 @@ export function SystemScreen() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-maet-text">System Status Center</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
-              Backend, market stream, broker read-only sync, live lock, reconciliation, dry-run validation, and data quality.
+              Connection health, market stream, broker read-only sync, live lock, reconciliation, dry-run validation, and data quality.
             </p>
           </div>
           <StatusBadge tone={apiOnline ? 'success' : 'warning'} dot>
-            {apiOnline ? 'Backend connected' : backendWakeState === 'WAKING' ? 'Backend waking' : 'Backend offline'}
+            {apiOnline ? 'Market services connected' : backendWakeState === 'WAKING' ? 'Market services waking' : 'Market services unavailable'}
           </StatusBadge>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="grid gap-3 xl:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-3">
           <StatusCard
             icon={<Server className="h-5 w-5" />}
-            title="FastAPI Backend"
+            title="Backend Health"
             status={apiOnline ? 'Connected' : backendWakeState === 'WAKING' ? 'Waking' : 'Offline'}
             tone={apiOnline ? 'good' : backendWakeState === 'WAKING' ? 'warn' : 'bad'}
             rows={[
@@ -179,10 +179,10 @@ export function SystemScreen() {
             status={manualOrderLabel}
             tone={manualOrderStatus?.validation_only ? 'good' : 'muted'}
             rows={[
-              ['validation_only', manualOrderStatus?.validation_only ? 'true' : 'Unknown'],
-              ['dry_run', manualOrderStatus?.dry_run ? 'true' : 'Unknown'],
-              ['creates_fill', manualOrderStatus?.creates_fill ? 'true' : 'false'],
-              ['creates_broker_order', manualOrderStatus?.creates_broker_order ? 'true' : 'false'],
+              ['Validation mode', manualOrderStatus?.validation_only ? 'Dry-run only' : 'Unknown'],
+              ['Order flow', manualOrderStatus?.dry_run ? 'Paper validation' : 'Unknown'],
+              ['Paper fill', manualOrderStatus?.creates_fill ? 'Paper fill only' : 'Disabled'],
+              ['Broker order', manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'],
             ]}
           />
 
@@ -241,14 +241,14 @@ function StatusCard({
   rows: [string, string][]
 }) {
   return (
-    <div className="maet-glass p-4">
+    <div className="maet-glass min-w-0 p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl border', toneClass(tone).box)}>
             {icon}
           </div>
           <div className="min-w-0">
-            <div className="font-heading text-base font-bold text-maet-text">{title}</div>
+            <div className="break-words font-heading text-base font-bold text-maet-text">{title}</div>
             <div className="mt-0.5 truncate text-sm text-maet-text-muted">{status}</div>
           </div>
         </div>
@@ -256,9 +256,9 @@ function StatusCard({
       </div>
       <div className="space-y-2 border-t border-white/10 pt-3">
         {rows.map(([label, value]) => (
-          <div key={label} className="grid grid-cols-[122px_minmax(0,1fr)] gap-3 text-sm">
+          <div key={label} className="grid gap-1 text-sm sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-3">
             <span className="text-maet-text-muted">{label}</span>
-            <span className="break-words font-mono text-maet-text-soft">{value}</span>
+            <span className="min-w-0 break-words font-mono text-maet-text-soft [overflow-wrap:anywhere]">{value}</span>
           </div>
         ))}
       </div>
@@ -268,7 +268,7 @@ function StatusCard({
 
 function LiveLockCard({ manualOrderLabel, reconciliationLabel }: { manualOrderLabel: string; reconciliationLabel: string }) {
   return (
-    <div className="maet-glass-strong border-maet-amber/40 p-4 xl:col-span-2">
+    <div className="maet-glass-strong min-w-0 border-maet-amber/40 p-4">
       <div className="mb-4 flex items-start gap-3">
         <div className="grid h-11 w-11 place-items-center rounded-xl border border-maet-amber/40 bg-maet-amber/10 text-maet-amber">
           <LockKeyhole className="h-5 w-5" />
@@ -279,11 +279,11 @@ function LiveLockCard({ manualOrderLabel, reconciliationLabel }: { manualOrderLa
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <SafetyLine label="LIVE LOCKED" value="true" />
-        <SafetyLine label="PAPER MODE" value="true" />
-        <SafetyLine label="READ ONLY" value="broker context" />
-        <SafetyLine label="AI ADVISORY ONLY" value="true" />
-        <SafetyLine label="BROKER MUTATION DISABLED" value="true" />
+        <SafetyLine label="LIVE LOCKED" value="Locked" />
+        <SafetyLine label="PAPER MODE" value="Paper only" />
+        <SafetyLine label="READ ONLY" value="Broker context" />
+        <SafetyLine label="AI ADVISORY ONLY" value="Research only" />
+        <SafetyLine label="BROKER MUTATION DISABLED" value="Disabled" />
         <SafetyLine label="DRY-RUN VALIDATION" value={manualOrderLabel} />
         <SafetyLine label="RECONCILIATION" value={reconciliationLabel} />
       </div>
@@ -293,9 +293,9 @@ function LiveLockCard({ manualOrderLabel, reconciliationLabel }: { manualOrderLa
 
 function SafetyLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
       <span className="text-xs font-bold text-maet-amber">{label}</span>
-      <span className="font-mono text-xs font-bold text-maet-text">{value}</span>
+      <span className="min-w-0 break-words text-right font-mono text-xs font-bold text-maet-text [overflow-wrap:anywhere]">{value}</span>
     </div>
   )
 }
@@ -311,20 +311,20 @@ function toneClass(tone: Tone) {
 
 function classifyApiError(error: unknown): string {
   if (error instanceof APIError) {
-    if (error.status === 0) return 'Backend unreachable or CORS blocked'
-    if (error.status === 401 || error.status === 403) return 'Auth failure detected'
+    if (error.status === 0) return 'Connection or authorization check needed'
+    if (error.status === 401 || error.status === 403) return 'Authorization check needed'
     return `HTTP ${error.status}`
   }
-  return 'Backend readiness check failed'
+  return 'Readiness check failed'
 }
 
 function classifyConnectivityIssue(message: string | null): string {
   if (!message) return 'No CORS/auth issue detected'
   const lower = message.toLowerCase()
-  if (lower.includes('cors')) return 'CORS failure detected'
-  if (lower.includes('401') || lower.includes('403') || lower.includes('auth')) return 'Auth failure detected'
+  if (lower.includes('cors')) return 'Connection or authorization check needed'
+  if (lower.includes('401') || lower.includes('403') || lower.includes('auth')) return 'Authorization check needed'
   if (lower.includes('backend unreachable') || lower.includes('offline')) {
-    return 'Backend unreachable or CORS blocked'
+    return 'Connection or authorization check needed'
   }
   return message
 }

@@ -579,7 +579,7 @@ export function IndicatorChartShell({
           type="button"
           onClick={() => setShowPatterns(!showPatterns)}
           disabled={candles.length === 0}
-          title="Toggle visibility of backend pattern markers on the chart"
+          title="Toggle visibility of pattern markers on the chart"
           className={cn(
             'flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
             showPatterns ? 'bg-info/10 border-info/30 text-info' : 'bg-panel border-border text-text-dim hover:bg-panel-2'
@@ -642,11 +642,11 @@ export function IndicatorChartShell({
 
     if (symbol) {
       if (apiStatus === 'OFFLINE') {
-        emptyTitle = 'Backend unavailable'
-        emptyDescription = 'Chart data cannot be loaded until the backend is reachable. No synthetic data is shown.'
+        emptyTitle = 'Market data unavailable'
+        emptyDescription = 'Chart data cannot be loaded until the market-data connection is reachable. No synthetic data is shown.'
       } else if (backendWakeState === 'WAKING') {
-        emptyTitle = 'Waiting for backend data'
-        emptyDescription = 'The backend is waking up. Chart data will load automatically when REST status returns.'
+        emptyTitle = 'Waiting for market data'
+        emptyDescription = 'Chart data will load automatically when the market-data service is available.'
       } else {
         if (session === 'LIVE') {
           emptyTitle = 'Live ticks but no candles loaded'
@@ -723,7 +723,7 @@ export function IndicatorChartShell({
 
           <div className="relative z-10 max-w-[340px] rounded border border-border/40 bg-panel/30 px-3 py-2 text-xs text-text-faint mt-4">
             <span className="font-semibold text-text-dim block mb-1">Real Data Policy</span>
-            No synthetic candles or dummy prices are used. All chart data maps directly to actual historical broker candles.
+            All chart data maps directly to actual historical broker candles. If data is unavailable, the chart stays empty.
           </div>
         </div>
       </div>

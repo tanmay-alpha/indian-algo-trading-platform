@@ -18,9 +18,9 @@ const EXAMPLE_PROMPTS = [
 ]
 
 const EXPLANATION_CARDS = [
-  ['Indicator context', 'Explains RSI, MACD, VWAP, and trend structure when backend data exists.'],
-  ['Risk framing', 'Can describe risk-gate inputs, but cannot authorize execution.'],
-  ['Safety boundary', 'Always keeps execution_allowed=false and broker_mutation_allowed=false visible.'],
+  ['Indicator context', 'Explains RSI, MACD, VWAP, and trend structure when candle data exists.'],
+  ['Risk framing', 'Can describe dry-run inputs, but cannot authorize execution.'],
+  ['Safety boundary', 'Live execution stays locked and broker actions stay disabled.'],
 ]
 
 export function AiScreen() {
@@ -53,8 +53,8 @@ export function AiScreen() {
         {
           role: 'assistant',
           content:
-            `Advisory backend is not connected for "${trimmed}". ` +
-            'execution_allowed=false. No orders, broker mutations, predictions, or financial advice are generated here.',
+            `Advisory engine is unavailable for "${trimmed}". ` +
+            'No orders, broker actions, trade calls, or financial advice are produced here.',
         },
       ])
     }, 520)
@@ -67,10 +67,10 @@ export function AiScreen() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-maet-text">AI Advisory Desk</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
-              Research explanations, indicator context, and risk framing. No predictions are presented as trading truth.
+              Research explanations, indicator context, and risk framing. No trade calls are presented as trading truth.
             </p>
           </div>
-          <StatusBadge tone="ai" dot>execution_allowed=false</StatusBadge>
+          <StatusBadge tone="ai" dot>AI advisory only</StatusBadge>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export function AiScreen() {
                     </div>
                     <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Start with a research question</h2>
                     <p className="mt-2 text-sm leading-6 text-maet-text-muted">
-                      Backend AI is unavailable unless explicitly connected. This polished empty state does not fabricate advice, prices, or predictions.
+                      The advisory engine is unavailable unless explicitly connected. This empty state does not fabricate advice, prices, or trade calls.
                     </p>
                     <div className="mt-6 grid gap-2 sm:grid-cols-2">
                       {EXAMPLE_PROMPTS.map((prompt) => (
@@ -166,10 +166,10 @@ export function AiScreen() {
           <ContextCard
             title="Market context"
             rows={[
-              ['Backend', apiStatus],
+              ['Advisory', apiStatus === 'ONLINE' ? 'Available' : 'Unavailable'],
               ['Selected', selectedSymbol ?? 'No symbol selected'],
               ['Timeframe', chartTimeframe],
-              ['Strategy engine', strategyStatus?.available ? strategyStatus.engine : 'Unavailable'],
+              ['Strategy notes', strategyStatus?.available ? strategyStatus.engine : 'Unavailable'],
             ]}
           />
           <div className="maet-glass p-3">
@@ -178,10 +178,10 @@ export function AiScreen() {
               <div className="font-heading text-sm font-bold text-maet-text">Risk checklist</div>
             </div>
             <div className="space-y-2">
-              <SafetyLine label="LIVE LOCKED" />
-              <SafetyLine label="BROKER MUTATION DISABLED" />
-              <SafetyLine label="AI ADVISORY ONLY" />
-              <SafetyLine label="Creates broker order" value={manualOrderStatus?.creates_broker_order ? 'true' : 'false'} />
+              <SafetyLine label="LIVE LOCKED" value="Locked" />
+              <SafetyLine label="BROKER MUTATION DISABLED" value="Disabled" />
+              <SafetyLine label="AI ADVISORY ONLY" value="Research only" />
+              <SafetyLine label="Broker order creation" value={manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'} />
             </div>
           </div>
           <div className="grid gap-2">
@@ -220,7 +220,7 @@ function ContextCard({ title, rows }: { title: string; rows: [string, string][] 
   )
 }
 
-function SafetyLine({ label, value = 'true' }: { label: string; value?: string }) {
+function SafetyLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-lg border border-maet-amber/20 bg-maet-amber/10 px-3 py-2">
       <span className="text-xs font-bold text-maet-amber">{label}</span>
