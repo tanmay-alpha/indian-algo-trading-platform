@@ -13,6 +13,7 @@ from backend.execution.kill_switch import KillSwitch
 from backend.execution.live_order_manager import LiveOrderManager
 from backend.execution.models import OrderIntent
 from backend.execution.order_poller import OrderPoller
+from backend.execution.order_store import OrderStore
 from backend.execution.order_state_machine import OrderStateMachine
 from backend.execution.paper_execution_config import PaperExecutionConfig
 from backend.execution.paper_order_manager import PaperOrderManager
@@ -333,6 +334,46 @@ async def test_execution_router_routes_paper_order():
     assert event.status == OrderStatus.FILLED.value
     # Fill price is ltp * slip_factor (5 bps default): 750 * 1.0005 ≈ 750.38
     assert event.avg_fill_price == pytest.approx(750.38, abs=0.01)
+
+
+@pytest.mark.asyncio
+async def test_execution_router_persists_paper_fill_to_order_store(tmp_path):
+    store = OrderStore(str(tmp_path / "router_fills.db"))
+    cfg = PaperExecutionConfig(allow_after_hours=True)
+    router = ExecutionRouter(paper_config=cfg, order_store=store)
+
+    req = request_event()
+    event = await router.route(req, fresh_market())
+
+    assert event.status == OrderStatus.FILLED.value
+    assert router.paper_manager.order_store is store
+
+    fills = store.get_fills_for_request(req.event_id)
+    assert len(fills) == 1
+    assert fills[0]["fill_id"] == f"{req.event_id}:0"
+    assert fills[0]["symbol"] == "SBIN"
+    assert fills[0]["side"] == "BUY"
+    assert fills[0]["filled_quantity"] == 10
+    assert fills[0]["fill_price"] == pytest.approx(750.38, abs=0.01)
+    assert fills[0]["source"] == "paper"
+    assert fills[0]["broker_order_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_execution_router_duplicate_request_does_not_duplicate_paper_fill(tmp_path):
+    store = OrderStore(str(tmp_path / "router_duplicate_fills.db"))
+    cfg = PaperExecutionConfig(allow_after_hours=True)
+    router = ExecutionRouter(paper_config=cfg, order_store=store)
+
+    req = request_event()
+    first = await router.route(req, fresh_market())
+    second = await router.route(req, fresh_market())
+
+    assert first.status == OrderStatus.FILLED.value
+    assert second.status == OrderStatus.REJECTED.value
+    assert second.reject_reason == "duplicate_request"
+    assert len(store.get_fills_for_request(req.event_id)) == 1
+    assert len(store.get_recent_fills()) == 1
 
 
 @pytest.mark.asyncio

@@ -235,11 +235,11 @@ class StrategyRepository:
     _PENDING_STATUSES: frozenset = frozenset({"GENERATED", "VALIDATED"})
     # Statuses that are terminal — no further transitions allowed
     _TERMINAL_SIGNAL_STATUSES: frozenset = frozenset(
-        {"PAPER_EXECUTED", "DISMISSED", "ERROR"}
+        {"PAPER_EXECUTED", "REJECTED", "PAPER_FAILED", "DISMISSED", "ERROR"}
     )
     # Statuses that cannot be approved (already done or dismissed)
     _NON_APPROVABLE: frozenset = frozenset(
-        {"PAPER_EXECUTED", "APPROVED_PAPER", "DISMISSED", "ERROR"}
+        {"PAPER_EXECUTED", "APPROVED_PAPER", "PAPER_PENDING", "REJECTED", "PAPER_FAILED", "DISMISSED", "ERROR"}
     )
     # Statuses that cannot be dismissed
     _NON_DISMISSABLE: frozenset = frozenset({"PAPER_EXECUTED", "DISMISSED", "ERROR"})

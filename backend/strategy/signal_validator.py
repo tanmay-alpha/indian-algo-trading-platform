@@ -12,14 +12,17 @@ class SignalValidator:
         self.kill_switch = kill_switch
         self.live_trading_enabled = live_trading_enabled
         self.default_quantity = default_quantity
+        self.last_rejection_reason: Optional[str] = None
 
     async def validate_and_route(self, event: SignalEvent, trading_mode: str = "PAPER") -> Optional[OrderRequestEvent]:
         """
         Validates the SignalEvent. If valid, converts it to an OrderRequestEvent and publishes it.
         If invalid, publishes a safe rejection event.
         """
+        self.last_rejection_reason = None
         if event.action in {"NEUTRAL", "HOLD"}:
             logger.debug(f"Signal is {event.action}, no order event emitted.")
+            self.last_rejection_reason = "no_order_action"
             return None
 
 
@@ -50,6 +53,7 @@ class SignalValidator:
 
         if failed:
             reason = ";".join(failed)
+            self.last_rejection_reason = reason
             logger.warning(f"SIGNAL VALIDATOR: Rejected signal for {event.symbol}. Reason: {reason}")
             if self.event_bus:
                 rejection = ErrorEvent(
@@ -72,6 +76,7 @@ class SignalValidator:
             signal_event_id=event.event_id,
             trading_mode=trading_mode,
             source="AUTOMATIC",
+            strategy_signal_id=event.signal_id,
         )
 
         logger.info(f"SIGNAL VALIDATOR: Approved signal for {event.symbol} -> Emitting OrderRequestEvent")

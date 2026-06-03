@@ -74,10 +74,17 @@ class ExecutionRouter:
             portfolio_manager=portfolio_manager,
             settings=settings,
         )
+        if order_store is not None:
+            self.order_store = order_store
+        else:
+            db_path = getattr(settings, "db_path", "data/trades.db")
+            self.order_store = OrderStore(db_path=db_path)
+
         self.paper_manager = PaperOrderManager(
             event_bus=event_bus,
             trade_journal=trade_journal,
             order_state_machine=self.order_state_machine,
+            order_store=self.order_store,
             config=paper_config,
         )
         self.live_manager = LiveOrderManager(
@@ -89,13 +96,6 @@ class ExecutionRouter:
         )
         self.executor = self.paper_manager if self.mode == TradingMode.PAPER.value else self.live_manager
         self._processed_request_ids: set[str] = set()
-
-        if order_store is not None:
-            self.order_store = order_store
-        else:
-            db_path = getattr(settings, "db_path", "data/trades.db")
-            self.order_store = OrderStore(db_path=db_path)
-
 
         # Subscribe to OrderStateEvent so that broker-poll-driven transitions are
         # persisted to the DB even when they do not flow through this router's route().

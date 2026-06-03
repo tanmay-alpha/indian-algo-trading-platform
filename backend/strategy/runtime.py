@@ -388,11 +388,10 @@ class StrategyRuntimeManager:
             # Route execution if autopilot is enabled
             if is_auto:
                 await self._publish_signal_event(signal_model, override_mode="PAPER")
-                signal_model = self.repo.update_signal_status(session, signal_model.id, "PAPER_EXECUTED")
-            elif strategy_config.mode == "PAPER":
-                # For compatibility with older tests where mode is PAPER and auto_paper_enabled defaults to False
-                await self._publish_signal_event(signal_model)
-                signal_model = self.repo.update_signal_status(session, signal_model.id, "PAPER_EXECUTED")
+                try:
+                    session.refresh(signal_model)
+                except Exception:
+                    pass
 
             return signal_model
         finally:
@@ -401,7 +400,7 @@ class StrategyRuntimeManager:
 
     async def approve_signal(self, signal_id: int, session: Optional[Any] = None) -> bool:
         """
-        Manually approves a REVIEW_ONLY or GENERATED signal, transitions its status to APPROVED,
+        Manually approves a REVIEW_ONLY or GENERATED signal, transitions its status to APPROVED_PAPER,
         and pushes it onto the EventBus for validation and routing.
         """
         own_session = False
@@ -414,12 +413,14 @@ class StrategyRuntimeManager:
                 logger.warning("Attempted to approve non-existent signal ID %s", signal_id)
                 return False
 
-            if signal.status == "APPROVED":
-                logger.info("Signal ID %s is already approved.", signal_id)
+            if signal.status in {"APPROVED", "APPROVED_PAPER"}:
+                logger.info("Signal ID %s is already approved for paper.", signal_id)
                 return True
 
             # Transition status in DB
-            signal = self.repo.update_signal_status(session, signal_id, "APPROVED")
+            signal = self.repo.approve_signal_for_paper(session, signal_id)
+            if signal is None:
+                return False
             
             # Publish to EventBus — approved signals always execute as PAPER trades
             await self._publish_signal_event(signal, override_mode="PAPER")

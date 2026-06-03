@@ -231,12 +231,14 @@ class SystemOrchestrator:
             try:
                 sig = session.query(StrategySignalModel).filter(StrategySignalModel.id == signal_id).first()
                 if sig:
+                    strategy_auto = bool(sig.strategy and sig.strategy.auto_paper_enabled)
                     if sig.status == "APPROVED":
-                        is_manual = True
+                        is_manual = not strategy_auto
                         allowed = True
-                    elif sig.status in ("APPROVED_PAPER", "PAPER_EXECUTED"):
+                    elif sig.status == "APPROVED_PAPER":
+                        is_manual = not strategy_auto
                         allowed = True
-                    elif sig.strategy and sig.strategy.auto_paper_enabled:
+                    elif strategy_auto and sig.status in ("GENERATED", "VALIDATED"):
                         allowed = True
             except Exception as e:
                 logger.error(f"Error checking signal routing allowance: {e}")
@@ -255,12 +257,79 @@ class SystemOrchestrator:
 
         # Route via SignalValidator
         order_request = await self.signal_validator.validate_and_route(event, trading_mode=self.execution_mode)
+        if order_request is None:
+            if signal_id is not None:
+                self._update_strategy_signal_status(
+                    signal_id,
+                    "REJECTED",
+                    getattr(self.signal_validator, "last_rejection_reason", None) or "signal_validation_failed",
+                )
+            return
         if order_request and not is_manual:
             self._update_state("last_trade_time", now)
 
     async def on_order_request_event(self, event: OrderRequestEvent):
         """Routes validated order requests to execution."""
-        await self.router.route(event)
+        result = await self.router.route(event)
+        self._update_strategy_signal_from_order_result(event, result)
+
+    def _update_strategy_signal_from_order_result(self, request: OrderRequestEvent, result: OrderStateEvent) -> None:
+        """Persist strategy signal execution status from the actual order result."""
+        signal_id = getattr(request, "strategy_signal_id", None)
+        if signal_id is None:
+            return
+
+        if result.status == OrderStatus.FILLED.value:
+            self._update_strategy_signal_status(signal_id, "PAPER_EXECUTED")
+        elif result.status == OrderStatus.REJECTED.value:
+            self._update_strategy_signal_status(
+                signal_id,
+                "REJECTED",
+                result.reject_reason or "paper_order_rejected",
+            )
+        elif result.status == OrderStatus.CANCELLED.value:
+            self._update_strategy_signal_status(
+                signal_id,
+                "PAPER_FAILED",
+                result.reject_reason or "paper_order_cancelled",
+            )
+        elif result.status in {OrderStatus.OPEN.value, OrderStatus.PENDING.value}:
+            self._update_strategy_signal_status(
+                signal_id,
+                "PAPER_PENDING",
+                result.reject_reason,
+            )
+        else:
+            self._update_strategy_signal_status(
+                signal_id,
+                "PAPER_FAILED",
+                result.reject_reason or f"unexpected_order_status:{result.status}",
+            )
+
+    def _update_strategy_signal_status(
+        self,
+        signal_id: int,
+        status: str,
+        reason: Optional[str] = None,
+    ) -> None:
+        """Update strategy signal status with a safe optional error/reject reason."""
+        from backend.db.models import StrategySignalModel
+
+        session = self.session_factory()
+        try:
+            signal = session.query(StrategySignalModel).filter(StrategySignalModel.id == signal_id).first()
+            if not signal:
+                return
+            if signal.status in {"DISMISSED"}:
+                return
+            signal.status = status
+            if reason:
+                signal.dismiss_reason = str(reason)[:500]
+            session.commit()
+        except Exception as exc:
+            logger.error("Error updating signal %s execution status: %s", signal_id, exc.__class__.__name__)
+        finally:
+            session.close()
 
     async def on_order_state_event_legacy_updater(self, event: OrderStateEvent):
         """Asynchronously updates legacy portfolio and risk on fills."""

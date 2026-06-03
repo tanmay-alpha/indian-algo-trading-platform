@@ -92,6 +92,7 @@ class OrderRequestEvent:
     signal_event_id: Optional[str]
     trading_mode: str
     source: str
+    strategy_signal_id: Optional[int] = None
     event_id: str = field(default_factory=lambda: str(uuid4()))
     occurred_at: datetime = field(default_factory=utc_now)
 

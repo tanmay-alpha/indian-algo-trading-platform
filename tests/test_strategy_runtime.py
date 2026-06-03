@@ -16,6 +16,9 @@ from backend.core.database import Base
 from backend.db.models import StrategyConfigModel, StrategySignalModel
 from backend.db.repositories.strategy_repository import StrategyRepository
 from backend.strategy.runtime import StrategyRuntimeManager
+from backend.core.events import OrderRequestEvent, OrderStateEvent
+from backend.core.types import OrderStatus
+from backend.core.orchestrator import SystemOrchestrator
 from backend.core.event_bus import EventBus
 from backend.candles.candle_store import CandleStore
 from backend.indicators.engine import IndicatorEngine
@@ -293,16 +296,51 @@ async def test_runtime_manager_evaluate_symbol_paper(runtime_manager, temp_db_se
     sig = signals[0]
     assert sig.symbol == "RELIANCE"
     assert sig.side == "BUY"
-    assert sig.status == "PAPER_EXECUTED"
+    assert sig.status == "GENERATED"
 
     # 2. Inspect EventBus messages
+    assert len(mock_event_bus.published) == 0
+
+
+@pytest.mark.asyncio
+async def test_runtime_manager_auto_paper_publication_does_not_mark_executed(runtime_manager, temp_db_session, mock_event_bus, candle_store):
+    repo = StrategyRepository()
+    config = repo.create_config(
+        session=temp_db_session,
+        name="EMA Cross Auto Paper",
+        template_id="ema_cross",
+        symbols=["RELIANCE"],
+        timeframe="5m",
+        parameters={"fast_ema": 9, "slow_ema": 21},
+        mode="PAPER"
+    )
+    config.auto_paper_enabled = True
+    temp_db_session.commit()
+    runtime_manager.start_strategy(config.id)
+
+    now = datetime.now(timezone.utc)
+    base_time = int(now.timestamp()) - 30 * 300
+    for i in range(25):
+        candle_store.add_candle("5m", "RELIANCE", {
+            "timestamp": base_time + (i * 300),
+            "open": 2398.0, "high": 2405.0, "low": 2395.0, "close": 2400.0, "volume": 1000
+        })
+    candle_store.add_candle("5m", "RELIANCE", {
+        "timestamp": base_time + 25 * 300,
+        "open": 2435.0, "high": 2450.0, "low": 2430.0, "close": 2440.0, "volume": 3000
+    })
+
+    await runtime_manager.evaluate_symbol(config.id, "RELIANCE")
+
+    signals = repo.get_signals_for_strategy(temp_db_session, config.id)
+    assert len(signals) == 1
+    sig = signals[0]
+    assert sig.status == "APPROVED_PAPER"
+    assert sig.status != "PAPER_EXECUTED"
+
     assert len(mock_event_bus.published) == 1
     event = mock_event_bus.published[0]
     assert event.event_type in ("SIGNAL", "SignalEvent")
-    assert event.data["symbol"] == "RELIANCE"
-    assert event.data["side"] == "BUY"
-    assert event.data["mode"] == "PAPER"
-    assert event.data["strategy_id"] == config.id
     assert event.data["signal_id"] == sig.id
 
 
@@ -419,9 +457,10 @@ async def test_runtime_manager_approve_signal(runtime_manager, temp_db_session, 
     success = await runtime_manager.approve_signal(sig.id)
     assert success is True
 
-    # Check signal status is APPROVED in DB
+    # Check signal status is APPROVED_PAPER in DB. Actual PAPER_EXECUTED is set
+    # only after the order/fill outcome is confirmed.
     temp_db_session.refresh(sig)
-    assert sig.status == "APPROVED"
+    assert sig.status == "APPROVED_PAPER"
 
     # Check published to event bus
     assert len(mock_event_bus.published) == 1
@@ -434,7 +473,116 @@ async def test_runtime_manager_approve_signal(runtime_manager, temp_db_session, 
 
 
 # ---------------------------------------------------------------------------
-# 4. Strategy API Router Tests
+# 4. Strategy Signal Execution Status Mapping
+# ---------------------------------------------------------------------------
+
+def _status_orchestrator(session_factory):
+    orchestrator = object.__new__(SystemOrchestrator)
+    orchestrator.session_factory = session_factory
+    return orchestrator
+
+
+def _strategy_signal(repo, session):
+    config = repo.create_strategy_config(
+        session=session,
+        name="Status Mapping Strategy",
+        template_id="ema_cross",
+        symbols=["SBIN"],
+        timeframe="5m",
+        parameters={},
+        mode="PAPER",
+        auto_paper_enabled=True,
+    )
+    return repo.save_signal(
+        session=session,
+        strategy_id=config.id,
+        symbol="SBIN",
+        side="BUY",
+        confidence=0.9,
+        reason="status mapping",
+        price=500.0,
+        timeframe="5m",
+        source_candle_time="2026-05-27T10:00:00Z",
+        status="APPROVED_PAPER",
+    )
+
+
+def _order_request_for_signal(signal_id: int) -> OrderRequestEvent:
+    return OrderRequestEvent(
+        symbol="SBIN",
+        side="BUY",
+        quantity=1,
+        order_type="MARKET",
+        price=500.0,
+        strategy_name="ema_cross",
+        signal_event_id="signal-event-id",
+        trading_mode="PAPER",
+        source="AUTOMATIC",
+        strategy_signal_id=signal_id,
+    )
+
+
+def _order_state(status: str, reason: str | None = None) -> OrderStateEvent:
+    return OrderStateEvent(
+        order_id="order-1",
+        broker_order_id=None,
+        symbol="SBIN",
+        side="BUY",
+        quantity=1,
+        filled_quantity=1 if status == OrderStatus.FILLED.value else 0,
+        avg_fill_price=500.0 if status == OrderStatus.FILLED.value else None,
+        status=status,
+        reject_reason=reason,
+        order_request_id="request-1",
+    )
+
+
+def test_strategy_signal_marked_executed_only_after_filled_order(session_factory, temp_db_session):
+    repo = StrategyRepository()
+    signal = _strategy_signal(repo, temp_db_session)
+    orchestrator = _status_orchestrator(session_factory)
+
+    orchestrator._update_strategy_signal_from_order_result(
+        _order_request_for_signal(signal.id),
+        _order_state(OrderStatus.FILLED.value),
+    )
+
+    temp_db_session.refresh(signal)
+    assert signal.status == "PAPER_EXECUTED"
+
+
+def test_strategy_signal_rejected_order_is_not_marked_executed(session_factory, temp_db_session):
+    repo = StrategyRepository()
+    signal = _strategy_signal(repo, temp_db_session)
+    orchestrator = _status_orchestrator(session_factory)
+
+    orchestrator._update_strategy_signal_from_order_result(
+        _order_request_for_signal(signal.id),
+        _order_state(OrderStatus.REJECTED.value, "max_order_qty"),
+    )
+
+    temp_db_session.refresh(signal)
+    assert signal.status == "REJECTED"
+    assert signal.dismiss_reason == "max_order_qty"
+
+
+def test_strategy_signal_open_order_is_pending_not_executed(session_factory, temp_db_session):
+    repo = StrategyRepository()
+    signal = _strategy_signal(repo, temp_db_session)
+    orchestrator = _status_orchestrator(session_factory)
+
+    orchestrator._update_strategy_signal_from_order_result(
+        _order_request_for_signal(signal.id),
+        _order_state(OrderStatus.OPEN.value, "LIMIT_NOT_CROSSED"),
+    )
+
+    temp_db_session.refresh(signal)
+    assert signal.status == "PAPER_PENDING"
+    assert signal.status != "PAPER_EXECUTED"
+
+
+# ---------------------------------------------------------------------------
+# 5. Strategy API Router Tests
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -701,8 +849,8 @@ def test_api_signals_endpoints(router_app, temp_db_session):
     # 3. Approve signal
     resp = router_app.post(f"/strategies/signals/{sig.id}/approve-paper", headers=ADMIN_HEADERS)
     assert resp.status_code == 200
-    assert resp.json()["status"] == "APPROVED"
+    assert resp.json()["status"] == "APPROVED_PAPER"
 
     # Verify status updated
     temp_db_session.refresh(sig)
-    assert sig.status == "APPROVED"
+    assert sig.status == "APPROVED_PAPER"
