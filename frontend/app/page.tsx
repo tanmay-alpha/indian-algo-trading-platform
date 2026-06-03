@@ -9,7 +9,6 @@ import {
   ChartCandlestick,
   CheckCircle2,
   Github,
-  Linkedin,
   ListChecks,
   LockKeyhole,
   Search,
@@ -23,8 +22,6 @@ import { SpotlightCard } from '@/components/effects/spotlight-card'
 import { StatusOrb } from '@/components/effects/status-orb'
 
 const GITHUB_URL = 'https://github.com/tanmay-alpha/indian-algo-trading-platform'
-// Replace with user LinkedIn profile URL.
-const LINKEDIN_URL = 'TODO_LINKEDIN_URL'
 
 const productBadges = [
   'Paper trading only',
@@ -198,15 +195,6 @@ export default function LandingPage() {
             >
               <Github className="h-4 w-4" />
               GitHub
-            </a>
-            <a
-              href={LINKEDIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass-button h-10 px-3 text-xs"
-            >
-              <Linkedin className="h-4 w-4" />
-              LinkedIn
             </a>
           </div>
         </div>
