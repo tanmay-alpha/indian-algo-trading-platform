@@ -2,7 +2,8 @@
 
 import { useTerminalStore } from '@/store/terminal-store'
 import { Activity, Wifi, WifiOff } from 'lucide-react'
-import { cn, getNseMarketSession } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useMarketSession } from '@/lib/use-market-session'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 import type { AppTab } from './mobile-bottom-nav'
 
@@ -13,7 +14,7 @@ interface MobileTopHeaderProps {
 
 export function MobileTopHeader({ title, onNavigate }: MobileTopHeaderProps) {
   const wsStatus    = useTerminalStore((s) => s.wsStatus)
-  const marketSession = getNseMarketSession()
+  const marketSession = useMarketSession()
 
   const isConnected = wsStatus === 'CONNECTED'
 

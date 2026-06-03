@@ -2,13 +2,14 @@
 
 import { ShieldCheck, Activity, Lock } from 'lucide-react'
 import { useTerminalStore } from '@/store/terminal-store'
-import { cn, getNseMarketSession } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useMarketSession } from '@/lib/use-market-session'
 
 export function SafetyStatusCard() {
   const wsStatus       = useTerminalStore((s) => s.wsStatus)
   const apiStatus      = useTerminalStore((s) => s.apiStatus)
   const backendOffline = useTerminalStore((s) => s.backendOffline)
-  const marketSession  = getNseMarketSession()
+  const marketSession  = useMarketSession()
   const mode           = useTerminalStore((s) => s.executionMode)
 
   const isOnline    = apiStatus === 'ONLINE' && !backendOffline

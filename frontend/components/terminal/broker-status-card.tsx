@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { ShieldCheck, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -10,7 +11,11 @@ export function BrokerStatusCard() {
   const isConnected = brokerStatus?.logged_in ?? false
   const brokerName = brokerStatus?.configured ? 'Zerodha Kite' : 'Reconciled Account'
   const clientName = brokerStatus?.logged_in ? 'ACTIVE SESSION' : 'READ ONLY GATEWAY'
-  const reconciledAt = new Date().toISOString()
+  const [reconciledAt, setReconciledAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    setReconciledAt(new Date().toISOString())
+  }, [])
 
   return (
     <div className="glass-card-3d rounded-lg p-4 border border-[#38bdf8]/10 text-left select-none relative overflow-hidden">
@@ -61,7 +66,7 @@ export function BrokerStatusCard() {
           <div className="text-right">
             <span className="text-xs text-text-faint block uppercase font-mono">Last Reconciled</span>
             <span className="text-xs text-text-dim font-mono block mt-0.5">
-              {new Date(reconciledAt).toLocaleTimeString()}
+              {reconciledAt ? new Date(reconciledAt).toLocaleTimeString() : '--'}
             </span>
           </div>
         </div>

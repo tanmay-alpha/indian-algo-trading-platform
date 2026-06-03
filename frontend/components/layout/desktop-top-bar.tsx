@@ -5,7 +5,8 @@ import type { ReactNode } from 'react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 import { useTerminalStore } from '@/store/terminal-store'
-import { cn, getNseMarketSession } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { useMarketSession } from '@/lib/use-market-session'
 
 const TITLES: Record<AppTab, string> = {
   home: 'Market command center',
@@ -19,7 +20,7 @@ const TITLES: Record<AppTab, string> = {
 export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
   const wsStatus = useTerminalStore((s) => s.wsStatus)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
-  const session = getNseMarketSession()
+  const session = useMarketSession()
   const wsOnline = wsStatus === 'CONNECTED'
   const apiOnline = apiStatus === 'ONLINE'
 

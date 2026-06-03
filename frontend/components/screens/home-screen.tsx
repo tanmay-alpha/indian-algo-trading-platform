@@ -6,7 +6,7 @@ import { MobilePage } from '@/components/mobile/mobile-page'
 import { WatchlistRow } from '@/components/ui-maet/watchlist-row'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { useTerminalStore, selectActiveWatchlistSymbols } from '@/store/terminal-store'
-import { getNseMarketSession } from '@/lib/utils'
+import { useMarketSession } from '@/lib/use-market-session'
 
 interface HomeScreenProps {
   onNavigate: (tab: AppTab) => void
@@ -19,7 +19,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const setSelectedSymbol = useTerminalStore((s) => s.setSelectedSymbol)
   const marketWatch = useTerminalStore((s) => s.marketWatch)
   const symbols = useTerminalStore(selectActiveWatchlistSymbols)
-  const session = getNseMarketSession()
+  const session = useMarketSession()
   const topSymbols = symbols.slice(0, 5)
   const backendOffline = apiStatus !== 'ONLINE'
 
