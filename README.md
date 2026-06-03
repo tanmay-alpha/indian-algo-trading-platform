@@ -1,181 +1,90 @@
-# MAET Terminal
+# MAET Terminal - Market Analytics & Execution Terminal
 
-### Market Analytics & Execution Terminal for Indian NSE Markets
+A safety-first Indian market analytics and paper trading workspace for watchlists, candle diagnostics, dry-run order validation, read-only broker context, OMS/reconciliation visibility, and AI advisory notes.
 
-> Personal algorithmic trading research workstation.
-> Built to learn FastAPI, Next.js, WebSocket, C++/pybind11, event-driven architecture, and cloud deployment.
-> **PAPER mode only. No real orders. No financial advice.**
+**Live demo:** https://indian-algo-trading-platform.vercel.app/
+**Backend health:** https://maet-backend.onrender.com/health
+**Repository:** https://github.com/tanmay-alpha/indian-algo-trading-platform
 
-[Live Demo](https://indian-algo-trading-platform.vercel.app/) - [Backend Health](https://maet-backend.onrender.com/health)
+MAET Terminal is a research and demo project. It is not financial advice, not a production trading system, and not a real-money execution platform. Live execution is hard-locked in the current build, broker context is read-only, and AI is advisory only.
 
-## What This Is
+## Why This Project Matters
 
-MAET Terminal is a personal trading research workstation for Indian NSE markets. It connects a Next.js frontend, FastAPI backend, broker market-data gateway, event-driven backend pipeline, analytics engine, and research/backtesting surfaces into one terminal-style interface.
+MAET demonstrates full-stack product engineering around a realistic trading workflow without enabling unsafe broker mutation. It combines a Next.js terminal UI, FastAPI backend, broker market-data integration patterns, WebSocket status streaming, persistent paper OMS state, indicator/backtest research, deployment hardening, and explicit safety boundaries.
 
-This is not a SaaS product, not production trading software, and not financial advice. It is a PAPER/demo/research project built to learn systems design, broker APIs, WebSocket lifecycle management, C++/Python interop, deployment, debugging, and security basics.
+The goal is to show engineering judgment: honest data states, tested paper-trading correctness, protected backend routes, and UI copy that separates research from execution.
 
-## Key Features
+## Core Features
 
-### Backend
+- Indian market watchlists and instrument search for NSE/BSE symbols.
+- Chart workspace with candle availability, timeframe controls, indicators, and honest no-data diagnostics.
+- TradingView and Angel One chart handoff links for selected instruments.
+- Dry-run order validation with live execution locked and broker actions disabled.
+- Persistent paper OMS and fill ledger for paper order visibility.
+- Read-only portfolio context with protected unlock flow.
+- Broker/account reconciliation and system readiness surfaces.
+- AI advisory notes for explanation and risk framing only.
+- Live-lock and broker-mutation safety strip visible in the terminal.
 
-- FastAPI backend on Render with REST + WebSocket APIs
-- Angel One SmartAPI integration with EventBus/TickBus pipeline
-- CandleStore, instrument master loader, portfolio engine, execution safety layer, and paper/live separation
+## Safety Model
 
-### Analytics
+- Live execution is hard-locked by build policy.
+- Orders are dry-run or paper validation only.
+- Broker mutation is disabled; the UI must not route real orders.
+- Broker account context is read-only and protected where needed.
+- Admin tokens are held in memory only and are not stored in browser storage.
+- AI cannot place, approve, or route trades.
+- No fake market prices, candles, holdings, PnL, order history, fills, or predictions are shown as real.
 
-- C++17 indicator core with pybind11 bridge and Python fallback
-- SMA, EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands
-- Indicator API routes, strategy templates, and offline backtesting
+Backend lock check:
 
-### Frontend
-
-- Next.js + TypeScript on Vercel with terminal-style UI
-- Watchlist, market workspace, chart workspace, indicator overlays, and strategy/backtest UI
-- System health/status panels plus market closed and backend waking states
-
-### Safety
-
-- PAPER default, LIVE locked, kill switch, and PreTradeRiskGate
-- Response sanitizer and admin-token protection for sensitive routes
-- No credentials in repo
-
-## Screenshots
-
-<!-- Add screenshots here -->
-
-Screenshots should be captured from the live demo or local development environment. Do not include screenshots containing credentials, tokens, private account data, fake prices, fake PnL, or fake backtest results.
-Suggested folder: `docs/screenshots/`
-
-## Architecture & Safe Trading Flow
-
-This platform is designed strictly for **PAPER/demo/research** purposes, not for live production trading. To ensure operational safety, the platform implements a decoupled, event-driven architecture with the following execution flow:
-
-```text
-Frontend (Next.js/Zustand)
-  -> FastAPI REST/WebSocket API layer
-  -> MarketDataGateway
-  -> TickBus/EventBus
-  -> CandleStore -> IndicatorEngine
-  -> StrategyEngine (Emits SignalEvent only)
-  -> SignalValidator (Converts to OrderIntent)
-  -> RiskManager / PreTradeRiskGate
-  -> OrderManager/OMS
-  -> ExecutionRouter
-  -> PaperBrokerAdapter (Default) / LiveBrokerAdapter (Locked & Disabled)
-  -> OrderStateEvent / FillEvent / RejectEvent
-  -> PortfolioEngine (Updates on event receipts only)
-  -> Journal / Audit / Persistence
-  -> WebSocketBroadcaster -> Frontend UI
+```bash
+python -B -c "from backend.core.live_build_policy import is_live_execution_build_enabled; print(is_live_execution_build_enabled())"
 ```
 
-### Key Execution Safety Principles:
-1. **StrategyEngine emits SignalEvent only**: Strategy modules do not place orders or directly update portfolios. They only calculate indicator deviations and emit signals.
-2. **SignalValidator**: Validates strategy signals and generates an official `OrderIntent`.
-3. **RiskManager / PreTradeRiskGate**: Checks the system kill switch, max quantity, max notional limits, total portfolio exposure, and filters duplicate signal risks before passing orders downstream.
-4. **OrderManager / OMS**: Controls order identifiers (`client_order_id`), prevents duplicate submissions (idempotency), tracks order states, maps to broker IDs, and records audit journals.
-5. **ExecutionRouter & Adapters**: Routes execution intents to the `PaperBrokerAdapter` by default. The `LiveBrokerAdapter` is completely locked and disabled in code.
-6. **PortfolioEngine Updates**: The portfolio is fully decoupled from active strategy engines and only updates its internal state (holdings, positions, PnL) upon receiving an asynchronous `OrderStateEvent`, `FillEvent`, or `RejectEvent`.
-7. **No Direct Engine Access**: The frontend never connects directly to execution or backtesting engines; all communications are channeled through the FastAPI REST and WebSocket layers.
-
-## Data Flow
-
-### Live Market Data Flow
+Expected output:
 
 ```text
-Angel SmartAPI -> SmartWebSocketV2 -> MarketDataGateway -> TickBus
-  -> EventBus -> CandleStore -> WebSocketBroadcaster -> Frontend UI
+False
 ```
 
-### Indicator Flow
+## Trading Workflow
 
-```text
-CandleStore -> IndicatorEngine -> C++ pybind11 (or Python fallback)
-  -> FastAPI /indicators routes -> Chart overlays
-```
-
-### Strategy Backtest Flow
-
-```text
-Candles -> IndicatorEngine -> Strategy Templates -> BacktestEngine
-  -> Metrics/Trades/Equity Curve -> REST API -> Strategy UI
-```
-
-### Execution Safety Flow
-
-```text
-StrategySignal -> SignalValidator -> RiskGate -> OMS -> PaperBroker -> FillLedger -> PortfolioRebuild -> OMS Dashboard
-```
-
-Live order placement is strictly disabled/locked.
-
-## Trading Safety Engine v1
-
-The backend enforces a strict "Safety-First" execution architecture:
-- **SignalValidator**: Decouples strategy signal generation from execution paths.
-- **PreTradeRiskGate**: Validates account limits, kill switches, and duplicate signals.
-- **Persistent OMS**: SQLite-backed order state preventing in-memory data loss.
-- **Idempotency**: Protects against duplicate network requests.
-- **Broker Order ID Persistence**: Tracks remote broker state locally.
-- **Startup OMS Recovery**: Reloads active pending orders on backend restarts.
-- **Broker Reconciliation**: Audits local state against broker reports.
-- **Fill Ledger**: Durable record of partial and complete execution fills.
-- **Portfolio Rebuild**: Reconstructs portfolio metrics strictly from verified fill events.
-- **Realistic Paper Broker**: Simulates market hours, slippage, limit orders, and execution fees.
-- **OMS Dashboard**: Admin-protected, read-only frontend blotter for transparency.
-
-> [!WARNING]
-> **Ephemeral SQLite Storage & Render Free Limits**: In this demo deployment on Render Free, the local SQLite database (`data/trades.db`) resides on an ephemeral file system. Because Render Free instances spin down after inactivity and recycle their containers on restarts or redeploys, any persisted paper order logs, fill histories, and portfolio state will periodically reset. In a production environment, this SQLite store would be replaced by a managed database like PostgreSQL (e.g., Supabase, Neon, or RDS) to ensure durable, long-term persistence.
-
+1. Open the landing page and enter the terminal.
+2. Confirm the safety strip: live locked, paper mode, read only, AI advisory only, broker mutation disabled.
+3. Search or select a symbol in Market Watch.
+4. Open the chart workspace and inspect candle availability, indicators, and handoff links.
+5. Use dry-run validation to check order parameters without broker mutation.
+6. Review read-only portfolio/OMS/reconciliation context when available.
+7. Use System to verify backend health, readiness, stream state, and safety status.
+8. Use AI Advisory only for research explanation and risk context.
 
 ## Tech Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Frontend | Next.js, React, TypeScript, Tailwind, Zustand | Terminal UI, state, chart/strategy panels |
+| Frontend | Next.js, React, TypeScript, Tailwind CSS, Zustand | Terminal UI, responsive product screens, state |
 | Backend | Python, FastAPI, Uvicorn | REST APIs, WebSocket server, broker orchestration |
-| Realtime | WebSocket | Market/event streaming |
-| Broker | Angel One SmartAPI | Authenticated market-data session |
+| Realtime | WebSocket | Market/status/event streaming |
+| Broker integration | Angel One SmartAPI | Authenticated market-data and read-only broker context |
 | Analytics | C++17, pybind11, Python fallback | Technical indicator calculations |
-| Testing | pytest, C++ tests | Backend, router, and numerical validation |
+| Persistence | SQLite demo store, migration scaffolding | Paper OMS, fills, watchlists, strategy state |
+| Testing | pytest, TypeScript, ESLint, Next build | Backend correctness and frontend stability |
 | Deployment | Vercel, Render | Public demo hosting |
-| Docs | Markdown | Architecture, demo, security, release notes |
-
-## Backend Routes
-
-| Route | Purpose | Public/Protected | Notes |
-|---|---|---|---|
-| `GET /live` | Liveness check | Public | Minimal uptime check |
-| `GET /health` | Safe health snapshot | Public | Sanitized response |
-| `GET /ready` | Readiness diagnostics | Public | Sanitized response |
-| `GET /terminal/status` | Main terminal snapshot | Public | Sanitized response |
-| `GET /ws/status` | WebSocket broadcaster status | Public | Client count and route info |
-| `WS /ws/market_stream` | Market/event stream | Public | Frontend WebSocket path |
-| `GET /instruments/search` | Instrument search | Public | Rate limited |
-| `GET /instruments/master/status` | Instrument master status | Public | Cache/load summary |
-| `GET /candles/{symbol}` | Cached candles | Public | CandleStore read |
-| `POST /candles/{symbol}/fetch` | Fetch broker candles | Protected | Requires broker session |
-| `GET /indicators/status` | Indicator engine status | Public | C++/Python status |
-| `GET /indicators/{symbol}` | Candle-backed indicators | Public | JSON-safe nulls for NaN |
-| `POST /indicators/calculate` | Offline indicator calculation | Public | Posted arrays only |
-| `GET /strategies/status` | Strategy engine status | Public | Research-only |
-| `GET /strategies/templates` | Strategy templates | Public | Live execution disabled |
-| `POST /strategies/backtest` | Offline backtest | Protected | No broker calls |
-| `POST /strategies/signal-preview` | Research signal preview | Protected | No execution routing |
-| `GET /portfolio/summary` | Portfolio summary | Public | PAPER state summary |
-| `GET /portfolio/positions` | Positions | Protected | Session-scoped details |
-| `GET /observability/status` | Observability status | Public | Safe summary |
-| `GET /metrics` | Prometheus-style metrics | Public | No credentials |
 
 ## Local Setup
+
+Backend:
 
 ```bash
 git clone https://github.com/tanmay-alpha/indian-algo-trading-platform.git
 cd indian-algo-trading-platform
 cp .env.example .env
 pip install -r requirements.txt
-uvicorn backend.api_server:app --reload
+uvicorn backend.api_server:app --reload --host 127.0.0.1 --port 8000
 ```
+
+Frontend:
 
 ```bash
 cd frontend
@@ -183,11 +92,16 @@ npm install
 npm run dev
 ```
 
-Fill `.env` with your own values. Never commit `.env`.
+Open:
+
+- http://localhost:3000
+- http://localhost:3000/terminal
+
+Never commit `.env` or real credential values.
 
 ## Environment Variables
 
-Do not list real values in documentation or source control.
+Do not put private secrets in `NEXT_PUBLIC_` variables; browser-visible variables are public.
 
 - `ANGEL_API_KEY`
 - `ANGEL_CLIENT_ID` / `ANGEL_CLIENT_CODE`
@@ -199,87 +113,62 @@ Do not list real values in documentation or source control.
 - `ALLOWED_ORIGINS`
 - `ADMIN_TOKEN`
 - `NEXT_PUBLIC_API_BASE_URL`
-- `NEXT_PUBLIC_API_URL` (legacy alias)
+- `NEXT_PUBLIC_API_URL` legacy alias
 - `NEXT_PUBLIC_WS_URL`
 
-Frontend variables beginning with `NEXT_PUBLIC_` are visible in the browser. Do not put private secrets in `NEXT_PUBLIC_` variables.
+## Validation
 
-## Deployment
-### Frontend
-The frontend is deployed on Vercel and uses `NEXT_PUBLIC_API_BASE_URL` plus `NEXT_PUBLIC_WS_URL`.
-`NEXT_PUBLIC_API_URL` remains supported as a legacy alias.
+Frontend:
 
-### Backend
-The backend is deployed as a Render Web Service.
 ```bash
-uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT
+cd frontend
+npm run type-check
+npm run lint
+npm run build
 ```
 
-Render Free has cold starts, sleeps with inactivity, ephemeral disk/cache, and is not production-grade for trading.
+Backend:
 
-## C++ Indicator Engine
+```bash
+python -B -c "import backend.api_server; print('api import ok')"
+python -B -c "from backend.core.live_build_policy import is_live_execution_build_enabled; print(is_live_execution_build_enabled())"
+pytest tests/test_lockdown.py -q
+pytest -q -ra
+```
 
-C++ exists to model the kind of high-performance analytics layer a trading terminal may eventually need. The C++17 core implements SMA, EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands.
+## Demo Flow
 
-The optional `pybind11` bridge exposes the C++ engine to Python as `maet_cpp_indicators`. The backend can run with Python fallback when the compiled extension is unavailable, which keeps Render/demo deployment practical. Future C++ migration planning is in `docs/CPP_MIGRATION_PLAN.md`.
+Use [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for a three-to-five minute internship demo. The short version:
 
-## Strategy Research
+- Explain MAET in one sentence.
+- Open the terminal and point out the safety strip.
+- Show watchlist/search, chart/no-data honesty, handoff links, dry-run validation, read-only portfolio context, system readiness, and AI advisory-only notes.
+- Mention validation commands and the live-lock check.
 
-The strategy module includes EMA crossover, RSI mean reversion, MACD trend, VWAP pullback, and Bollinger breakout templates. Backtests run offline against posted candles or CandleStore data and produce research-only signals, trades, equity points, and metrics.
+## Current Limitations
 
-Strategy routes do not place real orders, do not connect signals to live execution, and do not guarantee profitability.
+- Live execution is intentionally disabled.
+- Broker read-only/protected flows require a configured admin token.
+- Real market data depends on backend, broker session, and market availability.
+- Render Free can cold start and uses ephemeral local storage in the public demo.
+- SQLite demo persistence is not high-availability production storage.
+- AI advisory is non-executing and does not provide financial advice.
+- Auth is intentionally simple for a portfolio demo and is not enterprise RBAC/OAuth.
 
-## Security Model
+## Documentation
 
-- PAPER mode is the default and LIVE mode is disabled/locked.
-- Sensitive routes can require `X-Admin-Token` when `ADMIN_TOKEN` is set.
-- Health/status responses use a sanitizer and selected endpoints have rate limits.
-- Credential rotation is documented in `docs/CREDENTIAL_ROTATION.md`.
-- `.gitignore` protects `.env` files and no secrets are stored in the repo.
+- [Demo script](docs/DEMO_SCRIPT.md)
+- [Demo readiness status](docs/DEMO_READINESS_STATUS.md)
+- [Paper trading correctness](docs/PAPER_TRADING_CORRECTNESS.md)
+- [Safety model](docs/SAFETY_MODEL.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Environment](docs/ENVIRONMENT.md)
+- [Frontend API contract](docs/FRONTEND_API_CONTRACT.md)
 
-## Project Status
+## Disclaimer
 
-| Phase | Status | Summary |
-|---|---|---|
-| Deployment readiness | Complete | Local setup, env templates, health/readiness routes |
-| Render/Vercel deployment | Complete | Backend on Render, frontend on Vercel |
-| WebSocket stabilization | Complete | `/ws/market_stream`, heartbeat, REST fallback, production URL hardening |
-| C++ indicator engine | Complete | C++17 indicator core and tests |
-| pybind11 bridge | Complete | Optional native module with Python fallback |
-| Indicator API routes | Complete | Status, symbol indicators, offline calculation |
-| Chart overlays | Complete | EMA, VWAP, Bollinger overlays; RSI/MACD panels |
-| Strategy backend | Complete | Templates, signal preview, offline backtesting |
-| Market discovery | Demo-ready | Instrument master, movers, screener over available data |
-| UI credibility polish | Complete | Backend waking, market closed, stale/unavailable states |
-| Cleanup audit | Complete | Code cleanup audit and C++ migration plan |
-| Security hardening | Complete | Admin token dependency, sanitizer, security docs/tests |
-| Final presentation package | Complete | README, demo script, resume, LinkedIn, release checklist |
-
-## Honest Limitations
-
-- **PAPER Only**: The system is designed strictly for paper trading research.
-- **Live Trading Disabled**: Live order routing and real execution are hardcoded to remain locked.
-- **No Real Order Placement**: The platform will not place live financial orders.
-- **SQLite Demo Storage**: Order persistence is local/SQLite and not meant for distributed HA production.
-- **No Production Scheduler**: Broker reconciliation is triggered via admin API, not a robust cron/scheduler.
-- **No Cancel/Modify Flow**: The OMS supports placing orders, but order modification and cancellation are not yet implemented.
-- **No Production Auth**: The admin token gate is simple and lacks enterprise RBAC or OAuth.
-- **Render Free Tier Limitations**: Cold starts can take 30-60 seconds, and storage/cache may be ephemeral on the free tier.
-- **WebSocket Reliability**: Depends heavily on deployment environment.
-- **C++ Extension**: May require specific build tools depending on the host environment.
-
-## What I Learned
-
-- FastAPI backend design and WebSocket lifecycle management
-- Event-driven architecture with TickBus/EventBus
-- C++/Python interop through pybind11
-- Frontend state management with Zustand
-- Cloud deployment, production debugging, and security hygiene for public demos
-- Using AI as a pair programmer while learning
-
-## AI-Assisted Development Note
-
-This project was built with heavy AI assistance as a learning project. I used AI for planning, implementation help, debugging, and documentation. I personally guided the architecture, tested deployments, reviewed outputs, and learned the system through iterative phases.
+MAET Terminal is a paper-mode research/demo platform. It is not financial advice, not investment advice, and not a production trading platform. Do not use it for real-money trading without a separate audited live-readiness phase, stronger auth, persistent infrastructure, operational monitoring, and formal risk controls.
 
 ## License
-MIT License — see [LICENSE](LICENSE)
+
+MIT License - see [LICENSE](LICENSE).

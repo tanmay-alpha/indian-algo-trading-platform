@@ -190,7 +190,7 @@ export function PortfolioWorkspace() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleUnlock()
                 }}
-                placeholder="X-Admin-Token value"
+                placeholder="Validation token"
                 autoComplete="off"
                 className="w-full h-9 rounded border border-[#38bdf8]/15 bg-bg/50 px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50"
               />

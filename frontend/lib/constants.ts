@@ -111,7 +111,7 @@ export const PRESETS: PresetDef[] = [
     id: 'strategy-lab',
     label: 'Strategy Lab',
     workspace: 'strategy',
-    description: 'Signals feed, backtest placeholder, strategy health',
+    description: 'Signals feed, backtest summary, strategy health',
   },
   {
     id: 'market-discovery',

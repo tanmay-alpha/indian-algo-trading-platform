@@ -108,14 +108,14 @@ function CommandPaletteDialog() {
       {
         id: 'pl-buy',
         kind: 'placeholder',
-        label: 'Paper Buy (placeholder)',
+        label: 'Paper Buy Preview',
         hint: 'Live execution disabled in this build',
         disabled: true,
       },
       {
         id: 'pl-sell',
         kind: 'placeholder',
-        label: 'Paper Sell (placeholder)',
+        label: 'Paper Sell Preview',
         hint: 'Live execution disabled in this build',
         disabled: true,
       },
@@ -193,10 +193,10 @@ function CommandPaletteDialog() {
   function execute(c: PaletteCommand) {
     if (c.disabled) {
       ingestEvent({
-        event_type: 'placeholder',
+        event_type: 'dry_run_disabled',
         component: 'CMD',
         severity: 'warning',
-        message: `${c.label} - placeholder, live execution disabled`,
+        message: `${c.label} - dry-run preview only; live execution disabled`,
       })
       return
     }

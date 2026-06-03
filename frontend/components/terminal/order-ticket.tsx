@@ -218,7 +218,7 @@ export function OrderTicket() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') void handleUnlock()
                     }}
-                    placeholder="X-Admin-Token value"
+                    placeholder="Validation token"
                     autoComplete="off"
                     className="w-full h-10 rounded-lg border border-[#38bdf8]/15 bg-bg/50 px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50 focus:ring-1 focus:ring-info/30"
                   />
@@ -489,16 +489,16 @@ export function OrderTicket() {
                   </div>
                   <div className="grid grid-cols-1 gap-1 pt-1 text-xs font-mono text-text-faint">
                     <div className="flex justify-between gap-3">
-                      <span>validation_only</span>
-                      <span className="text-amber-400 font-bold">true</span>
+                      <span>Validation mode</span>
+                      <span className="text-amber-400 font-bold">Dry-run only</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span>live_execution_enabled</span>
-                      <span className="text-amber-400 font-bold">false</span>
+                      <span>Live execution</span>
+                      <span className="text-amber-400 font-bold">Locked</span>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <span>broker_mutation_allowed</span>
-                      <span className="text-amber-400 font-bold">false</span>
+                      <span>Broker actions</span>
+                      <span className="text-amber-400 font-bold">Disabled</span>
                     </div>
                   </div>
                 </div>

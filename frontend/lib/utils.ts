@@ -60,10 +60,11 @@ export function fmtTime(timestamp: number | string | null | undefined): string {
 
 export function fmtAge(ms: number | null | undefined): string {
   if (ms == null || !Number.isFinite(ms)) return '\u2014'
-  if (ms < 1000) return `${Math.round(ms)}ms`
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
-  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m`
-  return `${Math.floor(ms / 3_600_000)}h`
+  const safeMs = Math.max(0, ms)
+  if (safeMs < 1000) return `${Math.round(safeMs)}ms`
+  if (safeMs < 60_000) return `${(safeMs / 1000).toFixed(1)}s`
+  if (safeMs < 3_600_000) return `${Math.floor(safeMs / 60_000)}m`
+  return `${Math.floor(safeMs / 3_600_000)}h`
 }
 
 export function priceDirClass(value: number | null | undefined): string {

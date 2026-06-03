@@ -1,100 +1,94 @@
 # MAET Terminal Demo Script
 
-## Demo Goal
+Use this for a three-to-five minute internship or portfolio walkthrough. Keep the language practical: this is a paper-mode research terminal, not a real-money trading product.
 
-In two minutes, the viewer should understand that MAET Terminal is a full-stack trading research workstation: a Next.js terminal UI, FastAPI backend, broker market-data gateway, WebSocket/event pipeline, indicator engine, and offline strategy research layer.
+## One-Sentence Product Pitch
 
-The demo should also make the safety boundary clear: PAPER mode only, no real orders, no financial advice.
+MAET Terminal is a safety-first Indian market analytics and paper trading workspace for watchlists, chart diagnostics, dry-run validation, read-only broker context, OMS/reconciliation visibility, and AI advisory notes.
 
-## 30-Second Pitch
+## Demo Guardrails
 
-MAET Terminal is my personal market analytics and execution terminal for Indian NSE markets. I built it to learn FastAPI, Next.js, WebSocket systems, broker API integration, event-driven backend design, C++/pybind11 interop, technical indicators, and deployment on Vercel/Render. It is intentionally PAPER/demo mode only, with live trading locked, so it can be shown safely as a research workstation rather than production trading software.
+Before recording or presenting:
 
-## 3-Minute Walkthrough
+- Do not show `.env`, Render secrets, broker pages, credentials, tokens, or private account data.
+- Do not place real orders.
+- Do not claim financial advice or guaranteed profitability.
+- Do not fake prices, candles, holdings, PnL, fills, backtest results, or AI predictions.
+- If market data is unavailable, explain the honest unavailable/no-data state.
 
-1. Open the live frontend: `https://indian-algo-trading-platform.vercel.app/`.
-2. Point out the PAPER lock and explain that live trading is intentionally disabled.
-3. Show the status strip: API, WS, broker, feed, tick, candle, mode, lock.
-4. Show Market Watch and explain that only subscribed symbols are expected to update live.
-5. Select a symbol such as `SBIN-EQ` or `RELIANCE-EQ`.
-6. Open the chart workspace and explain the indicator engine: C++ core when available, Python fallback otherwise.
-7. Show EMA/VWAP/Bollinger overlays and RSI/MACD panels if candle data is available.
-8. Open the Strategy workspace and explain templates/backtesting as offline research only.
-9. Run or explain a backtest only if candle data is available. Do not invent results.
-10. Open Portfolio and explain PAPER portfolio state and session-scoped data.
-11. Open System Health or Journal to show status/events/observability if available.
-12. Open the OMS Dashboard workspace to view the Trading Safety Engine state.
-13. Explain the admin token gate (X-Admin-Token required to view order/fill blotters).
-14. Show the empty/real state of the blotter (no fake orders/fills if none were placed).
-15. Explain the safety-first backend (SignalValidator, RiskGate, persistent SQLite OMS, broker reconciliation).
-16. Open backend health: `https://maet-backend.onrender.com/health`.
-17. Explain deployment: Vercel frontend, Render backend, known Render Free limitations.
+## Three-To-Five Minute Walkthrough
+
+1. Open the live landing page: `https://indian-algo-trading-platform.vercel.app/`.
+2. Explain the product in one sentence.
+3. Point out that the public page is trading-focused: watchlist, chart workspace, dry-run validation, read-only portfolio context, OMS/reconciliation, and AI advisory notes.
+4. Click **Open Terminal**.
+5. Show the terminal safety strip:
+   - LIVE LOCKED
+   - PAPER MODE
+   - READ ONLY
+   - AI ADVISORY ONLY
+   - BROKER MUTATION DISABLED
+6. Open **Watchlist** and explain NSE/BSE symbol search and quote availability.
+7. Select or search a symbol, then open **Chart**.
+8. Explain chart honesty:
+   - if candles are available, the chart and indicators render from real backend data;
+   - if candles are unavailable, the UI shows a no-data state instead of invented candles.
+9. Show the timeframe controls and the collapsed data details.
+10. Point out TradingView and Angel One handoff links for external chart review.
+11. Show **Dry-run validation** and explain:
+   - it validates order parameters only;
+   - live execution remains locked;
+   - broker actions are disabled.
+12. Open **Portfolio** and show the protected/read-only state. Explain that admin-protected broker context is not persisted in browser storage.
+13. Open **AI Advisory** and show prompt chips. Explain that AI can summarize indicators or risk context but cannot approve, place, or route trades.
+14. Open **System** and show backend health, readiness, market stream, runtime config, and safety boundary.
+15. Mention validation:
+   - frontend type-check, lint, and build;
+   - backend import;
+   - live-lock check prints `False`;
+   - lockdown tests pass.
 
 ## What To Say If Market Is Closed
 
-Market closed means live ticks may not update. That is expected behavior, not a frontend failure. The terminal should still show backend/session/status information, WebSocket state, and safe unavailable states. Historical candles, indicators, and backtests can be shown only when data is already available or explicitly fetched.
+Market data may be stale or unavailable when the market is closed. That is expected. The terminal should still show safe status, read-only/protected portfolio states, and honest chart diagnostics. Do not invent live ticks for the demo.
 
-Do not fake live ticks or prices during market-closed periods.
+## What To Say If Render Is Waking
 
-## What To Say If Render Is Sleeping
+Render Free can cold start after inactivity. The first request may take 30-60 seconds. The frontend is expected to show safe waking/offline/unavailable states while the backend starts.
 
-Render Free can cold start after inactivity. The first request may take 30-60 seconds. The frontend has a backend waking state for this case.
-
-This is a hosting limitation, not an architecture failure. Also, because Render Free's local storage is ephemeral, the SQLite database resets on each sleep/restart cycle. A production trading deployment would use a persistent VPS or cloud VM with stable process management, a managed persistent database like PostgreSQL, and monitoring.
+Also mention that Render Free storage can be ephemeral. Durable production trading infrastructure would need a managed database, stronger auth, monitoring, and operational runbooks.
 
 ## Interview Q&A
 
-### Why FastAPI?
+### Why this project?
 
-FastAPI gave me an async-friendly Python backend with clean REST and WebSocket support. It fits broker integration, background tasks, and typed API routes well.
+It demonstrates full-stack engineering around a serious domain: broker connectivity, WebSocket status, paper OMS correctness, frontend product design, testing, deployment, and safety boundaries.
 
-### Why WebSocket?
+### Why paper mode?
 
-Market terminals need streaming updates. WebSocket lets the backend push gateway status, ticks, and events to the frontend without polling every second.
+Paper mode allows the system to demonstrate order-state and portfolio concepts without risking real capital. Live execution is intentionally locked for the public demo.
 
-### Why EventBus/TickBus?
+### What is strongest technically?
 
-Broker WebSocket callbacks run outside the normal asyncio flow. TickBus buffers normalized tick events safely, and EventBus distributes typed events to CandleStore, portfolio, observability, and frontend broadcasting.
-
-### Why C++?
-
-C++ is useful for deterministic, high-performance numerical calculations. I started with indicators because they are isolated, testable, and a good first C++ kernel.
-
-### Why pybind11?
-
-pybind11 lets Python call the C++ indicator core directly while keeping the FastAPI backend in Python. It supports a hybrid architecture: Python for orchestration, C++ for analytics.
-
-### Why Python fallback?
-
-The backend should still run on Render or any environment where native compilation is unavailable. The fallback keeps deployment reliable for demo/staging.
-
-### Why PAPER mode and OMS?
-
-This is a learning/demo project. PAPER mode keeps demos safe and prevents accidental real orders. LIVE trading is intentionally locked. The persistent OMS (Order Management System), fill ledger, and PreTradeRiskGate prove that I understand execution safety, idempotency, and reconciliation without needing to risk real capital.
-
-### Why Vercel + Render?
-
-Vercel is straightforward for Next.js. Render is simple for a public FastAPI demo backend. Both are useful for learning deployment, though Render Free is not production-grade for trading.
+The safety boundary: live build policy, broker mutation guard, pre-trade risk checks, persistent paper OMS/fill ledger, strategy status semantics, and explicit tests around lockdown and paper correctness.
 
 ### What is not production-ready?
 
-It is not production trading software. Render Free can sleep, its local SQLite storage is ephemeral and resets on restart, auth is intentionally simple, and live order placement is disabled. A production system would need a managed database (like PostgreSQL/Supabase/Neon) for durable persistence, plus stronger observability, auth, secrets management, uptime guarantees, and formal risk controls.
+It is not a production trading system. Live execution is disabled, public demo persistence is limited by hosting constraints, admin-token auth is intentionally simple, and market data depends on broker/backend availability.
 
-### How did AI help?
+### How does AI fit?
 
-AI helped with planning, implementation support, debugging, and documentation. I used it as a pair programmer while guiding the architecture, testing deployments, reviewing outputs, and learning the system.
-
-### What did you personally learn?
-
-I learned how frontend, backend, WebSocket, broker APIs, event pipelines, analytics engines, deployment, and security boundaries fit together in one system.
+AI is restricted to explanation and research context. It cannot approve orders, place orders, or provide financial advice.
 
 ## Safe Demo Checklist
 
-- [ ] No credentials visible.
-- [ ] No browser tabs showing `.env`, Render env, broker account pages, tokens, or passwords.
-- [ ] PAPER mode shown.
-- [ ] Live trading disabled/locked.
-- [ ] No real orders placed.
-- [ ] No private account data shown.
-- [ ] No fake prices, PnL, candles, or backtest results.
-- [ ] Browser devtools closed unless needed for WebSocket diagnostics.
+- [ ] Landing page loads.
+- [ ] Terminal loads.
+- [ ] Safety strip visible.
+- [ ] No TODO or broken social links visible.
+- [ ] GitHub appears only in the footer.
+- [ ] LinkedIn appears only if a real URL is configured.
+- [ ] No console errors in checked viewports.
+- [ ] No horizontal overflow in checked viewports.
+- [ ] Live lock check prints `False`.
+- [ ] No real broker mutation calls are made.

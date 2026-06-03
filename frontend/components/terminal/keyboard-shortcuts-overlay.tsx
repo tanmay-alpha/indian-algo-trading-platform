@@ -31,10 +31,10 @@ const GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: 'Order ticket (placeholders)',
+    title: 'Order ticket',
     items: [
-      { keys: ['B'], label: 'Paper Buy (disabled — execution off)' },
-      { keys: ['S'], label: 'Paper Sell (disabled — execution off)' },
+      { keys: ['B'], label: 'Paper Buy preview (execution off)' },
+      { keys: ['S'], label: 'Paper Sell preview (execution off)' },
     ],
   },
 ]
@@ -46,7 +46,7 @@ export function KeyboardShortcutsOverlay() {
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-[2px] flex items-center justify-center"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-[2px]"
       onClick={close}
       role="dialog"
       aria-modal="true"
@@ -54,41 +54,42 @@ export function KeyboardShortcutsOverlay() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-[600px] max-w-[92vw] bg-panel-2 border border-border-strong rounded-sm shadow-modal overflow-hidden"
+        className="w-[600px] max-w-[92vw] overflow-hidden rounded-sm border border-border-strong bg-panel-2 shadow-modal"
       >
-        <div className="flex items-center justify-between px-3 h-10 border-b border-border">
+        <div className="flex h-10 items-center justify-between border-b border-border px-3">
           <div className="flex items-center gap-2 text-text">
-            <Keyboard className="w-4 h-4 text-info" />
-            <span className="text-xs font-mono uppercase tracking-wider">
+            <Keyboard className="h-4 w-4 text-info" />
+            <span className="font-mono text-xs uppercase tracking-wider">
               Keyboard shortcuts
             </span>
           </div>
           <button
+            type="button"
             onClick={close}
             className="text-text-dim hover:text-text"
             aria-label="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
           {GROUPS.map((g) => (
-            <div key={g.title} className="border border-border rounded-sm">
-              <div className="px-3 h-7 flex items-center border-b border-border text-xs font-mono uppercase tracking-wider text-text-faint">
+            <div key={g.title} className="rounded-sm border border-border">
+              <div className="flex h-7 items-center border-b border-border px-3 font-mono text-xs uppercase tracking-wider text-text-faint">
                 {g.title}
               </div>
               <ul className="divide-y divide-border/60">
                 {g.items.map((it) => (
                   <li
                     key={it.label}
-                    className="flex items-center justify-between px-3 h-8 text-xs font-mono"
+                    className="flex h-8 items-center justify-between px-3 font-mono text-xs"
                   >
                     <span className="text-text-2">{it.label}</span>
                     <span className="flex items-center gap-1">
                       {it.keys.map((k) => (
                         <kbd
                           key={k}
-                          className="px-1.5 h-[18px] inline-flex items-center rounded-sm border border-border bg-panel text-xs text-text"
+                          className="rounded border border-border bg-bg px-1.5 py-0.5 text-[10px] text-text"
                         >
                           {k}
                         </kbd>
@@ -99,10 +100,6 @@ export function KeyboardShortcutsOverlay() {
               </ul>
             </div>
           ))}
-        </div>
-        <div className="border-t border-border h-7 px-3 flex items-center justify-between text-xs font-mono text-text-dim">
-          <span>MAET.OS keyboard layer</span>
-          <span>esc close</span>
         </div>
       </div>
     </div>

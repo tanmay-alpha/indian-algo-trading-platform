@@ -138,7 +138,7 @@ function AdminTokenGate({ onSubmit }: { onSubmit: (token: string) => void }) {
             value={val}
             onChange={(e) => setVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && val.trim()) onSubmit(val.trim()) }}
-            placeholder="X-Admin-Token value"
+            placeholder="Validation token"
             autoComplete="off"
             className="w-full h-8 rounded border border-border bg-bg px-3 pr-9 text-xs font-mono text-text focus:outline-none focus:border-info/50"
           />
