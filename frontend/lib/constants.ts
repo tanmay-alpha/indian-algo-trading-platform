@@ -318,6 +318,12 @@ function deriveWsUrl(apiUrl: string): string {
 }
 
 function runtimeDefaultApiUrl(): string {
+  if (typeof window === 'undefined') {
+    return typeof process !== 'undefined' && process.env.NODE_ENV === 'development'
+      ? LOCAL_API_FALLBACK
+      : CLOUD_API_FALLBACK
+  }
+
   return isProductionBrowser() ? CLOUD_API_FALLBACK : LOCAL_API_FALLBACK
 }
 
