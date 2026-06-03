@@ -11,10 +11,10 @@ import { cn } from '@/lib/utils'
 type Message = { role: 'user' | 'assistant'; content: string }
 
 const EXAMPLE_PROMPTS = [
-  'Explain RSI divergence',
-  'Summarize RELIANCE candles',
-  'Risk-check this dry-run order',
-  'Explain why live execution is locked',
+  { label: 'Candle setup', prompt: 'Explain this candle setup' },
+  { label: 'RELIANCE indicators', prompt: 'Summarize RELIANCE indicators' },
+  { label: 'Dry-run risk', prompt: 'Risk-check this dry-run order' },
+  { label: 'Live lock reason', prompt: 'Why is live execution locked?' },
 ]
 
 const EXPLANATION_CARDS = [
@@ -54,7 +54,7 @@ export function AiScreen() {
           role: 'assistant',
           content:
             `Advisory engine is unavailable for "${trimmed}". ` +
-            'No orders, broker actions, trade calls, or financial advice are produced here.',
+            'AI cannot route or approve broker orders, and no trade calls or financial advice are produced here.',
         },
       ])
     }, 520)
@@ -76,28 +76,30 @@ export function AiScreen() {
 
       <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="maet-glass-strong min-h-0 overflow-hidden border-maet-violet/25">
-          <div className="flex h-full min-h-[460px] flex-col">
+          <div className="flex h-full min-h-[300px] flex-col lg:min-h-[360px]">
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {messages.length === 0 ? (
-                <div className="grid min-h-full place-items-center py-8">
-                  <div className="w-full max-w-2xl text-center">
-                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-maet-violet/30 bg-maet-violet/10 text-maet-violet">
-                      <Bot className="h-7 w-7" />
+                <div className="grid min-h-full place-items-start py-3 sm:py-5">
+                  <div className="mx-auto w-full min-w-0 max-w-2xl text-center">
+                    <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-maet-violet/30 bg-maet-violet/10 text-maet-violet sm:h-12 sm:w-12">
+                      <Bot className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
-                    <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Start with a research question</h2>
-                    <p className="mt-2 text-sm leading-6 text-maet-text-muted">
-                      The advisory engine is unavailable unless explicitly connected. This empty state does not fabricate advice, prices, or trade calls.
+                    <h2 className="mt-2 font-heading text-lg font-bold text-maet-text sm:mt-3">Ask for research context</h2>
+                    <p className="mt-1 text-sm leading-5 text-maet-text-muted sm:mt-2 sm:leading-6">
+                      The advisory desk can frame indicators and paper-risk checks. It cannot route or approve broker orders.
                     </p>
-                    <div className="mt-6 grid gap-2 sm:grid-cols-2">
-                      {EXAMPLE_PROMPTS.map((prompt) => (
+                    <div className="mt-3 flex w-full min-w-0 max-w-full justify-start gap-2 overflow-x-auto pb-1 sm:mt-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
+                      {EXAMPLE_PROMPTS.map((item) => (
                         <button
-                          key={prompt}
+                          key={item.prompt}
                           type="button"
-                          onClick={() => sendPrompt(prompt)}
-                          className="glass-button justify-start px-3 py-2 text-left text-xs"
+                          aria-label={item.prompt}
+                          onClick={() => sendPrompt(item.prompt)}
+                          className="glass-button w-[calc(50%-0.25rem)] min-w-0 shrink-0 justify-start px-2 py-2 text-left text-xs leading-4 !whitespace-normal sm:w-auto sm:px-3"
                         >
                           <Sparkles className="h-4 w-4 text-maet-violet" />
-                          {prompt}
+                          <span className="sm:hidden">{item.label}</span>
+                          <span className="hidden sm:inline">{item.prompt}</span>
                         </button>
                       ))}
                     </div>
@@ -181,6 +183,7 @@ export function AiScreen() {
               <SafetyLine label="LIVE LOCKED" value="Locked" />
               <SafetyLine label="BROKER MUTATION DISABLED" value="Disabled" />
               <SafetyLine label="AI ADVISORY ONLY" value="Research only" />
+              <SafetyLine label="AI order routing" value="Cannot approve orders" />
               <SafetyLine label="Broker order creation" value={manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'} />
             </div>
           </div>

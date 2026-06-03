@@ -130,7 +130,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h1 className="font-heading text-xl font-bold text-maet-text">Watchlist</h1>
-            <p className="text-sm text-maet-text-muted">Compact marketwatch and symbol search.</p>
+            <p className="text-sm text-maet-text-muted">Broker-style lists for NSE/BSE symbols.</p>
           </div>
           <button
             type="button"
@@ -146,7 +146,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-maet-text-muted" />
           <input
             type="text"
-            placeholder="Search symbol or company name"
+            placeholder="Search NSE/BSE symbol or company"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="maet-input pl-9 pr-9"
@@ -232,8 +232,8 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
           <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
             <div>
               <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
-              <div className="mt-3 text-sm font-bold text-maet-text">Add symbols to your watchlist</div>
-              <p className="mt-1 text-xs text-maet-text-secondary">Search by symbol or company name to build your first list.</p>
+              <div className="mt-3 text-sm font-bold text-maet-text">Search NSE/BSE symbols to build your watchlist.</div>
+              <p className="mt-1 text-xs text-maet-text-secondary">Tap a result to open the chart workspace or save it to your list.</p>
             </div>
           </div>
         ) : (

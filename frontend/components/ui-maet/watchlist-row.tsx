@@ -53,7 +53,7 @@ export function WatchlistRow({
 
   return (
     <div
-      className="relative overflow-hidden rounded-card"
+      className="group relative overflow-hidden rounded-card"
       onTouchStart={(event) => {
         touchX.current = event.touches[0]?.clientX ?? null
       }}
@@ -85,8 +85,8 @@ export function WatchlistRow({
         onClick={onOpen}
         aria-label={`Open chart for ${cleanSymbol}`}
         className={cn(
-          'wl-row relative z-10 grid h-[60px] w-full grid-cols-[minmax(0,1fr)_minmax(84px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-transform sm:h-[54px]',
-          selected ? 'selected border-maet-blue/40' : 'hover-glass',
+          'wl-row relative z-10 grid h-[62px] w-full grid-cols-[minmax(0,1fr)_minmax(84px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-all sm:h-[56px]',
+          selected ? 'selected border-maet-blue/50 bg-maet-blue/10 shadow-[inset_3px_0_0_rgba(47,128,255,0.9)]' : 'hover-glass',
           revealed && onRemove ? '-translate-x-24' : 'translate-x-0',
           flash
         )}
@@ -99,8 +99,10 @@ export function WatchlistRow({
             </span>
           </div>
           <div className="mt-0.5 flex min-w-0 items-center gap-2">
-            <span className="truncate text-xs text-maet-text-muted">{name || 'Awaiting instrument name'}</span>
-            <span className="shrink-0 text-xs font-semibold text-maet-text-faint">{formatVolume(volume)}</span>
+            <span className="truncate text-xs text-maet-text-muted">{name || 'Instrument details pending'}</span>
+            {volume != null && Number.isFinite(volume) && volume > 0 && (
+              <span className="shrink-0 text-xs font-semibold text-maet-text-faint">{formatVolume(volume)}</span>
+            )}
           </div>
         </div>
 

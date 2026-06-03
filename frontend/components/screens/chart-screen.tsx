@@ -191,11 +191,11 @@ export function ChartScreen() {
             {indicatorSubpanels.macd && <MacdPanel points={macdPoints} />}
           </div>
         ) : (
-          <div className="grid min-h-[360px] flex-1 place-items-center p-6 text-center">
+          <div className="grid min-h-[340px] flex-1 place-items-center p-6 text-center">
             <div>
               <BarChart2 className="mx-auto h-10 w-10 text-maet-text-muted" />
               <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Select a symbol</h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">Open the watchlist and choose an instrument to load real candles and indicators.</p>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">Pick an instrument from Market Watch to load real candles, indicators, and dry-run context.</p>
             </div>
           </div>
         )}
@@ -295,23 +295,26 @@ function OfflineChartState({
   onRetry: () => void
 }) {
   return (
-    <div className="grid h-full min-h-[360px] flex-1 place-items-center bg-maet-ink-950/40 p-6 text-center" aria-label={`Price chart diagnostics for ${symbol}`}>
+    <div className="grid h-full min-h-[340px] flex-1 place-items-center bg-maet-ink-950/40 p-6 text-center" aria-label={`Price chart state for ${symbol}`}>
       <div className="maet-card max-w-lg p-5">
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
           <BarChart2 className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">No Candle Data</h2>
+        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Candles unavailable</h2>
         <p className="mt-2 max-w-md text-sm leading-6 text-maet-text-muted">
-          Real candle data was requested for {symbol}. Current market-data state: {apiStatus.toLowerCase()}.
+          Real candle data was requested for {symbol}. The chart stays empty until market data is available.
         </p>
-        <div className="mt-4 grid gap-2 rounded-lg border border-white/10 bg-maet-ink-950/56 p-3 text-left text-xs text-maet-text-muted">
-          <DiagnosticLine label="Exchange" value={exchange} />
-          <DiagnosticLine label="Timeframe" value={diagnostics.timeframe} />
-          <DiagnosticLine label="Last fetch" value={formatLastFetch(diagnostics.lastFetchAt)} />
-          <DiagnosticLine label="Valid candles" value={String(diagnostics.candleCount)} />
-          <DiagnosticLine label="Data state" value={diagnostics.source ?? 'Unavailable'} />
-          {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
-        </div>
+        <details className="mt-4 rounded-lg border border-white/10 bg-maet-ink-950/56 p-3 text-left text-xs text-maet-text-muted">
+          <summary className="cursor-pointer font-bold text-maet-text-soft">Data details</summary>
+          <div className="mt-3 grid gap-2">
+            <DiagnosticLine label="Exchange" value={exchange} />
+            <DiagnosticLine label="Timeframe" value={diagnostics.timeframe} />
+            <DiagnosticLine label="Last fetch" value={formatLastFetch(diagnostics.lastFetchAt)} />
+            <DiagnosticLine label="Valid candles" value={String(diagnostics.candleCount)} />
+            <DiagnosticLine label="Data state" value={diagnostics.source ?? apiStatus} />
+            {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
+          </div>
+        </details>
         <button type="button" onClick={onRetry} className="glass-button mt-4 h-10 px-4 text-xs text-maet-cyan">
           <RefreshCw className="h-4 w-4" />
           Retry Fetch

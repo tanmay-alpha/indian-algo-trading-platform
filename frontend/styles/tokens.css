@@ -55,8 +55,8 @@
   --safety-ai: var(--maet-violet);
   --safety-broker: var(--maet-cyan);
 
-  --bottom-nav-h: 68px;
-  --top-header-h: 64px;
+  --bottom-nav-h: 64px;
+  --top-header-h: 60px;
   --safety-strip-h: 46px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 

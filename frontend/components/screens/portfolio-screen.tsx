@@ -67,7 +67,7 @@ export function PortfolioScreen() {
       return
     }
     setTokenInput('')
-    pushToast({ type: 'info', title: 'Portfolio unlocked', body: 'Read-only broker and portfolio endpoints can now refresh.' })
+    pushToast({ type: 'info', title: 'Portfolio unlocked', body: 'Read-only broker and portfolio views can now refresh.' })
     void refreshPortfolio()
   }
 
@@ -155,7 +155,7 @@ function UnlockPanel({
         </div>
         <div>
           <div className="font-heading text-base font-bold text-maet-text">Read-only unlock required</div>
-          <p className="mt-1 text-sm leading-6 text-maet-text-muted">Protected endpoints need an in-memory admin token. Nothing is stored in browser storage.</p>
+          <p className="mt-1 text-sm leading-6 text-maet-text-muted">Protected portfolio view needs an in-memory validation token. Nothing is stored in browser storage.</p>
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -167,7 +167,7 @@ function UnlockPanel({
             onKeyDown={(event) => {
               if (event.key === 'Enter') onUnlock()
             }}
-            placeholder="X-Admin-Token"
+            placeholder="Validation token"
             className="maet-input pr-10 font-mono"
             autoComplete="off"
           />
@@ -222,7 +222,7 @@ function Overview({
           </div>
           <p className="text-sm leading-6 text-maet-text-muted">
             {locked
-              ? 'Unlock protected read-only endpoints to fetch positions, holdings, funds, and reconciliation state.'
+              ? 'Unlock protected read-only access to fetch positions, holdings, funds, and reconciliation state.'
               : 'Reconciliation compares paper records with broker snapshot data without changing broker account state.'}
           </p>
         </div>
@@ -233,9 +233,9 @@ function Overview({
             <div className="font-heading text-base font-bold text-maet-text">Safety boundary</div>
           </div>
           <div className="space-y-2">
-            <SafetyRow label="READ ONLY" value="true" />
-            <SafetyRow label="LIVE LOCKED" value="true" />
-            <SafetyRow label="BROKER MUTATION DISABLED" value="true" />
+            <SafetyRow label="READ ONLY" value="Protected view" />
+            <SafetyRow label="LIVE LOCKED" value="Locked" />
+            <SafetyRow label="BROKER MUTATION DISABLED" value="Disabled" />
           </div>
         </div>
       </div>

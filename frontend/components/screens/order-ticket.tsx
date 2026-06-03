@@ -118,7 +118,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
           </div>
           <div>
             <h2 className="font-heading text-base font-bold text-maet-text">Dry-run validation</h2>
-            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Protected validation. Enter the admin token to create a dry-run ticket.</p>
+            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Unlock protected paper checks. The validation token stays in memory only.</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -130,7 +130,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') void handleUnlock()
               }}
-              placeholder="X-Admin-Token"
+              placeholder="Validation token"
               autoComplete="off"
               className="maet-input pr-10 font-mono"
             />
@@ -151,7 +151,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
             className="maet-btn maet-btn-primary h-11 w-full disabled:opacity-40"
           >
             {isUnlocking && <RefreshCw className="h-4 w-4 animate-spin" />}
-            Unlock Validation
+            Unlock dry-run validation
           </button>
         </div>
       </div>
@@ -163,7 +163,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-maet-glass-border bg-maet-bg-deep/40 px-4 py-3">
         <div>
           <h2 className="font-heading text-base font-bold text-maet-text">Dry-Run Validation</h2>
-          <StatusBadge tone="paper" className="mt-1">validation_only=true</StatusBadge>
+          <StatusBadge tone="paper" className="mt-1">Validation only</StatusBadge>
         </div>
         <button
           type="button"
@@ -366,7 +366,7 @@ export function ChartRightPanel() {
                   <span className="font-mono text-xs text-maet-text-muted">{ticket.status}</span>
                 </div>
                 <div className="mt-1 text-xs text-maet-text-muted">
-                  {ticket.side} {ticket.quantity} / validation_only=true
+                  {ticket.side} {ticket.quantity} / dry-run validation only
                 </div>
               </div>
             ))}

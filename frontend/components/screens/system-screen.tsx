@@ -128,7 +128,7 @@ export function SystemScreen() {
               ['Health', apiOnline ? 'Connected via /health' : backendWakeState === 'WAKING' ? 'Waking' : 'Offline'],
               ['Readiness', readyDiagnostics.status],
               ['Last ping', lastStatusFetchAt ? fmtAge(now - lastStatusFetchAt) : 'No successful ping'],
-              ['CORS/Auth', corsAuthState],
+              ['Connection check', corsAuthState],
             ]}
           />
 
@@ -188,7 +188,7 @@ export function SystemScreen() {
 
           <StatusCard
             icon={<KeyRound className="h-5 w-5" />}
-            title="API Config"
+            title="Runtime Config"
             status={readyDiagnostics.environment}
             tone={readyDiagnostics.status.toLowerCase() === 'ready' ? 'good' : readyDiagnostics.error ? 'bad' : 'warn'}
             rows={[
@@ -319,7 +319,7 @@ function classifyApiError(error: unknown): string {
 }
 
 function classifyConnectivityIssue(message: string | null): string {
-  if (!message) return 'No CORS/auth issue detected'
+  if (!message) return 'No connection issue detected'
   const lower = message.toLowerCase()
   if (lower.includes('cors')) return 'Connection or authorization check needed'
   if (lower.includes('401') || lower.includes('403') || lower.includes('auth')) return 'Authorization check needed'

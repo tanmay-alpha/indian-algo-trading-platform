@@ -37,10 +37,12 @@ const watchRows = [
   { symbol: 'INFY', name: 'Infosys', state: 'Quote pending' },
 ]
 
+const workflowSteps = ['Watchlist', 'Chart', 'Dry-run', 'Portfolio']
+
 const featureCards = [
   {
     title: 'Market Watch',
-    body: 'Track selected NSE/BSE symbols with clear quote availability and data quality states.',
+    body: 'Track selected NSE/BSE symbols with clear quote availability and freshness cues.',
     Icon: Search,
   },
   {
@@ -184,7 +186,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-heading text-base font-bold text-maet-text">MAET Terminal</div>
-            <p className="mt-1 text-sm text-maet-text-muted">Visual demo - not live market data.</p>
+            <p className="mt-1 text-sm text-maet-text-muted">Paper-mode research workspace for Indian equities.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <a
@@ -224,7 +226,18 @@ function ProductPreview() {
             </span>
           </div>
 
-          <div className="grid min-h-[470px] gap-3 pt-3 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
+          <div className="grid gap-2 border-b border-white/10 px-2 py-3 sm:grid-cols-4">
+            {workflowSteps.map((step, index) => (
+              <div key={step} className="flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-maet-ink-950/38 px-3">
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-maet-cyan/30 bg-maet-cyan/10 font-mono text-[10px] font-extrabold text-maet-cyan">
+                  {index + 1}
+                </span>
+                <span className="truncate text-xs font-bold text-maet-text-soft">{step}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid min-h-[440px] gap-3 pt-3 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
             <div className="maet-glass flex min-h-0 flex-col p-3">
               <div className="mb-3 flex items-center justify-between">
                 <div>
