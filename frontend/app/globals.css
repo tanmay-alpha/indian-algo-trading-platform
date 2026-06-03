@@ -111,11 +111,11 @@ pre {
   border: 1px solid var(--maet-glass-border);
   border-radius: var(--maet-radius-lg);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.096), rgba(255, 255, 255, 0.04)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.026)),
     var(--maet-panel-soft);
   box-shadow: var(--maet-shadow-card), var(--maet-shadow-inner);
-  backdrop-filter: blur(18px) saturate(1.12);
-  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
 }
 
 .maet-glass-strong,
@@ -124,11 +124,11 @@ pre {
   border: 1px solid var(--maet-glass-border);
   border-radius: var(--maet-radius-lg);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.052)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.086), rgba(255, 255, 255, 0.036)),
     var(--maet-panel-strong);
   box-shadow: var(--maet-shadow-glass), var(--maet-shadow-inner);
-  backdrop-filter: blur(22px) saturate(1.16);
-  -webkit-backdrop-filter: blur(22px) saturate(1.16);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
 }
 
 .maet-card,
@@ -138,7 +138,7 @@ pre {
   border: 1px solid var(--maet-glass-border);
   border-radius: var(--maet-radius-lg);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.094), rgba(255, 255, 255, 0.035)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.026)),
     var(--maet-panel);
   box-shadow: var(--maet-shadow-card), var(--maet-shadow-inner);
   backdrop-filter: blur(16px) saturate(1.08);

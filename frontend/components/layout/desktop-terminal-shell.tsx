@@ -112,11 +112,14 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
   const wsStatus = useTerminalStore((s) => s.wsStatus)
   const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
   const modules: { tab: AppTab; title: string; body: string; Icon: React.FC<{ className?: string }> }[] = [
-    { tab: 'watchlist', title: 'Watchlist', body: 'Search NSE/BSE symbols and open the chart workspace.', Icon: List },
-    { tab: 'chart', title: 'Chart Workspace', body: 'Large chart area, indicators, external handoffs, and dry-run validation.', Icon: BarChart2 },
-    { tab: 'portfolio', title: 'Portfolio', body: 'Read-only broker snapshot with reconciliation states.', Icon: Briefcase },
-    { tab: 'ai', title: 'AI Advisory', body: 'Passive research notes only. AI cannot place orders.', Icon: Brain },
+    { tab: 'watchlist', title: 'Search NSE/BSE symbols', body: 'Build a focused list and move from symbol to chart.', Icon: List },
+    { tab: 'chart', title: 'Open chart workspace', body: 'Inspect candle context, timeframes, and external handoffs.', Icon: BarChart2 },
+    { tab: 'chart', title: 'Validate paper order', body: 'Check paper parameters while live broker actions stay disabled.', Icon: ShieldCheck },
+    { tab: 'portfolio', title: 'Read-only portfolio', body: 'Review protected broker context without account mutation.', Icon: Briefcase },
+    { tab: 'ai', title: 'AI market notes', body: 'Ask for explanation and risk context, not trade approval.', Icon: Brain },
+    { tab: 'system', title: 'System status', body: 'Inspect connectivity and safety diagnostics when needed.', Icon: Activity },
   ]
+  const feedLabel = apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Waiting'
 
   return (
     <div className="grid min-h-[calc(100dvh-112px)] gap-4 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -125,35 +128,45 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="max-w-3xl">
               <h2 className="font-heading text-3xl font-bold leading-tight text-maet-text xl-heading">
-                Start from a symbol.
+                Start your market desk.
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-maet-text-secondary">
-                Search or pick a watchlist row, open the chart, then validate a dry-run ticket if the parameters need a risk-gate check.
+                Search a symbol, open the chart workspace, and validate paper parameters without enabling broker execution.
               </p>
-              <button
-                type="button"
-                onClick={() => onNavigate('watchlist')}
-                className="mt-5 inline-flex h-11 items-center gap-2 rounded-md bg-maet-blue px-4 text-sm font-bold text-white hover:bg-[#6fb2ff]"
-              >
-                <Search className="h-4 w-4" />
-                Search instruments
-              </button>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('watchlist')}
+                  className="maet-btn maet-btn-primary h-11 px-4 text-sm"
+                >
+                  <Search className="h-4 w-4" />
+                  Search symbols
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('chart')}
+                  className="glass-button h-11 px-4 text-sm"
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  Open chart workspace
+                </button>
+              </div>
             </div>
             <div className="rounded-card border border-maet-border bg-maet-base p-4">
-              <div className="font-mono text-xs text-maet-text-muted">Market session panel</div>
+              <div className="font-mono text-xs text-maet-text-muted">Desk status</div>
               <div className="mt-3 grid gap-2">
-                <StatusLine label="Market data" value={apiStatus === 'ONLINE' ? 'Online' : 'Unavailable'} good={apiStatus === 'ONLINE'} />
-                <StatusLine label="Market stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
-                <StatusLine label="Selected symbol" value={selectedSymbol ?? 'None selected'} />
+                <StatusLine label="Data feed" value={feedLabel} good={feedLabel === 'Available'} />
+                <StatusLine label="Safety" value="Live locked" good />
+                <StatusLine label="Selected symbol" value={selectedSymbol ?? 'Choose a symbol'} />
               </div>
             </div>
           </div>
         </AppCard>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
           {modules.map(({ tab, title, body, Icon }) => (
             <button
-              key={tab}
+              key={title}
               type="button"
               onClick={() => onNavigate(tab)}
               className="reflection-card p-5 text-left transition-all hover-glass active:scale-[0.985]"
@@ -191,14 +204,14 @@ function HomeGuardrails({
   return (
     <div className="grid gap-3 p-3">
       <div className="rounded-xl border border-maet-amber/25 bg-maet-amber/10 p-3">
-        <div className="font-heading text-sm font-bold text-maet-text">Safe research mode</div>
+        <div className="font-heading text-sm font-bold text-maet-text">Paper research mode</div>
         <p className="mt-2 text-sm leading-6 text-maet-text-muted">
-          Paper validation only. Live execution is locked and broker context stays read-only.
+          MAET is running in paper research mode. Live broker actions are disabled.
         </p>
       </div>
-      <StatusLine label="Market data" value={apiStatus === 'ONLINE' ? 'Online' : 'Unavailable'} good={apiStatus === 'ONLINE'} />
-      <StatusLine label="Stream" value={wsStatus === 'CONNECTED' ? 'Connected' : wsStatus} good={wsStatus === 'CONNECTED'} />
-      <StatusLine label="Selected" value={selectedSymbol ?? 'None selected'} />
+      <StatusLine label="Data feed" value={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Waiting'} good={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED'} />
+      <StatusLine label="Safety" value="Live locked" good />
+      <StatusLine label="Selected" value={selectedSymbol ?? 'Choose a symbol'} />
       <button
         type="button"
         onClick={() => onNavigate('chart')}

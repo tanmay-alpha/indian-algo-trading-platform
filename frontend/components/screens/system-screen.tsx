@@ -50,15 +50,15 @@ export function SystemScreen() {
   const apiOnline = apiStatus === 'ONLINE'
   const wsOnline = wsStatus === 'CONNECTED'
   const candleSymbols = terminalStatus?.candles?.symbols?.length ?? 0
-  const supportedTimeframes = terminalStatus?.candles?.supported_timeframes?.join(', ') || 'Unavailable'
+  const supportedTimeframes = terminalStatus?.candles?.supported_timeframes?.join(', ') || 'Waiting'
   const reconciliationLabel = reconciliationStatus
     ? reconciliationStatus.data_status === 'UNAVAILABLE'
-      ? 'Unavailable'
+      ? 'No snapshot'
       : reconciliationStatus.summary.ok
       ? 'OK'
       : `${reconciliationStatus.summary.mismatch_count} mismatch`
-    : 'Locked or not checked'
-  const manualOrderLabel = manualOrderStatus?.validation_only ? 'Validation only' : 'Locked or not checked'
+    : 'Protected'
+  const manualOrderLabel = manualOrderStatus?.validation_only ? 'Validation only' : 'Protected'
   const connectionIssue = safeDiagnosticMessage(connectionError || lastStatusError)
   const corsAuthState = readyDiagnostics.error ?? classifyConnectivityIssue(connectionIssue)
 
@@ -72,12 +72,12 @@ export function SystemScreen() {
         setReadyDiagnostics({
           status: String(ready.status || 'Unknown'),
           environment: ready.app?.environment || 'Unknown',
-          database: ready.database?.connected ? 'Connected' : ready.database ? 'Unavailable' : 'Unknown',
+          database: ready.database?.connected ? 'Connected' : ready.database ? 'Not ready' : 'Unknown',
           broker: ready.broker?.logged_in
             ? 'Active'
             : ready.broker?.configured
             ? 'Configured read-only context'
-            : 'Unavailable',
+            : 'Not ready',
           liveTrading: ready.live_trading_enabled ? 'Unexpectedly enabled' : 'Locked',
           error: null,
           checkedAt: Date.now(),
@@ -86,7 +86,7 @@ export function SystemScreen() {
         if (cancelled) return
         setReadyDiagnostics((current) => ({
           ...current,
-          status: 'Unavailable',
+          status: 'Waiting',
           error: classifyApiError(error),
           checkedAt: Date.now(),
         }))
@@ -107,11 +107,11 @@ export function SystemScreen() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-maet-text">System Status Center</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
-              Connection health, market stream, broker read-only sync, live lock, reconciliation, dry-run validation, and data quality.
+              Connectivity, market feed, safety lock, broker context, data quality, and diagnostics.
             </p>
           </div>
           <StatusBadge tone={apiOnline ? 'success' : 'warning'} dot>
-            {apiOnline ? 'Market services connected' : backendWakeState === 'WAKING' ? 'Market services waking' : 'Market services unavailable'}
+            {apiOnline ? 'Market services connected' : backendWakeState === 'WAKING' ? 'Market services waking' : 'Market services waiting'}
           </StatusBadge>
         </div>
       </div>
@@ -120,41 +120,41 @@ export function SystemScreen() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-3">
           <StatusCard
             icon={<Server className="h-5 w-5" />}
-            title="Backend Health"
-            status={apiOnline ? 'Connected' : backendWakeState === 'WAKING' ? 'Waking' : 'Offline'}
-            tone={apiOnline ? 'good' : backendWakeState === 'WAKING' ? 'warn' : 'bad'}
+            title="Connectivity"
+            status={apiOnline ? 'Connected' : backendWakeState === 'WAKING' ? 'Waking' : 'Waiting'}
+            tone={apiOnline ? 'good' : 'warn'}
             rows={[
-              ['API base', CONNECTIVITY_TARGETS.api || 'Not configured'],
-              ['Health', apiOnline ? 'Connected via /health' : backendWakeState === 'WAKING' ? 'Waking' : 'Offline'],
+              ['Market service', CONNECTIVITY_TARGETS.api ? 'Configured' : 'Not configured'],
+              ['Connection', apiOnline ? 'Connected via /health' : backendWakeState === 'WAKING' ? 'Waking' : 'Waiting'],
               ['Readiness', readyDiagnostics.status],
-              ['Last ping', lastStatusFetchAt ? fmtAge(now - lastStatusFetchAt) : 'No successful ping'],
+              ['Last ping', lastStatusFetchAt ? fmtAge(now - lastStatusFetchAt) : 'Waiting'],
               ['Connection check', corsAuthState],
             ]}
           />
 
           <StatusCard
             icon={wsOnline ? <Radio className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
-            title="Market Stream"
-            status={wsOnline ? 'Connected' : wsStatus}
+            title="Market Feed"
+            status={wsOnline ? 'Connected' : 'Waiting'}
             tone={wsOnline ? 'good' : 'warn'}
             rows={[
-              ['WS URL', CONNECTIVITY_TARGETS.ws || 'Not configured'],
-              ['Last tick', lastTickAt ? fmtAge(now - lastTickAt) : 'No tick received'],
+              ['Market stream', CONNECTIVITY_TARGETS.ws ? 'Configured' : 'Not configured'],
+              ['Last tick', lastTickAt ? fmtAge(now - lastTickAt) : 'No tick yet'],
               ['Reconnect count', String(wsReconnectAttempts)],
-              ['State source', terminalStatus ? 'REST/WS status available' : 'Unavailable'],
+              ['Service status', terminalStatus ? 'Status available' : 'Waiting'],
             ]}
           />
 
           <StatusCard
             icon={<Activity className="h-5 w-5" />}
-            title="Broker Read-only"
-            status={brokerStatus?.logged_in ? 'Active' : brokerStatus?.configured ? 'Configured' : 'Offline'}
+            title="Broker Context"
+            status={brokerStatus?.logged_in ? 'Active' : brokerStatus?.configured ? 'Configured' : 'Waiting'}
             tone={brokerStatus?.logged_in ? 'good' : brokerStatus?.configured ? 'warn' : 'muted'}
             rows={[
               ['Account API', 'Read-only'],
-              ['Broker mutation', 'Disabled'],
-              ['Feed token', brokerStatus?.feed_token_available ? 'Available' : 'Unavailable'],
-              ['Token status', brokerStatus?.logged_in ? 'Obfuscated' : 'Not active'],
+              ['Broker actions', 'Disabled'],
+              ['Feed session', brokerStatus?.feed_token_available ? 'Available' : 'Waiting'],
+              ['Credential display', brokerStatus?.logged_in ? 'Protected' : 'Not active'],
             ]}
           />
 
@@ -166,10 +166,10 @@ export function SystemScreen() {
             status={reconciliationLabel}
             tone={reconciliationLabel === 'OK' ? 'good' : reconciliationLabel.includes('mismatch') ? 'warn' : 'muted'}
             rows={[
-              ['Portfolio state', reconciliationStatus?.data_status ?? 'Unavailable'],
-              ['Mismatch count', reconciliationStatus ? String(reconciliationStatus.summary.mismatch_count) : 'Locked or not checked'],
-              ['OMS orders', omsStatus?.oms ? String(omsStatus.oms.total_orders) : 'Locked or not checked'],
-              ['OMS fills', omsStatus?.oms ? String(omsStatus.oms.fill_count) : 'Locked or not checked'],
+              ['Portfolio state', reconciliationStatus ? formatPortfolioState(reconciliationStatus.data_status) : 'Protected'],
+              ['Mismatch count', reconciliationStatus ? String(reconciliationStatus.summary.mismatch_count) : 'Protected'],
+              ['OMS orders', omsStatus?.oms ? String(omsStatus.oms.total_orders) : 'Protected'],
+              ['OMS fills', omsStatus?.oms ? String(omsStatus.oms.fill_count) : 'Protected'],
             ]}
           />
 
@@ -188,7 +188,7 @@ export function SystemScreen() {
 
           <StatusCard
             icon={<KeyRound className="h-5 w-5" />}
-            title="Runtime Config"
+            title="Diagnostics"
             status={readyDiagnostics.environment}
             tone={readyDiagnostics.status.toLowerCase() === 'ready' ? 'good' : readyDiagnostics.error ? 'bad' : 'warn'}
             rows={[
@@ -208,7 +208,7 @@ export function SystemScreen() {
             rows={[
               ['Symbols cached', String(candleSymbols)],
               ['Timeframes', supportedTimeframes],
-              ['Indicator engine', terminalStatus?.indicator_engine?.available ? terminalStatus.indicator_engine.selected_engine : 'Unavailable'],
+              ['Indicator engine', terminalStatus?.indicator_engine?.available ? terminalStatus.indicator_engine.selected_engine : 'Waiting'],
               ['Trading mode', terminalStatus?.trading_mode ?? 'PAPER'],
             ]}
           />
@@ -279,13 +279,13 @@ function LiveLockCard({ manualOrderLabel, reconciliationLabel }: { manualOrderLa
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
-        <SafetyLine label="LIVE LOCKED" value="Locked" />
-        <SafetyLine label="PAPER MODE" value="Paper only" />
-        <SafetyLine label="READ ONLY" value="Broker context" />
-        <SafetyLine label="AI ADVISORY ONLY" value="Research only" />
-        <SafetyLine label="BROKER MUTATION DISABLED" value="Disabled" />
-        <SafetyLine label="DRY-RUN VALIDATION" value={manualOrderLabel} />
-        <SafetyLine label="RECONCILIATION" value={reconciliationLabel} />
+        <SafetyLine label="Live execution" value="Locked" />
+        <SafetyLine label="Workspace mode" value="Paper only" />
+        <SafetyLine label="Broker context" value="Read-only" />
+        <SafetyLine label="AI advisory" value="Research only" />
+        <SafetyLine label="Broker actions" value="Disabled" />
+        <SafetyLine label="Dry-run validation" value={manualOrderLabel} />
+        <SafetyLine label="Reconciliation" value={reconciliationLabel} />
       </div>
     </div>
   )
@@ -333,4 +333,9 @@ function safeDiagnosticMessage(message: string | null): string | null {
   if (!message) return null
   const withoutStack = message.split('\n')[0] || 'Connection issue detected'
   return withoutStack.replace(/(token|secret|password|jwt|totp|refresh|auth)=([^&\s]+)/gi, '$1=REDACTED')
+}
+
+function formatPortfolioState(state: string): string {
+  if (state === 'UNAVAILABLE') return 'No snapshot'
+  return state.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())
 }

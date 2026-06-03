@@ -24,35 +24,57 @@ import { StatusOrb } from '@/components/effects/status-orb'
 const GITHUB_URL = 'https://github.com/tanmay-alpha/indian-algo-trading-platform'
 
 const productBadges = [
-  'Paper trading only',
-  'Live execution locked',
-  'Broker context read-only',
-  'AI advisory only',
+  'Paper Mode',
+  'Read-only Broker Context',
+  'AI Advisory Only',
 ]
 
 const watchRows = [
-  { symbol: 'RELIANCE', name: 'Reliance Industries', state: 'Quote pending' },
-  { symbol: 'SBIN', name: 'State Bank of India', state: 'Quote pending' },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank', state: 'Quote pending' },
-  { symbol: 'INFY', name: 'Infosys', state: 'Quote pending' },
+  { symbol: 'RELIANCE', name: 'Reliance Industries', state: 'Waiting' },
+  { symbol: 'SBIN', name: 'State Bank of India', state: 'Waiting' },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank', state: 'Waiting' },
+  { symbol: 'INFY', name: 'Infosys', state: 'Waiting' },
 ]
 
-const workflowSteps = ['Watchlist', 'Chart', 'Dry-run', 'Portfolio']
+const previewSteps = ['Watchlist', 'Chart', 'Dry-run', 'Portfolio']
 
-const featureCards = [
+const workflowSteps = [
   {
-    title: 'Market Watch',
-    body: 'Track selected NSE/BSE symbols with clear quote availability and freshness cues.',
+    title: 'Pick a symbol',
+    body: 'Search NSE/BSE instruments and build a focused market list.',
     Icon: Search,
   },
   {
-    title: 'Chart Workspace',
-    body: 'Inspect candles, timeframes, indicators, and pattern context with external TradingView handoff.',
+    title: 'Inspect chart context',
+    body: 'Review candle availability, timeframe context, and research indicators.',
     Icon: ChartCandlestick,
   },
   {
-    title: 'Paper Order Validation',
-    body: 'Validate order parameters through dry-run risk checks before any real-money workflow exists.',
+    title: 'Validate a paper order',
+    body: 'Run dry-run checks before any real-money workflow exists.',
+    Icon: ShieldCheck,
+  },
+  {
+    title: 'Review read-only context',
+    body: 'Inspect protected portfolio and reconciliation state without broker mutation.',
+    Icon: Briefcase,
+  },
+]
+
+const featureCards = [
+  {
+    title: 'Watchlists for NSE/BSE',
+    body: 'Organize Indian equity symbols and move quickly from list to chart.',
+    Icon: Search,
+  },
+  {
+    title: 'Candle Diagnostics',
+    body: 'Inspect timeframes, indicator context, and honest candle availability.',
+    Icon: ChartCandlestick,
+  },
+  {
+    title: 'Dry-run Risk Check',
+    body: 'Validate paper order parameters with clear guardrails and no broker order placement.',
     Icon: ShieldCheck,
   },
   {
@@ -62,21 +84,21 @@ const featureCards = [
   },
   {
     title: 'OMS & Reconciliation',
-    body: 'Review paper tickets, order-state history, and reconciliation context without placing real orders.',
+    body: 'Review paper tickets, order-state history, and reconciliation context.',
     Icon: ListChecks,
   },
   {
     title: 'AI Market Notes',
-    body: 'Use AI only for explanation and research context. It cannot place or approve trades.',
+    body: 'Explain candles, indicators, and risk context without predictions or trade approval.',
     Icon: Brain,
   },
 ]
 
 const safetyItems = [
-  'Live execution locked in this build',
-  'Manual orders are dry-run validation only',
-  'Broker account context is read-only',
-  'AI cannot place or approve trades',
+  'Live execution is locked in this build',
+  'Order forms validate paper parameters only',
+  'Broker context is read-only',
+  'AI explains context; it cannot place or approve trades',
   'No financial advice',
 ]
 
@@ -96,19 +118,23 @@ export default function LandingPage() {
               <div className="text-xs font-semibold text-maet-text-muted">Indian equity paper workspace</div>
             </div>
           </div>
+          <Link href="/terminal" className="glass-button hidden h-10 min-h-10 px-3 text-xs sm:inline-flex">
+            Terminal
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </header>
 
       <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-4 pb-12 pt-10 sm:px-6 lg:px-8 xl:min-h-[690px] xl:grid-cols-[0.72fr_1.28fr]">
         <div className="max-w-2xl">
-          <h1 className="font-heading text-5xl font-extrabold leading-none text-maet-text sm:text-7xl lg:text-[84px]">
-            MAET Terminal
+          <h1 className="font-heading text-4xl font-extrabold leading-[1.02] text-maet-text sm:text-6xl lg:text-[72px]">
+            A focused market workspace for Indian equities.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-maet-text-soft sm:text-xl">
-            A paper-mode market workspace for Indian equities - watchlists, charts, dry-run validation, and read-only portfolio context in one focused terminal.
+            MAET Terminal brings watchlists, candle diagnostics, dry-run validation, read-only portfolio context, and AI market notes into one safety-first workspace.
           </p>
           <p className="mt-4 max-w-xl text-sm leading-7 text-maet-text-muted">
-            Paper mode only. Live order execution is locked.
+            Paper mode only. Live execution is locked.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-2">
@@ -117,7 +143,7 @@ export default function LandingPage() {
                 key={badge}
                 className="inline-flex min-h-8 items-center gap-2 rounded-full border border-maet-glass-border bg-maet-glass-bg px-3 text-xs font-extrabold text-maet-text-soft shadow-inner"
               >
-                <StatusOrb tone={badge.includes('locked') ? 'amber' : badge.includes('AI') ? 'violet' : badge.includes('Paper') ? 'cyan' : 'muted'} />
+                <StatusOrb tone={badge.includes('AI') ? 'violet' : badge.includes('Paper') ? 'cyan' : 'muted'} />
                 {badge}
               </span>
             ))}
@@ -135,9 +161,35 @@ export default function LandingPage() {
       <section className="relative z-10 border-y border-white/10 px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
-            <h2 className="font-heading text-3xl font-bold text-maet-text">Built around the trading workflow.</h2>
+            <h2 className="font-heading text-3xl font-bold text-maet-text">A cleaner research loop.</h2>
             <p className="mt-3 text-sm leading-7 text-maet-text-muted">
-              Start from a symbol, inspect real candle availability, validate paper parameters, then review read-only portfolio context without exposing broker actions.
+              Move from symbol discovery to chart context, paper validation, and protected portfolio review without turning the product into a system-status page.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {workflowSteps.map(({ title, body, Icon }, index) => (
+              <SpotlightCard key={title} className="p-5">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-maet-cyan/25 bg-maet-cyan/10 text-maet-cyan">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="font-mono text-xs font-extrabold text-maet-text-faint">0{index + 1}</span>
+                </div>
+                <h3 className="font-heading text-lg font-bold text-maet-text">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-maet-text-muted">{body}</p>
+              </SpotlightCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <h2 className="font-heading text-3xl font-bold text-maet-text">Trading-focused tools, not developer panels.</h2>
+            <p className="mt-3 text-sm leading-7 text-maet-text-muted">
+              Six focused surfaces keep the workflow understandable: symbol lists, chart context, paper validation, read-only portfolio review, reconciliation, and AI notes.
             </p>
           </div>
 
@@ -155,15 +207,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="relative z-10 px-4 py-14 sm:px-6 lg:px-8">
+      <section className="relative z-10 border-t border-white/10 px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div>
             <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl border border-maet-amber/40 bg-maet-amber/10 text-maet-amber">
               <LockKeyhole className="h-6 w-6" />
             </div>
-            <h2 className="font-heading text-3xl font-bold text-maet-text">Built for safe market research.</h2>
+            <h2 className="font-heading text-3xl font-bold text-maet-text">Safety is built into the workflow.</h2>
             <p className="mt-3 max-w-xl text-sm leading-7 text-maet-text-muted">
-              The product keeps research and validation separate from real-money execution. Safety language is visible, human-readable, and designed into the workflow.
+              The platform keeps research and validation separate from real-money execution without making safety copy dominate every screen.
             </p>
           </div>
 
@@ -186,7 +238,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-heading text-base font-bold text-maet-text">MAET Terminal</div>
-            <p className="mt-1 text-sm text-maet-text-muted">Paper-mode research workspace for Indian equities.</p>
+            <p className="mt-1 text-sm text-maet-text-muted">Paper-mode research workspace. No financial advice.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <a
@@ -227,7 +279,7 @@ function ProductPreview() {
           </div>
 
           <div className="grid gap-2 border-b border-white/10 px-2 py-3 sm:grid-cols-4">
-            {workflowSteps.map((step, index) => (
+            {previewSteps.map((step, index) => (
               <div key={step} className="flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-maet-ink-950/38 px-3">
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-maet-cyan/30 bg-maet-cyan/10 font-mono text-[10px] font-extrabold text-maet-cyan">
                   {index + 1}

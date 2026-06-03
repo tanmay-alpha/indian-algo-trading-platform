@@ -6,7 +6,18 @@ import type { ReactNode } from 'react'
 interface EmptyStateProps {
   title: string
   hint?: string
-  variant?: 'default' | 'warn' | 'error' | 'info'
+  variant?:
+    | 'default'
+    | 'warn'
+    | 'error'
+    | 'info'
+    | 'market-data-waiting'
+    | 'no-symbol-selected'
+    | 'no-candles-available'
+    | 'protected-view'
+    | 'read-only-snapshot'
+    | 'advisory-unavailable'
+    | 'system-check-needed'
   icon?: ReactNode
   compact?: boolean
   className?: string
@@ -22,36 +33,71 @@ export function EmptyState({
   className,
   action,
 }: EmptyStateProps) {
+  const tone = variantTone(variant)
+
   return (
     <div
       className={cn(
         'flex flex-col items-center justify-center text-center',
-        compact ? 'p-4 gap-2 border border-white/[0.04] bg-white/[0.01] rounded-2xl' : 'p-8 gap-3 border border-white/[0.05] bg-white/[0.015] rounded-2xl min-h-[160px]',
+        compact ? 'gap-2 rounded-2xl border p-4' : 'min-h-[160px] gap-3 rounded-2xl border p-8',
+        tone.shell,
         className
       )}
     >
       {icon && (
-        <div className="w-10 h-10 rounded-full bg-white/[0.03] flex items-center justify-center text-text-dim mb-1 shrink-0 border border-white/[0.05]">
+        <div className={cn('mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border', tone.icon)}>
           {icon}
         </div>
       )}
-      <div
-        className={cn(
-          'text-xs font-bold uppercase tracking-wider',
-          variant === 'warn' && 'text-[#F59E0B]',
-          variant === 'error' && 'text-[#EA3943]',
-          variant === 'info' && 'text-[#22D3EE]',
-          variant === 'default' && 'text-text-dim'
-        )}
-      >
+      <div className={cn('text-sm font-bold', tone.title)}>
         {title}
       </div>
       {hint && (
-        <p className="text-2xs text-text-faint max-w-[240px] leading-normal font-medium">
+        <p className="max-w-[280px] text-xs font-medium leading-5 text-text-faint">
           {hint}
         </p>
       )}
       {action && <div className="mt-2 shrink-0">{action}</div>}
     </div>
   )
+}
+
+function variantTone(variant: NonNullable<EmptyStateProps['variant']>) {
+  if (variant === 'warn' || variant === 'protected-view' || variant === 'system-check-needed') {
+    return {
+      shell: 'border-maet-amber/18 bg-maet-amber/5',
+      icon: 'border-maet-amber/20 bg-maet-amber/10 text-maet-amber',
+      title: 'text-maet-text',
+    }
+  }
+
+  if (variant === 'error') {
+    return {
+      shell: 'border-maet-red/18 bg-maet-red/5',
+      icon: 'border-maet-red/20 bg-maet-red/10 text-maet-red',
+      title: 'text-maet-text',
+    }
+  }
+
+  if (variant === 'info' || variant === 'market-data-waiting' || variant === 'no-symbol-selected' || variant === 'no-candles-available') {
+    return {
+      shell: 'border-maet-cyan/16 bg-maet-cyan/5',
+      icon: 'border-maet-cyan/20 bg-maet-cyan/10 text-maet-cyan',
+      title: 'text-maet-text',
+    }
+  }
+
+  if (variant === 'advisory-unavailable') {
+    return {
+      shell: 'border-maet-violet/16 bg-maet-violet/5',
+      icon: 'border-maet-violet/20 bg-maet-violet/10 text-maet-violet',
+      title: 'text-maet-text',
+    }
+  }
+
+  return {
+    shell: 'border-white/[0.06] bg-white/[0.018]',
+    icon: 'border-white/[0.06] bg-white/[0.03] text-text-dim',
+    title: 'text-text',
+  }
 }

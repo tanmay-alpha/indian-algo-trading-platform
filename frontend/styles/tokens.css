@@ -5,14 +5,14 @@
   --maet-ink-800: #0b1b2e;
   --maet-ink-760: #10243a;
 
-  --maet-panel: rgba(9, 17, 31, 0.86);
-  --maet-panel-soft: rgba(15, 23, 42, 0.72);
-  --maet-panel-strong: rgba(15, 23, 42, 0.94);
-  --maet-panel-raised: rgba(18, 31, 50, 0.88);
+  --maet-panel: rgba(10, 18, 31, 0.92);
+  --maet-panel-soft: rgba(13, 25, 42, 0.84);
+  --maet-panel-strong: rgba(13, 24, 39, 0.97);
+  --maet-panel-raised: rgba(18, 32, 52, 0.94);
 
-  --maet-glass-bg: rgba(255, 255, 255, 0.065);
-  --maet-glass-bg-strong: rgba(255, 255, 255, 0.105);
-  --maet-glass-border: rgba(255, 255, 255, 0.15);
+  --maet-glass-bg: rgba(255, 255, 255, 0.052);
+  --maet-glass-bg-strong: rgba(255, 255, 255, 0.088);
+  --maet-glass-border: rgba(148, 163, 184, 0.18);
   --maet-glass-border-strong: rgba(125, 211, 252, 0.34);
   --maet-glass-highlight: rgba(255, 255, 255, 0.28);
 

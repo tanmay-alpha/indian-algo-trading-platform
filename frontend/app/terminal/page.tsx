@@ -43,7 +43,7 @@ function TerminalInitializer() {
           event_type: 'log',
           component: 'Connection',
           severity: 'warning',
-          message: 'Market connection unavailable - showing safe offline states',
+          message: 'Market connection is waiting - showing protected research states',
         })
       }
 
@@ -54,7 +54,7 @@ function TerminalInitializer() {
           setStatusSource('REST')
         }
       } catch {
-        // Status can be unavailable while the backend is booting.
+        // Status can be waiting while services boot.
       }
 
       try {
@@ -68,7 +68,7 @@ function TerminalInitializer() {
         const indices = await fetchIndices()
         setIndices(indices)
       } catch {
-        // Indices endpoint can be unavailable; UI shows empty values.
+        // Indices can be waiting; UI shows empty values.
       }
 
       try {

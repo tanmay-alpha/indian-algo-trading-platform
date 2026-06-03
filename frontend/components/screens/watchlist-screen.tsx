@@ -57,7 +57,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
         const results = await searchInstruments(trimmed)
         if (!cancelled) setSearchResults(results)
       } catch {
-        if (!cancelled) setSearchError('Connection unavailable - instrument search is paused.')
+        if (!cancelled) setSearchError('Instrument search is paused. Try again when the connection is ready.')
       } finally {
         if (!cancelled) setIsSearching(false)
       }
@@ -115,7 +115,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
     pushToast({
       type: 'info',
       title: 'Symbol added',
-      body: `${instrument.symbol} is saved locally${marketDataUnavailable ? ' while market data is unavailable.' : '.'}`,
+      body: `${instrument.symbol} is saved locally${marketDataUnavailable ? ' while quotes are waiting.' : '.'}`,
     })
   }
 
@@ -127,10 +127,10 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
   return (
     <div className="flex h-full flex-col pb-4">
       <div className="shrink-0 px-3 pt-3">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-heading text-xl font-bold text-maet-text">Watchlist</h1>
-            <p className="text-sm text-maet-text-muted">Broker-style lists for NSE/BSE symbols.</p>
+            <h1 className="font-heading text-2xl font-bold text-maet-text">Watchlist</h1>
+            <p className="text-sm text-maet-text-muted">Search Indian equities and open the chart workspace.</p>
           </div>
           <button
             type="button"
@@ -174,7 +174,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
 
       {!showSearchResults && marketDataUnavailable && (
         <div className="mx-3 mb-3 shrink-0 rounded-lg border border-maet-amber/25 bg-maet-amber/10 px-3 py-2 text-xs font-semibold text-maet-amber backdrop-blur-xl">
-          Market connection unavailable - values show -- until quotes arrive.
+          Quotes may be waiting outside market/feed conditions.
         </div>
       )}
 
@@ -193,7 +193,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
               <EmptySearch message={searchError} />
             )}
             {!isSearching && !searchError && searchResults.length === 0 && (
-              <EmptySearch message="No matching instruments found." />
+              <EmptySearch message="Search NSE/BSE symbols to build your workspace." />
             )}
             {!isSearching && !searchError && searchResults.map((instrument) => {
               const alreadyAdded = rows.some((row) => row.symbol === instrument.symbol)
@@ -232,7 +232,7 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
           <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
             <div>
               <Search className="mx-auto h-6 w-6 text-maet-text-muted" />
-              <div className="mt-3 text-sm font-bold text-maet-text">Search NSE/BSE symbols to build your watchlist.</div>
+            <div className="mt-3 text-sm font-bold text-maet-text">Search NSE/BSE symbols to build your workspace.</div>
               <p className="mt-1 text-xs text-maet-text-secondary">Tap a result to open the chart workspace or save it to your list.</p>
             </div>
           </div>
@@ -272,7 +272,7 @@ function SkeletonRows({ count }: { count: number }) {
   return (
     <div className="space-y-1.5">
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="reflection-card grid h-14 grid-cols-[minmax(0,1fr)_92px] items-center gap-3 px-3">
+        <div key={index} className="reflection-card grid h-[62px] grid-cols-[minmax(0,1fr)_92px] items-center gap-3 px-3 sm:h-[56px]">
           <div className="space-y-2">
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="h-2.5 w-36" />

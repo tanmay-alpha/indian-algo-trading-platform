@@ -54,14 +54,14 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
     setIsUnlocking(false)
     if (!result.ok) {
       clearOmsAdminToken()
-      if ('adminRequired' in result && result.adminRequired) setUnlockError('Invalid administrator token.')
-      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Validation service is unavailable.')
+      if ('adminRequired' in result && result.adminRequired) setUnlockError('Invalid validation token.')
+      else if ('backendUnavailable' in result && result.backendUnavailable) setUnlockError('Validation service is not ready.')
       else setUnlockError(('error' in result && result.error) || 'Could not unlock validation.')
       return
     }
     setTokenInput('')
     void fetchManualOrderStatus()
-    pushToast({ type: 'info', title: 'Validation unlocked', body: 'Admin token is held in memory for dry-run checks.' })
+    pushToast({ type: 'info', title: 'Validation unlocked', body: 'The validation token is held in memory for dry-run checks.' })
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -118,7 +118,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
           </div>
           <div>
             <h2 className="font-heading text-base font-bold text-maet-text">Dry-run validation</h2>
-            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Unlock protected paper checks. The validation token stays in memory only.</p>
+            <p className="mt-1 text-xs leading-5 text-maet-text-secondary">Order history is protected. The validation token stays in memory only.</p>
           </div>
         </div>
         <div className="space-y-3">
@@ -137,7 +137,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
             <button
               type="button"
               onClick={() => setShowToken((current) => !current)}
-              aria-label={showToken ? 'Hide admin token' : 'Show admin token'}
+              aria-label={showToken ? 'Hide validation token' : 'Show validation token'}
               className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-maet-text-muted hover:bg-maet-elevated hover:text-maet-text"
             >
               {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -247,7 +247,7 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
               className="mt-1 h-4 w-4 shrink-0 accent-maet-amber"
             />
             <span>
-              I understand this is paper validation only. Live execution is locked and broker actions are disabled.
+              I understand this validates paper parameters only and will not place a real broker order.
             </span>
           </label>
 
@@ -290,6 +290,7 @@ export function ChartRightPanel() {
   const selectedSymbol = useTerminalStore((s) => s.selectedSymbol)
   const selectedExchange = useTerminalStore((s) => s.selectedExchange)
   const selectedInstrumentName = useTerminalStore((s) => s.selectedInstrumentName)
+  const chartTimeframe = useTerminalStore((s) => s.chartTimeframe)
   const marketWatch = useTerminalStore((s) => s.marketWatch)
   const adminToken = useTerminalStore((s) => s.omsAdminToken)
   const tickets = useTerminalStore((s) => s.manualOrderTickets)
@@ -304,9 +305,10 @@ export function ChartRightPanel() {
   }, [adminToken, fetchManualOrderStatus, fetchManualOrderTickets])
 
   const row = selectedSymbol ? marketWatch[selectedSymbol] : null
-  const cleanSymbol = selectedSymbol?.split(':').pop()?.replace(/-EQ$/, '') ?? 'No symbol'
+  const cleanSymbol = selectedSymbol?.split(':').pop()?.replace(/-EQ$/, '') ?? 'Choose symbol'
   const ltp = row?.ltp ?? null
   const changePct = row?.change_pct ?? null
+  const dataState = ltp == null || row?.stale ? 'Waiting for quote' : 'Quote available'
   const recentTickets = tickets.slice(0, 3)
 
   return (
@@ -329,6 +331,8 @@ export function ChartRightPanel() {
             value={changePct == null ? '--' : `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`}
             tone={changePct == null ? 'muted' : changePct >= 0 ? 'up' : 'down'}
           />
+          <RightMetric label="Timeframe" value={chartTimeframe} />
+          <RightMetric label="Data state" value={dataState} />
         </div>
       </div>
 
@@ -337,14 +341,14 @@ export function ChartRightPanel() {
       <div className="maet-glass p-3">
         <div className="mb-3 flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-maet-amber" />
-          <div className="font-heading text-sm font-bold text-maet-text">Safety checklist</div>
+          <div className="font-heading text-sm font-bold text-maet-text">Guardrails</div>
         </div>
         <div className="space-y-2">
-          <SafetyCheck label="LIVE LOCKED" value="Locked" />
-          <SafetyCheck label="PAPER MODE" value="Paper only" />
-          <SafetyCheck label="READ ONLY" value="Broker context" />
-          <SafetyCheck label="AI ADVISORY ONLY" value="Research only" />
-          <SafetyCheck label="BROKER MUTATION DISABLED" value="Disabled" />
+          <SafetyCheck label="Live execution" value="Locked" />
+          <SafetyCheck label="Workspace mode" value="Paper only" />
+          <SafetyCheck label="Broker context" value="Read-only" />
+          <SafetyCheck label="AI notes" value="Advisory only" />
+          <SafetyCheck label="Broker actions" value="Disabled" />
           <SafetyCheck label="Broker order creation" value={manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'} />
         </div>
       </div>
@@ -355,7 +359,7 @@ export function ChartRightPanel() {
             <History className="h-4 w-4 text-maet-cyan" />
             <div className="font-heading text-sm font-bold text-maet-text">Recent dry-run history</div>
           </div>
-          {!adminToken && <span className="text-xs font-bold text-maet-amber">Locked</span>}
+          {!adminToken && <span className="text-xs font-bold text-maet-amber">Protected</span>}
         </div>
         {adminToken && recentTickets.length > 0 ? (
           <div className="space-y-2">
@@ -373,7 +377,7 @@ export function ChartRightPanel() {
           </div>
         ) : (
           <p className="text-sm leading-6 text-maet-text-muted">
-            {adminToken ? 'No validation tickets have been returned yet.' : 'Unlock validation to view protected dry-run tickets.'}
+            {adminToken ? 'No validation tickets have been returned yet.' : 'Order history is protected until a validation session is connected.'}
           </p>
         )}
       </div>

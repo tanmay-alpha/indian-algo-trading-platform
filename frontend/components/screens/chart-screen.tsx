@@ -83,7 +83,7 @@ export function ChartScreen() {
   const ltp = row?.ltp ?? null
   const changePct = row?.change_pct ?? null
   const hasLiveQuote = ltp != null && row?.stale !== true
-  const candleLabel = candles.length > 0 ? `${candles.length} candles` : indicatorLoading ? 'Fetching candles' : 'No candle data'
+  const candleLabel = candles.length > 0 ? `${candles.length} candles` : indicatorLoading ? 'Fetching candles' : 'No candles'
 
   return (
     <MobilePage className="flex h-full min-h-0 flex-col gap-3 pb-4 lg:pb-0">
@@ -96,7 +96,7 @@ export function ChartScreen() {
               onChange={(event) => setSelectedSymbol(event.target.value || null)}
               className="maet-input h-11 appearance-none pr-10 font-mono font-extrabold"
             >
-              <option value="">Select symbol</option>
+              <option value="">Choose symbol</option>
               {symbolOptions.map((symbol) => (
                 <option key={symbol} value={symbol}>{symbol.replace(/-EQ$/, '')}</option>
               ))}
@@ -106,7 +106,7 @@ export function ChartScreen() {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-mono text-xl font-extrabold text-maet-text">{cleanSymbol ?? 'No symbol selected'}</h1>
+              <h1 className="font-mono text-xl font-extrabold text-maet-text">{cleanSymbol ?? 'Choose a symbol'}</h1>
               <span className="rounded-full border border-white/10 bg-maet-glass-bg px-2.5 py-1 text-xs font-bold text-maet-text-muted">{displayExchange}</span>
               <StatusBadge tone={candles.length > 0 ? 'success' : 'warning'} dot>
                 {candleLabel}
@@ -169,6 +169,8 @@ export function ChartScreen() {
                   exchange={displayExchange}
                   apiStatus={apiStatus}
                   diagnostics={chartFetchDiagnostics}
+                  tradingViewUrl={tvUrl}
+                  angelOneUrl={aoUrl}
                   onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
                 />
               ) : (
@@ -194,8 +196,8 @@ export function ChartScreen() {
           <div className="grid min-h-[340px] flex-1 place-items-center p-6 text-center">
             <div>
               <BarChart2 className="mx-auto h-10 w-10 text-maet-text-muted" />
-              <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Select a symbol</h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">Pick an instrument from Market Watch to load real candles, indicators, and dry-run context.</p>
+              <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Choose a symbol</h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-maet-text-muted">Pick an instrument from Watchlist to begin chart research and paper validation.</p>
             </div>
           </div>
         )}
@@ -279,6 +281,8 @@ function OfflineChartState({
   exchange,
   apiStatus,
   diagnostics,
+  tradingViewUrl,
+  angelOneUrl,
   onRetry,
 }: {
   symbol: string
@@ -292,6 +296,8 @@ function OfflineChartState({
     source: string | null
     error: string | null
   }
+  tradingViewUrl: string
+  angelOneUrl: string
   onRetry: () => void
 }) {
   return (
@@ -300,10 +306,24 @@ function OfflineChartState({
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
           <BarChart2 className="h-6 w-6" />
         </div>
-        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">Candles unavailable</h2>
+        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">No candles available for this view.</h2>
         <p className="mt-2 max-w-md text-sm leading-6 text-maet-text-muted">
-          Real candle data was requested for {symbol}. The chart stays empty until market data is available.
+          Try another timeframe, retry the fetch, or open {symbol} in TradingView.
         </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button type="button" onClick={onRetry} className="glass-button h-10 min-h-10 px-4 text-xs text-maet-cyan">
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+          <a href={tradingViewUrl} target="_blank" rel="noopener noreferrer" className="glass-button h-10 min-h-10 px-4 text-xs">
+            TradingView
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          <a href={angelOneUrl} target="_blank" rel="noopener noreferrer" className="glass-button h-10 min-h-10 px-4 text-xs">
+            Angel One
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
         <details className="mt-4 rounded-lg border border-white/10 bg-maet-ink-950/56 p-3 text-left text-xs text-maet-text-muted">
           <summary className="cursor-pointer font-bold text-maet-text-soft">Data details</summary>
           <div className="mt-3 grid gap-2">
@@ -315,10 +335,6 @@ function OfflineChartState({
             {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
           </div>
         </details>
-        <button type="button" onClick={onRetry} className="glass-button mt-4 h-10 px-4 text-xs text-maet-cyan">
-          <RefreshCw className="h-4 w-4" />
-          Retry Fetch
-        </button>
       </div>
     </div>
   )

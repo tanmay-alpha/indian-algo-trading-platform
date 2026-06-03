@@ -72,7 +72,7 @@ export function WatchlistRow({
           aria-label={`Remove ${cleanSymbol} from watchlist`}
           className={cn(
             'absolute inset-y-0 right-0 flex w-24 items-center justify-center gap-1 bg-maet-red/20 font-mono text-xs font-bold text-maet-red transition-opacity',
-            revealed ? 'opacity-100' : 'pointer-events-none opacity-0'
+            revealed ? 'opacity-100' : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100'
           )}
         >
           <MinusCircle className="h-3.5 w-3.5" />
@@ -121,9 +121,7 @@ export function WatchlistRow({
           ) : (
             <>
               <div className="font-mono text-base font-extrabold text-maet-text-muted">--</div>
-              <div className={cn('mt-0.5 text-xs font-bold', offline ? 'text-maet-amber' : 'text-maet-text-faint')}>
-                {offline ? 'No quote' : 'Awaiting'}
-              </div>
+              <div className="mt-0.5 text-xs font-bold text-maet-text-faint"> </div>
             </>
           )}
         </div>

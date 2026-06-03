@@ -12,9 +12,10 @@ type Message = { role: 'user' | 'assistant'; content: string }
 
 const EXAMPLE_PROMPTS = [
   { label: 'Candle setup', prompt: 'Explain this candle setup' },
-  { label: 'RELIANCE indicators', prompt: 'Summarize RELIANCE indicators' },
-  { label: 'Dry-run risk', prompt: 'Risk-check this dry-run order' },
+  { label: 'Selected symbol', prompt: 'Summarize selected symbol' },
+  { label: 'Dry-run risk', prompt: 'Risk-check a dry-run order' },
   { label: 'Live lock reason', prompt: 'Why is live execution locked?' },
+  { label: 'Paper checklist', prompt: 'What should I verify before paper validation?' },
 ]
 
 const EXPLANATION_CARDS = [
@@ -53,8 +54,8 @@ export function AiScreen() {
         {
           role: 'assistant',
           content:
-            `Advisory engine is unavailable for "${trimmed}". ` +
-            'AI cannot route or approve broker orders, and no trade calls or financial advice are produced here.',
+            `For "${trimmed}", focus on evidence: symbol context, timeframe, candle availability, indicator alignment, and paper-risk inputs. ` +
+            'AI can explain market context, but it cannot route, approve, or place broker orders.',
         },
       ])
     }, 520)
@@ -67,7 +68,7 @@ export function AiScreen() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-maet-text">AI Advisory Desk</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-maet-text-muted">
-              Research explanations, indicator context, and risk framing. No trade calls are presented as trading truth.
+              AI can help explain market context. AI cannot route, approve, or place broker orders.
             </p>
           </div>
           <StatusBadge tone="ai" dot>AI advisory only</StatusBadge>
@@ -86,7 +87,7 @@ export function AiScreen() {
                     </div>
                     <h2 className="mt-2 font-heading text-lg font-bold text-maet-text sm:mt-3">Ask for research context</h2>
                     <p className="mt-1 text-sm leading-5 text-maet-text-muted sm:mt-2 sm:leading-6">
-                      The advisory desk can frame indicators and paper-risk checks. It cannot route or approve broker orders.
+                      Ask for candle, indicator, risk, or safety context. No fake predictions or trade calls are produced.
                     </p>
                     <div className="mt-3 flex w-full min-w-0 max-w-full justify-start gap-2 overflow-x-auto pb-1 sm:mt-4 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
                       {EXAMPLE_PROMPTS.map((item) => (
@@ -168,10 +169,10 @@ export function AiScreen() {
           <ContextCard
             title="Market context"
             rows={[
-              ['Advisory', apiStatus === 'ONLINE' ? 'Available' : 'Unavailable'],
-              ['Selected', selectedSymbol ?? 'No symbol selected'],
+              ['Advisory', apiStatus === 'ONLINE' ? 'Ready' : 'Waiting'],
+              ['Selected', selectedSymbol ?? 'Choose a symbol'],
               ['Timeframe', chartTimeframe],
-              ['Strategy notes', strategyStatus?.available ? strategyStatus.engine : 'Unavailable'],
+              ['Strategy notes', strategyStatus?.available ? strategyStatus.engine : 'Waiting'],
             ]}
           />
           <div className="maet-glass p-3">
@@ -180,9 +181,9 @@ export function AiScreen() {
               <div className="font-heading text-sm font-bold text-maet-text">Risk checklist</div>
             </div>
             <div className="space-y-2">
-              <SafetyLine label="LIVE LOCKED" value="Locked" />
-              <SafetyLine label="BROKER MUTATION DISABLED" value="Disabled" />
-              <SafetyLine label="AI ADVISORY ONLY" value="Research only" />
+              <SafetyLine label="Live execution" value="Locked" />
+              <SafetyLine label="Broker actions" value="Disabled" />
+              <SafetyLine label="AI advisory" value="Research only" />
               <SafetyLine label="AI order routing" value="Cannot approve orders" />
               <SafetyLine label="Broker order creation" value={manualOrderStatus?.creates_broker_order ? 'Unexpected' : 'Disabled'} />
             </div>

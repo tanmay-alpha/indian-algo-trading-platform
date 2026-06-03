@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, Radio, Wifi, WifiOff } from 'lucide-react'
+import { Activity, Radio, Wifi } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
@@ -43,9 +43,9 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
       <div className="flex max-w-[640px] flex-wrap items-center justify-end gap-2">
         <StatusChip label={sessionLabel} tone={session === 'OPEN' ? 'good' : 'warn'} icon={<Activity className="h-3.5 w-3.5" />} />
         <StatusChip
-          label={apiOnline ? 'DATA ONLINE' : 'DATA UNAVAILABLE'}
-          tone={apiOnline ? 'good' : 'bad'}
-          icon={apiOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+          label={apiOnline ? 'DATA READY' : 'DATA WAITING'}
+          tone={apiOnline ? 'good' : 'warn'}
+          icon={apiOnline ? <Wifi className="h-3.5 w-3.5" /> : <Radio className="h-3.5 w-3.5" />}
         />
         <StatusChip
           label={wsOnline ? 'STREAM CONNECTED' : 'STREAM OFF'}
