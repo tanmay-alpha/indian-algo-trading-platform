@@ -37,6 +37,7 @@ export function TopMarketBar() {
 
   const session = mounted ? getNseMarketSession() : 'CLOSED'
   const showColdStartBanner = apiConnecting && coldStartVisible && !coldStartDismissed
+  const clockLabel = istTime === '--:--:--' ? istTime : `${istTime} IST`
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
   if (indices) {
@@ -94,7 +95,7 @@ export function TopMarketBar() {
         <ChartLayoutSelector />
         <WorkspacePresetSelector />
         <div className="font-mono text-xs tabular-nums text-text">
-          {istTime || '--:--:--'} IST
+          {clockLabel}
         </div>
         <SessionBadge session={session} />
         <SafetyBadgeGroup />

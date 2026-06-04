@@ -97,7 +97,8 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
                 price={row?.ltp ?? null}
                 changePct={row?.change_pct ?? null}
                 volume={row?.volume ?? null}
-                offline={marketDataUnavailable || row?.ltp == null}
+                offline={marketDataUnavailable}
+                subscribed={!marketDataUnavailable}
                 selected={selectedSymbol === symbol}
                 onOpen={() => {
                   setSelectedSymbol(symbol)

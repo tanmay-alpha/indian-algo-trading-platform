@@ -11,6 +11,7 @@ import { PortfolioScreen } from '@/components/screens/portfolio-screen'
 import { AiScreen } from '@/components/screens/ai-screen'
 import { SystemScreen } from '@/components/screens/system-screen'
 import { ChartRightPanel, OrderTicket } from '@/components/screens/order-ticket'
+import { StatusBar } from '@/components/terminal/status-bar'
 import { AppCard } from '@/components/ui-maet/app-card'
 import { SectionHeader } from '@/components/ui-maet/section-header'
 import { ReflectionCard } from '@/components/effects/reflection-card'
@@ -30,6 +31,7 @@ export function DesktopTerminalShell({ activeTab, onNavigate }: DesktopTerminalS
         <main className="min-h-0 flex-1 overflow-y-auto p-3 xl:p-4">
           <DesktopWorkspace activeTab={activeTab} onNavigate={onNavigate} />
         </main>
+        <StatusBar />
       </div>
     </div>
   )

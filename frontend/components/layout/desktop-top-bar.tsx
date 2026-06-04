@@ -1,12 +1,13 @@
 'use client'
 
-import { Activity, Radio, Wifi } from 'lucide-react'
+import { Activity, Clock, Radio, Wifi } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
 import { LivePulseDot } from '@/components/effects/live-pulse-dot'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import { useMarketSession } from '@/lib/use-market-session'
+import { useIstClock } from '@/lib/use-ist-clock'
 
 const TITLES: Record<AppTab, string> = {
   home: 'Market command center',
@@ -21,6 +22,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
   const wsStatus = useTerminalStore((s) => s.wsStatus)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const session = useMarketSession()
+  const istTime = useIstClock()
   const wsOnline = wsStatus === 'CONNECTED'
   const apiOnline = apiStatus === 'ONLINE'
   const apiConnecting = !apiOnline
@@ -59,6 +61,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
     CLOSED: 'MARKET CLOSED',
     WEEKEND: 'WEEKEND',
   }[session ?? 'CLOSED'] ?? 'MARKET CLOSED'
+  const clockLabel = istTime === '--:--:--' ? istTime : `${istTime} IST`
 
   return (
     <header className="relative m-3 mb-0 flex min-h-16 shrink-0 items-center justify-between gap-4 rounded-2xl border border-maet-glass-border bg-maet-bg-deep/60 px-5 py-3 shadow-card backdrop-blur-2xl">
@@ -83,6 +86,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
 
       <div className="flex max-w-[640px] flex-wrap items-center justify-end gap-2">
         <StatusChip label={sessionLabel} tone={session === 'OPEN' ? 'good' : 'warn'} icon={<Activity className="h-3.5 w-3.5" />} />
+        <StatusChip label={clockLabel} tone="muted" icon={<Clock className="h-3.5 w-3.5" />} />
         <StatusChip
           label={apiOnline ? 'DATA READY' : 'Connecting...'}
           tone={apiOnline ? 'good' : 'warn'}

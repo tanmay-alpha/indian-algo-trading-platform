@@ -237,7 +237,8 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div>
+            <MarketHeader />
             {rows.map((row) => (
               <WatchlistRow
                 key={row.symbol}
@@ -247,7 +248,8 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
                 price={row.ltp}
                 changePct={row.change_pct}
                 volume={row.volume}
-                offline={marketDataUnavailable || row.ltp == null}
+                offline={marketDataUnavailable}
+                subscribed={!marketDataUnavailable}
                 selected={selectedSymbol === row.symbol}
                 onOpen={() => openChart(row.symbol, row.exchange, row.name, row.token, 'watchlist')}
                 onRemove={activeTab !== 'indices' ? () => void removeRow(row.symbol) : undefined}
@@ -268,19 +270,30 @@ function TabButton({ active, label, onClick }: { active: boolean; label: string;
   )
 }
 
+function MarketHeader() {
+  return (
+    <div className="grid h-5 grid-cols-[minmax(0,1fr)_68px_48px_36px] items-center gap-2 border-b border-border/60 px-2 font-mono text-[9px] uppercase tracking-widest text-[var(--text-3)]">
+      <span>INSTRUMENT</span>
+      <span className="text-right">LTP</span>
+      <span className="text-right">CHG%</span>
+      <span className="text-right">VOL</span>
+    </div>
+  )
+}
+
 function SkeletonRows({ count }: { count: number }) {
   return (
     <div className="space-y-1.5">
       {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="reflection-card grid h-[62px] grid-cols-[minmax(0,1fr)_92px] items-center gap-3 px-3 sm:h-[56px]">
-          <div className="space-y-2">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-2.5 w-36" />
+        <div key={index} className="grid h-8 grid-cols-[minmax(0,1fr)_68px_48px_36px] items-center gap-2 border-b border-border/60 px-2">
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-1.5 w-1.5 rounded-full" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-2.5 w-24" />
           </div>
-          <div className="space-y-2">
-            <Skeleton className="ml-auto h-3.5 w-20" />
-            <Skeleton className="ml-auto h-2.5 w-14" />
-          </div>
+          <Skeleton className="ml-auto h-3 w-14" />
+          <Skeleton className="ml-auto h-2.5 w-9" />
+          <Skeleton className="ml-auto h-2.5 w-7" />
         </div>
       ))}
     </div>

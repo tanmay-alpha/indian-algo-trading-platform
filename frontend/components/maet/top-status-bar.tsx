@@ -16,6 +16,7 @@ export function TopStatusBar() {
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const istTime = useIstClock()
   const apiConnecting = apiStatus === 'UNKNOWN' || apiStatus === 'WAKING' || apiStatus === 'OFFLINE' || backendWakeState === 'WAKING'
+  const clockLabel = istTime === '--:--:--' ? istTime : `${istTime} IST`
 
   useEffect(() => {
     setMounted(true)
@@ -122,7 +123,7 @@ export function TopStatusBar() {
         {/* Clock */}
         <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-text-dim bg-white/[0.02] border border-white/[0.06] px-2.5 py-1 rounded-md">
           <Clock className="w-3.5 h-3.5 text-[#38bdf8]" />
-          <span>{istTime || '--:--:--'} IST</span>
+          <span>{clockLabel}</span>
         </div>
 
         {/* Connection status badge */}

@@ -189,6 +189,17 @@ export async function fetchCandles(symbol: string, timeframe = '5m', fetch = tru
   return normalizeCandleResponse(data, symbol, timeframe)
 }
 
+export async function fetchCandlesFromBroker(symbol: string, timeframe = '5m'): Promise<CandleResponse> {
+  const data = await request<unknown>(
+    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}/fetch`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ timeframe }),
+    }
+  )
+  return normalizeCandleResponse(data, symbol, timeframe)
+}
+
 // ----- Indicators -----
 const unavailableIndicatorStatus: IndicatorEngineStatus = {
   available: false,

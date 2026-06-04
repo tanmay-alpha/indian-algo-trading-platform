@@ -12,6 +12,7 @@ interface WatchlistRowProps {
   changePct?: number | null
   volume?: number | null
   offline?: boolean
+  subscribed?: boolean
   selected?: boolean
   onOpen?: () => void
   onRemove?: () => void
@@ -25,19 +26,20 @@ export function WatchlistRow({
   changePct,
   volume,
   offline = false,
+  subscribed,
   selected = false,
   onOpen,
   onRemove,
 }: WatchlistRowProps) {
   const previousPriceRef = useRef<number | null>(price ?? null)
-  const [flash, setFlash] = useState<'tick-up' | 'tick-down' | null>(null)
+  const [flash, setFlash] = useState<'flash-up' | 'flash-down' | null>(null)
   const [revealed, setRevealed] = useState(false)
   const touchX = useRef<number | null>(null)
 
   useEffect(() => {
     const previous = previousPriceRef.current
     if (previous != null && price != null && price !== previous) {
-      setFlash(price > previous ? 'tick-up' : 'tick-down')
+      setFlash(price > previous ? 'flash-up' : 'flash-down')
       const timer = window.setTimeout(() => setFlash(null), 650)
       previousPriceRef.current = price
       return () => window.clearTimeout(timer)
@@ -46,14 +48,28 @@ export function WatchlistRow({
     return undefined
   }, [price])
 
-  const hasPrice = price != null && !offline
-  const hasChange = changePct != null && !offline
+  const isSubscribed = subscribed ?? !offline
+  const hasPrice = isSubscribed && price != null && !offline
+  const hasChange = isSubscribed && changePct != null && !offline
   const isUp = (changePct ?? 0) >= 0
   const cleanSymbol = symbol.split(':').pop()?.replace(/-EQ$/, '') ?? symbol
+  const displayName = displayInstrumentName(cleanSymbol, name, exchange)
+  const dotClass = hasPrice
+    ? 'bg-up animate-pulse-soft'
+    : isSubscribed
+    ? 'bg-warn'
+    : 'bg-text-faint'
+  const ltpClass = hasPrice
+    ? changePct == null
+      ? 'text-[var(--text-1)]'
+      : changePct < 0
+      ? 'price-down'
+      : 'price-up'
+    : 'text-[var(--text-3)]'
 
   return (
     <div
-      className="group relative overflow-hidden rounded-card"
+      className="group relative overflow-hidden rounded-sm"
       onTouchStart={(event) => {
         touchX.current = event.touches[0]?.clientX ?? null
       }}
@@ -85,55 +101,65 @@ export function WatchlistRow({
         onClick={onOpen}
         aria-label={`Open chart for ${cleanSymbol}`}
         className={cn(
-          'wl-row relative z-10 grid h-[62px] w-full grid-cols-[minmax(0,1fr)_minmax(84px,auto)] items-center gap-3 rounded-lg border bg-maet-panel-soft px-3 text-left transition-all sm:h-[56px]',
-          selected ? 'selected border-maet-blue/50 bg-maet-blue/10 shadow-[inset_3px_0_0_rgba(47,128,255,0.9)]' : 'hover-glass',
+          'wl-row relative z-10 grid h-8 w-full grid-cols-[minmax(0,1fr)_68px_48px_36px] items-center gap-2 rounded-sm border border-border/60 bg-[var(--bg-card)] px-2 text-left transition-all',
+          selected && 'selected border-l-2 border-l-[var(--neutral)] bg-[var(--neutral-dim)]',
           revealed && onRemove ? '-translate-x-24' : 'translate-x-0',
           flash
         )}
       >
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate font-mono text-sm font-extrabold text-maet-text">{cleanSymbol}</span>
-            <span className="shrink-0 rounded-md border border-white/10 bg-maet-glass-bg px-1.5 py-0.5 font-mono text-xs font-bold text-maet-text-soft">
-              {exchange}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dotClass)} />
+          <span className="shrink-0 font-mono text-[11px] font-semibold leading-none text-[var(--text-1)]">{cleanSymbol}</span>
+          <span className="max-w-[120px] truncate text-[10px] leading-none text-[var(--text-3)]">{displayName}</span>
+          {!isSubscribed && (
+            <span className="shrink-0 rounded-sm border border-border px-1 font-mono text-[9px] font-semibold leading-4 text-[var(--text-3)]">
+              NO FEED
             </span>
-          </div>
-          <div className="mt-0.5 flex min-w-0 items-center gap-2">
-            <span className="truncate text-xs text-maet-text-muted">{name || 'Instrument details pending'}</span>
-            {volume != null && Number.isFinite(volume) && volume > 0 && (
-              <span className="shrink-0 text-xs font-semibold text-maet-text-faint">{formatVolume(volume)}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="shrink-0 text-right">
-          {hasPrice ? (
-            <>
-              <div className={cn('font-mono text-base font-extrabold tabular-nums', isUp ? 'text-maet-green' : 'text-maet-red')}>
-                {price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              {hasChange && (
-                <div className={cn('mt-0.5 inline-flex rounded-md px-1.5 py-0.5 font-mono text-xs font-bold', isUp ? 'bg-maet-green/10 text-maet-green' : 'bg-maet-red/10 text-maet-red')}>
-                  {isUp ? '+' : ''}{changePct.toFixed(2)}%
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="font-mono text-base font-extrabold text-maet-text-muted">--</div>
-              <div className="mt-0.5 text-xs font-bold text-maet-text-faint"> </div>
-            </>
           )}
         </div>
+
+        <span className={cn('w-[68px] text-right font-mono text-[13px] font-semibold leading-none tabular-nums', ltpClass)}>
+          {hasPrice ? price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+        </span>
+        <span className={cn('w-[48px] text-right font-mono text-[10px] leading-none tabular-nums', hasChange ? (isUp ? 'price-up' : 'price-down') : 'text-[var(--text-3)]')}>
+          {hasChange ? `${isUp ? '+' : ''}${changePct.toFixed(2)}%` : '—'}
+        </span>
+        <span className="w-[36px] text-right font-mono text-[10px] leading-none tabular-nums text-[var(--text-3)]">
+          {hasPrice && volume != null && Number.isFinite(volume) && volume > 0 ? formatVolume(volume) : '—'}
+        </span>
       </button>
     </div>
   )
 }
 
+const DEFAULT_INSTRUMENT_NAMES: Record<string, string> = {
+  AXISBANK: 'Axis Bank',
+  BAJFINANCE: 'Bajaj Finance',
+  BHARTIARTL: 'Bharti Airtel',
+  HDFCBANK: 'HDFC Bank',
+  ICICIBANK: 'ICICI Bank',
+  INFY: 'Infosys',
+  ITC: 'ITC',
+  KOTAKBANK: 'Kotak Mahindra Bank',
+  MARUTI: 'Maruti Suzuki',
+  RELIANCE: 'Reliance Industries',
+  SBIN: 'State Bank of India',
+  SUNPHARMA: 'Sun Pharma',
+  TATASTEEL: 'Tata Steel',
+  TCS: 'Tata Consultancy',
+  WIPRO: 'Wipro',
+}
+
+function displayInstrumentName(symbol: string, name: string | undefined, exchange: string): string {
+  const trimmed = name?.trim()
+  if (trimmed && trimmed.toUpperCase() !== symbol.toUpperCase()) return trimmed
+  return DEFAULT_INSTRUMENT_NAMES[symbol.toUpperCase()] ?? exchange
+}
+
 function formatVolume(value?: number | null): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return 'vol --'
-  if (value >= 10000000) return `vol ${(value / 10000000).toFixed(1)}Cr`
-  if (value >= 100000) return `vol ${(value / 100000).toFixed(1)}L`
-  if (value >= 1000) return `vol ${(value / 1000).toFixed(1)}K`
-  return `vol ${value}`
+  if (value == null || !Number.isFinite(value) || value <= 0) return '—'
+  if (value >= 10000000) return `${(value / 10000000).toFixed(1)}Cr`
+  if (value >= 100000) return `${(value / 100000).toFixed(1)}L`
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+  return String(Math.round(value))
 }

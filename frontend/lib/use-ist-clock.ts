@@ -4,18 +4,19 @@
 import { useEffect, useState } from 'react'
 
 export function useIstClock(): string {
-  const [time, setTime] = useState('')
+  const [time, setTime] = useState('--:--:--')
 
   useEffect(() => {
     const update = () => {
-      const now = new Date()
-      const ist = new Date(
-        now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
+      setTime(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }).format(new Date())
       )
-      const hh = String(ist.getHours()).padStart(2, '0')
-      const mm = String(ist.getMinutes()).padStart(2, '0')
-      const ss = String(ist.getSeconds()).padStart(2, '0')
-      setTime(`${hh}:${mm}:${ss}`)
     }
     update()
     const id = setInterval(update, 1000)

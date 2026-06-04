@@ -2,10 +2,8 @@
 
 import { ChevronDown, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { ApiStatus, DataQuality } from '@/lib/types'
-import { cn, fmtAge, fmtVolume, marketNoDataLabel, marketSessionLabel } from '@/lib/utils'
+import { cn, fmtVolume } from '@/lib/utils'
 import { useTerminalStore } from '@/store/terminal-store'
-import { useNow } from '@/lib/use-now'
 import { EmptyState } from './empty-state'
 import { InstrumentSearch } from './instrument-search'
 import { SafetyBadgeGroup } from './safety-badge'
@@ -30,15 +28,8 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
 
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const terminalStatus = useTerminalStore((s) => s.terminalStatus)
-  const now = useNow()
-
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     fetchPersistentWatchlist()
@@ -145,11 +136,11 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
         </div>
       )}
 
-      <div className="flex h-7 items-center border-b border-border bg-panel/50 px-2 mt-1">
-        <div className="flex-1 font-mono text-xs uppercase tracking-widest text-text-faint">INSTRUMENT</div>
-        <div className="w-[68px] text-right font-mono text-xs tracking-wide text-text-faint">LTP</div>
-        <div className="w-[48px] text-right font-mono text-xs tracking-wide text-text-faint">CHG%</div>
-        <div className="w-[36px] text-right font-mono text-xs tracking-wide text-text-faint">VOL</div>
+      <div className="grid h-5 grid-cols-[minmax(0,1fr)_68px_48px_36px] items-center gap-2 border-b border-border bg-panel/50 px-2 mt-1 font-mono text-[9px] uppercase tracking-widest text-[var(--text-3)]">
+        <span>INSTRUMENT</span>
+        <span className="text-right">LTP</span>
+        <span className="text-right">CHG%</span>
+        <span className="text-right">VOL</span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -166,10 +157,8 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
           symbols.map((symbol) => {
             const row = market[symbol]
             const last = lastBy[symbol] ?? null
-            const age = last ? now - last : null
             const subscribed =
               subscribedSymbols.size === 0 || subscribedSymbols.has(normalizeWatchSymbol(symbol))
-            const quality = qualityForRow({ apiStatus, last, age, subscribed })
             const isSelected = selected === symbol
             const ltp = row?.ltp ?? null
             const chgPct = row?.change_pct ?? null
@@ -179,79 +168,77 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
             const displayVolume = subscribed ? volume : null
             const displayName = row?.name ?? compactSymbolName(symbol)
             const cleanSymbol = compactSymbolName(symbol)
-            const isLive = quality === 'LIVE'
-            const isWaiting = subscribed && (quality === 'WAITING' || quality === 'WARMING')
-            const meta = row?.exchange
-              ? `${row.exchange} EQ`
-              : last
-              ? fmtAge(age)
-              : (mounted && marketSessionLabel() === 'LIVE')
-              ? 'Awaiting tick'
-              : 'Market closed'
+            const hasLiveTick = subscribed && last != null
+            const lastMove =
+              row?.previous_ltp != null && displayLtp != null
+                ? displayLtp - row.previous_ltp
+                : displayChgPct
+            const flashClass =
+              row?.previous_ltp != null && displayLtp != null && displayLtp !== row.previous_ltp
+                ? displayLtp > row.previous_ltp
+                  ? 'flash-up'
+                  : 'flash-down'
+                : undefined
 
             return (
               <div
                 key={symbol}
                 onClick={() => setSelected(symbol)}
                 className={cn(
-                  'wl-row group relative flex h-[36px] cursor-pointer select-none items-center border-b border-border/50 px-2',
-                  isSelected && 'selected bg-info/[0.04]'
+                  'wl-row group relative grid h-8 cursor-pointer select-none grid-cols-[minmax(0,1fr)_68px_48px_36px] items-center gap-2 border-b border-border/50 px-2',
+                  isSelected && 'selected border-l-2 border-l-[var(--neutral)] bg-[var(--neutral-dim)]',
+                  flashClass
                 )}
               >
-                <div
-                  className={cn(
-                    'mr-2 h-1.5 w-1.5 shrink-0 rounded-full',
-                    isLive
-                      ? 'bg-up animate-pulse-soft'
-                      : isWaiting
-                      ? 'bg-warn/60'
-                      : 'bg-text-faint/40'
-                  )}
-                />
-
-                <div className="flex min-w-0 flex-1 flex-col justify-center">
-                  <span className="shrink-0 font-mono text-[12px] font-semibold tracking-wide text-text leading-tight">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span
+                    className={cn(
+                      'h-1.5 w-1.5 shrink-0 rounded-full',
+                      hasLiveTick
+                        ? 'bg-up animate-pulse-soft'
+                        : subscribed
+                        ? 'bg-warn'
+                        : 'bg-text-faint'
+                    )}
+                  />
+                  <span className="shrink-0 font-mono text-[11px] font-semibold leading-none text-[var(--text-1)]">
                     {cleanSymbol}
                   </span>
-                  <span className="min-w-0 truncate text-xs text-text-faint leading-tight">
-                    {displayName || meta}
+                  <span className="max-w-[120px] min-w-0 truncate text-[10px] leading-none text-[var(--text-3)]">
+                    {displayName}
                   </span>
+                  {!subscribed && (
+                    <span className="shrink-0 rounded-sm border border-border px-1 font-mono text-[9px] font-semibold leading-4 text-[var(--text-3)]">
+                      NO FEED
+                    </span>
+                  )}
                 </div>
 
-                <div className="ml-1 flex shrink-0 items-center gap-2">
-                  <span className={cn(
-                    'w-[68px] text-right font-mono text-[12px] font-semibold tabular-nums',
-                    displayLtp == null
-                      ? 'text-text-faint/70 text-xs'
-                      : displayChgPct != null && displayChgPct > 0
-                      ? 'text-up'
-                      : displayChgPct != null && displayChgPct < 0
-                      ? 'text-down'
-                      : 'text-text-2'
-                  )}>
-                    {displayLtp != null ? formatLtp(displayLtp) : 'No tick'}
-                  </span>
-                  <span className={cn(
-                    'w-[48px] text-right font-mono text-xs tabular-nums',
-                    displayLtp == null
-                      ? 'text-text-faint/45'
-                      : displayChgPct != null && displayChgPct > 0
-                      ? 'text-up'
-                      : displayChgPct != null && displayChgPct < 0
-                      ? 'text-down'
-                      : 'text-text-faint'
-                  )}>
-                    {displayLtp != null ? formatChange(displayChgPct) : '-'}
-                  </span>
-                  <span className={cn(
-                    'w-[36px] text-right font-mono text-xs tabular-nums',
-                    displayLtp == null
-                      ? 'text-text-faint/45'
-                      : 'text-text-faint'
-                  )}>
-                    {displayLtp != null && displayVolume != null ? fmtVolume(displayVolume) : '-'}
-                  </span>
-                </div>
+                <span className={cn(
+                  'w-[68px] text-right font-mono text-[13px] font-semibold leading-none tabular-nums',
+                  displayLtp == null
+                    ? 'text-[var(--text-3)]'
+                    : lastMove != null && lastMove < 0
+                    ? 'price-down'
+                    : lastMove != null && lastMove > 0
+                    ? 'price-up'
+                    : 'text-[var(--text-1)]'
+                )}>
+                  {displayLtp != null ? formatLtp(displayLtp) : '—'}
+                </span>
+                <span className={cn(
+                  'w-[48px] text-right font-mono text-[10px] leading-none tabular-nums',
+                  displayChgPct == null
+                    ? 'text-[var(--text-3)]'
+                    : displayChgPct < 0
+                    ? 'price-down'
+                    : 'price-up'
+                )}>
+                  {displayChgPct != null ? formatChange(displayChgPct) : '—'}
+                </span>
+                <span className="w-[36px] text-right font-mono text-[10px] leading-none tabular-nums text-[var(--text-3)]">
+                  {displayLtp != null && displayVolume != null ? fmtVolume(displayVolume) : '—'}
+                </span>
 
                 <button
                   onClick={(event) => {
@@ -275,30 +262,6 @@ export function WatchlistPanel({ className, onClose }: { className?: string; onC
       </div>
     </aside>
   )
-}
-
-function qualityForRow({
-  apiStatus,
-  last,
-  age,
-  subscribed,
-}: {
-  apiStatus: ApiStatus
-  last: number | null
-  age: number | null
-  subscribed: boolean
-}): DataQuality {
-  if (apiStatus === 'OFFLINE') return 'BACKEND OFFLINE'
-  if (apiStatus === 'WAKING' || apiStatus === 'UNKNOWN') return 'WARMING'
-  if (!subscribed) return 'UNAVAILABLE'
-  if (last == null || age == null) {
-    return marketNoDataLabel()
-  }
-  const session = marketSessionLabel()
-  if (session !== 'LIVE') return session
-  if (age < 3000) return 'LIVE'
-  if (age < 8000) return 'DELAYED'
-  return 'STALE'
 }
 
 function normalizeWatchSymbol(symbol: string): string {

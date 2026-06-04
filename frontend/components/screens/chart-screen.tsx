@@ -163,15 +163,17 @@ export function ChartScreen() {
         {selectedSymbol ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex min-h-0 flex-1">
-              {candles.length === 0 && !indicatorLoading ? (
+              {candles.length === 0 ? (
                 <OfflineChartState
                   symbol={cleanSymbol ?? selectedSymbol}
                   exchange={displayExchange}
+                  timeframe={chartTimeframe}
                   apiStatus={apiStatus}
                   diagnostics={chartFetchDiagnostics}
                   tradingViewUrl={tvUrl}
                   angelOneUrl={aoUrl}
-                  onRetry={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
+                  isFetching={indicatorLoading}
+                  onLoadCandles={() => void fetchChartIndicators(selectedSymbol, chartTimeframe)}
                 />
               ) : (
                 <IndicatorChartShell
@@ -279,14 +281,17 @@ function ExternalButton({ href, label, disabled }: { href: string; label: string
 function OfflineChartState({
   symbol,
   exchange,
+  timeframe,
   apiStatus,
   diagnostics,
   tradingViewUrl,
   angelOneUrl,
-  onRetry,
+  isFetching,
+  onLoadCandles,
 }: {
   symbol: string
   exchange: string
+  timeframe: string
   apiStatus: string
   diagnostics: {
     timeframe: string
@@ -298,22 +303,30 @@ function OfflineChartState({
   }
   tradingViewUrl: string
   angelOneUrl: string
-  onRetry: () => void
+  isFetching: boolean
+  onLoadCandles: () => void
 }) {
+  const fetchError = diagnostics.error
+
   return (
     <div className="grid h-full min-h-[340px] flex-1 place-items-center bg-maet-ink-950/40 p-6 text-center" aria-label={`Price chart state for ${symbol}`}>
       <div className="maet-card max-w-lg p-5">
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-maet-amber/30 bg-maet-amber/10 text-maet-amber">
-          <BarChart2 className="h-6 w-6" />
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-[var(--radius-md)] border border-[var(--border-2)] bg-[var(--bg-panel)] text-[var(--neutral)]">
+          <BarChart2 className="h-7 w-7" />
         </div>
-        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">No candles available for this view.</h2>
+        <h2 className="mt-4 font-heading text-xl font-bold text-maet-text">No candle data for {symbol} · {timeframe}</h2>
         <p className="mt-2 max-w-md text-sm leading-6 text-maet-text-muted">
-          Try another timeframe, retry the fetch, or open {symbol} in TradingView.
+          Fetch broker-backed historical candles for this selected research view.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <button type="button" onClick={onRetry} className="glass-button h-10 min-h-10 px-4 text-xs text-maet-cyan">
-            <RefreshCw className="h-4 w-4" />
-            Retry
+          <button
+            type="button"
+            onClick={onLoadCandles}
+            disabled={isFetching}
+            className="inline-flex h-10 min-h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--neutral)] bg-[var(--neutral-dim)] px-4 font-mono text-xs font-bold text-[var(--neutral)] transition-colors hover:bg-[rgba(56,189,248,0.16)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
+            {isFetching ? 'Loading...' : "Load Today's Candles"}
           </button>
           <a href={tradingViewUrl} target="_blank" rel="noopener noreferrer" className="glass-button h-10 min-h-10 px-4 text-xs">
             TradingView
@@ -324,6 +337,11 @@ function OfflineChartState({
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
+        {fetchError && (
+          <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--down)] bg-[var(--down-dim)] px-3 py-2 text-left text-xs leading-5 text-[var(--down)]">
+            {fetchError}
+          </div>
+        )}
         <details className="mt-4 rounded-lg border border-white/10 bg-maet-ink-950/56 p-3 text-left text-xs text-maet-text-muted">
           <summary className="cursor-pointer font-bold text-maet-text-soft">Data details</summary>
           <div className="mt-3 grid gap-2">
@@ -335,6 +353,9 @@ function OfflineChartState({
             {diagnostics.error && <DiagnosticLine label="Result" value={diagnostics.error} />}
           </div>
         </details>
+        <div className="mt-3 font-mono text-[10px] uppercase tracking-wider text-maet-text-muted">
+          No synthetic data is shown.
+        </div>
       </div>
     </div>
   )

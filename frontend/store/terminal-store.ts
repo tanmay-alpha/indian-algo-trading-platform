@@ -66,6 +66,7 @@ import {
   getIndicatorStatus,
   getIndicatorsForSymbol,
   fetchCandles,
+  fetchCandlesFromBroker,
   getStrategySignalPreview,
   getStrategyStatus,
   getStrategyTemplates,
@@ -906,7 +907,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     }
 
     const exchange = get().selectedExchange ?? 'NSE'
-    const route = `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${timeframe}&fetch=true`
+    const route = `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}/fetch`
     set({
       indicatorChartLoading: true,
       indicatorLoading: true,
@@ -929,8 +930,8 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     let candleSource: string | null = null
     let candleError: string | null = null
     try {
-      // Pass fetch=true so backend actively pulls historical candles from broker cache
-      const candleResponse = await fetchCandles(symbol, timeframe, true)
+      // Explicit broker/cache fetch route. Read-only; no order placement.
+      const candleResponse = await fetchCandlesFromBroker(symbol, timeframe)
       candles = candleResponse.candles || []
       candleSource = candleResponse.source || 'backend'
       candleError = candleResponse.warning || null

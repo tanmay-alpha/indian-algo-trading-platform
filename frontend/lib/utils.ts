@@ -225,6 +225,9 @@ export function uiStatusMeta(status: string | null | undefined): UiStatusMeta {
   if (compact === 'LOCKED') {
     return statusMeta(compact, 'LOCKED', 'locked', 'bg-info/60', 'text-paper')
   }
+  if (compact === 'NOT SUBSCRIBED') {
+    return statusMeta('NO FEED', 'NO FEED', 'muted', 'bg-text-faint', 'text-text-faint')
+  }
   const severity = severityForStatus(compact)
   return {
     label: compact,
