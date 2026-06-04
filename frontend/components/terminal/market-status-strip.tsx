@@ -27,7 +27,7 @@ function StatusPill({ label, status, detail, value }: PillProps) {
   )
 }
 
-export function OperatorStatusStrip() {
+export function MarketStatusStrip() {
   const broker = useTerminalStore((s) => s.brokerStatus)
   const status = useTerminalStore((s) => s.terminalStatus)
   const wsStatus = useTerminalStore((s) => s.wsStatus)
@@ -40,20 +40,20 @@ export function OperatorStatusStrip() {
   const session = marketSessionLabel()
   const stale = lastTickAt != null && now - lastTickAt > 12_000
 
-  const apiLabel = apiStatus === 'UNKNOWN'
-    ? backendWakeState === 'WAKING' ? 'WAKING' : 'CONNECTING'
-    : apiStatus
+  const apiConnecting = apiStatus === 'UNKNOWN' || apiStatus === 'WAKING' || apiStatus === 'OFFLINE' || backendWakeState === 'WAKING'
+  const apiLabel = apiConnecting ? 'CONNECTING' : apiStatus
 
   const brkStatus = broker?.logged_in ? 'ONLINE' : broker?.last_error ? 'ERROR' : apiLabel
   const feedStatus = session !== 'LIVE' ? session : broker?.feed_token_available ? 'LIVE' : 'WAITING'
-  const wsLabel = wsStatus === 'CONNECTED' ? 'ONLINE' : wsStatus === 'RECONNECTING' ? 'RECONN' : wsStatus
+  const wsConnecting = wsStatus !== 'CONNECTED'
+  const wsLabel = wsStatus === 'CONNECTED' ? 'ONLINE' : 'CONNECTING'
   const tickStatus = lastTickAt ? (stale ? 'STALE' : 'LIVE') : session === 'LIVE' ? 'WAITING' : 'CLOSED'
 
   return (
     <div className="flex h-full items-stretch overflow-x-auto" role="status" aria-label="System status">
       <StatusPill label="BRK" status={brkStatus} detail={broker?.last_error ?? undefined} />
       <StatusPill label="FEED" status={feedStatus} detail={broker?.feed_token_available ? 'feed token ok' : 'no token'} />
-      <StatusPill label="WS" status={wsLabel} />
+      <StatusPill label="WS" status={wsLabel} value={wsConnecting ? 'Connecting...' : undefined} />
       <StatusPill label="TICK" status={tickStatus} value={lastTickAt ? (stale ? 'STALE' : 'LIVE') : '—'} />
       <StatusPill
         label="CDL"
@@ -61,7 +61,7 @@ export function OperatorStatusStrip() {
         detail={status?.candles?.symbols ? `${status.candles.symbols.length} sym` : undefined}
       />
       <StatusPill label="LOCK" status={mode === 'PAPER' ? 'LOCKED' : 'LIVE'} detail="Live execution disabled" />
-      <StatusPill label="API" status={apiLabel} />
+      <StatusPill label="API" status={apiLabel} value={apiConnecting ? 'Connecting...' : undefined} />
     </div>
   )
 }

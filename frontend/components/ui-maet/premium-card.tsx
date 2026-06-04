@@ -17,9 +17,9 @@ export function PremiumCard({ children, className, glow = false, onClick }: Prem
       onClick={onClick}
       {...(onClick ? { type: 'button' } : {})}
       className={cn(
-        "w-full rounded-2xl bg-white/[0.045] border border-white/[0.08] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] relative overflow-hidden transition-all duration-200 text-left block",
+        "w-full rounded-2xl bg-maet-elevated border border-border p-4 relative overflow-hidden transition-all duration-200 text-left block",
         onClick && "hover:bg-white/[0.065] active:scale-[0.985] cursor-pointer",
-        glow && "before:absolute before:inset-0 before:bg-gradient-to-br before:from-info/5 before:to-transparent before:pointer-events-none",
+        glow && "before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-info before:pointer-events-none",
         className
       )}
     >

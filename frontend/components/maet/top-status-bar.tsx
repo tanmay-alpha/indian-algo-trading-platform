@@ -9,21 +9,35 @@ import { SafetyBadgeGroup } from './safety-badge'
 
 export function TopStatusBar() {
   const [mounted, setMounted] = useState(false)
+  const [coldStartVisible, setColdStartVisible] = useState(false)
+  const [coldStartDismissed, setColdStartDismissed] = useState(false)
   const connectionState = useTerminalStore((s) => s.wsStatus)
   const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const istTime = useIstClock()
+  const apiConnecting = apiStatus === 'UNKNOWN' || apiStatus === 'WAKING' || apiStatus === 'OFFLINE' || backendWakeState === 'WAKING'
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!apiConnecting) {
+      setColdStartVisible(false)
+      setColdStartDismissed(false)
+      return undefined
+    }
+
+    const timer = window.setTimeout(() => setColdStartVisible(true), 30_000)
+    return () => window.clearTimeout(timer)
+  }, [apiConnecting])
 
   const session = mounted ? getNseMarketSession() : 'CLOSED'
 
   // Determine connection badge details
   const getConnDetails = () => {
     if (backendWakeState === 'WAKING') {
-      return { label: 'WAKING', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' }
+      return { label: 'Connecting...', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' }
     }
     switch (connectionState) {
       case 'CONNECTED':
@@ -33,7 +47,7 @@ export function TopStatusBar() {
       case 'RECONNECTING':
         return { label: 'RECONNECTING', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' }
       default:
-        return { label: 'OFFLINE', color: 'bg-rose-500/20 text-rose-400 border-rose-500/30' }
+        return { label: 'Connecting...', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' }
     }
   }
 
@@ -62,17 +76,21 @@ export function TopStatusBar() {
   return (
     <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#0c0f17]/80 backdrop-blur-md px-4 select-none z-30">
       {/* Top Banner Alert for cold starts */}
-      {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
-        <div className="absolute left-1/2 top-[58px] -translate-x-1/2 z-40 rounded-lg border border-amber-500/20 bg-[#0f131a]/95 px-4 py-2 text-xs font-mono text-amber-400 shadow-xl backdrop-blur-md flex items-center gap-2 max-w-sm">
+      {apiConnecting && coldStartVisible && !coldStartDismissed && (
+        <div className="absolute left-1/2 top-[58px] -translate-x-1/2 z-40 flex max-w-sm items-center gap-2 rounded-sm border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs font-mono text-amber-400">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
-          <span>
-            {backendWakeState === 'WAKING'
-              ? 'Cold starting backend... This can take 30s.'
-              : 'Connection lost - attempting reconnect.'}
-          </span>
+          <span>Backend cold starting — Render Free (~30s). Refresh if needed.</span>
+          <button
+            type="button"
+            onClick={() => setColdStartDismissed(true)}
+            aria-label="Dismiss cold-start notice"
+            className="rounded-sm border border-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-400"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 

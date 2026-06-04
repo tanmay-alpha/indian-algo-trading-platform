@@ -242,8 +242,8 @@ export const PATTERNS = [
   'Evening Star',
 ] as const
 
-// ----- Operator components in top bar -----
-export const OPERATOR_COMPONENTS = [
+// ----- Connection components in top bar -----
+export const CONNECTION_COMPONENTS = [
   { id: 'broker', label: 'BROKER' },
   { id: 'feed', label: 'FEED' },
   { id: 'ws', label: 'WS' },

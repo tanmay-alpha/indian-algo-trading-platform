@@ -18,7 +18,7 @@ const CLIENT_PING_INTERVAL_MS = 25_000
 const REST_POLL_FIRST_SUCCESS_MS = 5_000
 const REST_POLL_RECONNECTING_MS = 10_000
 const REST_POLL_STEADY_MS = 15_000
-const BACKEND_WAKE_NOTICE_MS = 3_000
+const BACKEND_WAKE_NOTICE_MS = 30_000
 
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null)

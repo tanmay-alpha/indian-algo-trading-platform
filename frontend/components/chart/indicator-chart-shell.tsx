@@ -163,7 +163,7 @@ export function IndicatorChartShell({
       width: containerRef.current.clientWidth,
       height: 360,
       layout: {
-        background: { type: ColorType.Solid, color: '#070b12' },
+        background: { type: ColorType.Solid, color: '#05070b' },
         textColor: '#94a3b8',
       },
       grid: {
@@ -216,7 +216,7 @@ export function IndicatorChartShell({
     const isVolumeAvailable = totalVolume > 0
     if (showVolume && isVolumeAvailable) {
       const volumeSeries = chart.addSeries(HistogramSeries, {
-        color: '#26a69a',
+        color: '#16c784',
         priceFormat: { type: 'volume' },
         priceScaleId: 'volume', // Render overlay
       })
@@ -242,7 +242,7 @@ export function IndicatorChartShell({
     // Add EMA
     if (overlays.ema) {
       const emaSeries = chart.addSeries(LineSeries, {
-        color: '#54c1ec',
+        color: '#38bdf8',
         lineWidth: 2,
       })
       const emaPoints = mapLineSeries(resolvedCandles, result?.results.ema)
@@ -258,7 +258,7 @@ export function IndicatorChartShell({
     // Add VWAP
     if (overlays.vwap) {
       const vwapSeries = chart.addSeries(LineSeries, {
-        color: '#f0a928',
+        color: '#f59e0b',
         lineWidth: 2,
       })
       const vwapPoints = mapLineSeries(resolvedCandles, result?.results.vwap)
@@ -330,7 +330,7 @@ export function IndicatorChartShell({
           time: candleTime,
           position: p.direction === 'bullish' ? 'belowBar' : 'aboveBar',
           shape: p.direction === 'bullish' ? 'arrowUp' : (p.direction === 'bearish' ? 'arrowDown' : 'circle'),
-          color: p.direction === 'bullish' ? '#10b981' : (p.direction === 'bearish' ? '#ef4444' : '#94a3b8'),
+          color: p.direction === 'bullish' ? '#16c784' : (p.direction === 'bearish' ? '#ea3943' : '#94a3b8'),
           text: PATTERN_ABBREVIATIONS[p.pattern] || p.pattern,
           fullName: p.pattern,
           description: p.description,
@@ -354,7 +354,7 @@ export function IndicatorChartShell({
           ...existing,
           position: isBuy ? 'belowBar' : 'aboveBar',
           shape: isBuy ? 'arrowUp' : 'arrowDown',
-          color: isBuy ? '#16c784' : '#f0a928',
+          color: isBuy ? '#16c784' : '#f59e0b',
           text: `${s.action} (${existing.text})`,
           description: `${s.action}: ${s.reason || 'Backtest signal'} | ${existing.description}`,
           isSignal: true,
@@ -364,7 +364,7 @@ export function IndicatorChartShell({
           time: candleTime,
           position: isBuy ? 'belowBar' : 'aboveBar',
           shape: isBuy ? 'arrowUp' : 'arrowDown',
-          color: isBuy ? '#16c784' : '#f0a928',
+          color: isBuy ? '#16c784' : '#f59e0b',
           text: s.action,
           description: `${s.action}: ${s.reason || 'Backtest signal'}`,
           isSignal: true,
@@ -639,14 +639,12 @@ export function IndicatorChartShell({
   if (candles.length === 0) {
     let emptyTitle = 'No symbol selected'
     let emptyDescription = 'Select a symbol from Market Watch.'
+    const apiConnecting = apiStatus === 'UNKNOWN' || apiStatus === 'WAKING' || apiStatus === 'OFFLINE' || backendWakeState === 'WAKING'
 
     if (symbol) {
-      if (apiStatus === 'OFFLINE') {
-        emptyTitle = 'Market data unavailable'
-        emptyDescription = 'Chart data cannot be loaded until the market-data connection is reachable. No synthetic data is shown.'
-      } else if (backendWakeState === 'WAKING') {
-        emptyTitle = 'Waiting for market data'
-        emptyDescription = 'Chart data will load automatically when the market-data service is available.'
+      if (apiConnecting) {
+        emptyTitle = 'Connecting...'
+        emptyDescription = 'Backend cold starting — Render Free (~30s). Chart data will load when the market-data service is available. No synthetic data is shown.'
       } else {
         if (session === 'LIVE') {
           emptyTitle = 'Live ticks but no candles loaded'
@@ -662,7 +660,7 @@ export function IndicatorChartShell({
     }
 
     return (
-      <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#070b12] border border-border/80 rounded-lg overflow-hidden">
+      <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#05070b] border border-border/80 rounded-lg overflow-hidden">
         {/* Render the toolbar */}
         {renderToolbar()}
 
@@ -671,8 +669,8 @@ export function IndicatorChartShell({
           <div className="absolute inset-0 opacity-40 chart-grid pointer-events-none" />
 
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-panel-2 shadow-sm relative z-10">
-            {apiStatus === 'OFFLINE' ? (
-              <AlertTriangle className="w-5 h-5 text-rose-400 animate-pulse" />
+            {apiConnecting ? (
+              <AlertTriangle className="w-5 h-5 text-warn animate-pulse" />
             ) : (
               <svg
                 width="20"
@@ -693,7 +691,7 @@ export function IndicatorChartShell({
             <div className="text-xs leading-relaxed text-text-dim">{emptyDescription}</div>
           </div>
 
-          {symbol && apiStatus !== 'OFFLINE' && (
+          {symbol && !apiConnecting && (
             <div className="flex items-center gap-3 relative z-10 mt-2">
               <button
                 type="button"
@@ -740,7 +738,7 @@ export function IndicatorChartShell({
   const tooltipY = tooltip ? (tooltip.y > 360 - 100 ? tooltip.y - 85 : tooltip.y + 15) : 0
 
   return (
-    <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#070b12] border border-border/80 rounded-lg overflow-hidden">
+    <div className="relative flex-1 min-h-[420px] flex flex-col bg-[#05070b] border border-border/80 rounded-lg overflow-hidden">
       {/* 1. Toolbar */}
       {renderToolbar()}
 
@@ -780,10 +778,10 @@ export function IndicatorChartShell({
       )}
 
       {/* 3. Main Chart Canvas Area */}
-      <div className="relative flex-1 bg-[#070b12]">
+      <div className="relative flex-1 bg-[#05070b]">
         {/* Hovered Price Details Panel */}
         {hoveredData && (
-          <div className="absolute right-4 top-4 z-20 rounded border border-border/80 bg-[#070b12]/90 backdrop-blur-sm px-2.5 py-1 text-xs flex items-center gap-3.5 font-mono text-text shadow-md select-none">
+          <div className="absolute right-4 top-4 z-20 rounded border border-border/80 bg-[#05070b]/90 px-2.5 py-1 text-xs flex items-center gap-3.5 font-mono text-text select-none">
             <div className="flex items-center gap-1">
               <span className="text-text-faint">O:</span>
               <span className="font-semibold">{hoveredData.open.toFixed(2)}</span>

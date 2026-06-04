@@ -119,7 +119,7 @@ function DesktopHome({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
     { tab: 'ai', title: 'AI market notes', body: 'Ask for explanation and risk context, not trade approval.', Icon: Brain },
     { tab: 'system', title: 'System status', body: 'Inspect connectivity and safety diagnostics when needed.', Icon: Activity },
   ]
-  const feedLabel = apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Waiting'
+  const feedLabel = apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Connecting...'
 
   return (
     <div className="grid min-h-[calc(100dvh-112px)] gap-4 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -209,7 +209,7 @@ function HomeGuardrails({
           MAET is running in paper research mode. Live broker actions are disabled.
         </p>
       </div>
-      <StatusLine label="Data feed" value={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Waiting'} good={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED'} />
+      <StatusLine label="Data feed" value={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Connecting...'} good={apiStatus === 'ONLINE' || wsStatus === 'CONNECTED'} />
       <StatusLine label="Safety" value="Live locked" good />
       <StatusLine label="Selected" value={selectedSymbol ?? 'Choose a symbol'} />
       <button
@@ -254,7 +254,7 @@ function StatusLine({ label, value, good }: { label: string; value: string; good
     <div className="flex items-center justify-between gap-3 rounded-md border border-maet-border bg-maet-surface px-3 py-2">
       <span className="text-xs text-maet-text-muted">{label}</span>
       <span className="flex items-center gap-2 font-mono text-xs font-bold text-maet-text">
-        {good != null && <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-red'} />}
+        {good != null && <span className={good ? 'h-1.5 w-1.5 rounded-full bg-maet-green' : 'h-1.5 w-1.5 rounded-full bg-maet-amber'} />}
         {value}
       </span>
     </div>

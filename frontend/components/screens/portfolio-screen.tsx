@@ -305,7 +305,7 @@ function EquityCurve({ points, locked }: { points: EquityCurvePoint[]; locked: b
     <div className="maet-glass bg-maet-ink-950/52 p-4">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[260px] w-full" role="img" aria-label="Portfolio equity curve">
         <path d={fillPath} fill="rgba(47,128,255,0.20)" />
-        <path d={path} fill="none" stroke="#22d3ee" strokeWidth="3" />
+        <path d={path} fill="none" stroke="#38bdf8" strokeWidth="3" />
       </svg>
     </div>
   )

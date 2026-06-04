@@ -19,13 +19,8 @@ export function AnimatedGrid({ className, opacity = 0.15 }: AnimatedGridProps) {
       <div 
         className="absolute inset-0"
         style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
-          `,
+          backgroundImage: 'none',
           backgroundSize: '24px 24px',
-          maskImage: 'radial-gradient(ellipse at 50% 50%, black 40%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at 50% 50%, black 40%, transparent 100%)',
         }}
       />
     </div>

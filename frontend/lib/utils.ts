@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { DataQuality, NseMarketSession, OperatorState } from './types'
+import type { ConnectionState, DataQuality, NseMarketSession } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -93,7 +93,7 @@ export function qualityClass(q: DataQuality | undefined): string {
     case 'UNAVAILABLE':
       return 'text-text-dim bg-white/[0.03] border-border'
     case 'BACKEND OFFLINE':
-      return 'text-down bg-down-dim border-down/25'
+      return 'text-warn bg-warn-dim border-warn/20'
     case 'MOCK':
       return 'text-info bg-info-dim border-info/20'
     case 'LOADING':
@@ -109,7 +109,7 @@ export function qualityClass(q: DataQuality | undefined): string {
   }
 }
 
-export function operatorClass(state: OperatorState): string {
+export function connectionStateClass(state: ConnectionState): string {
   switch (state) {
     case 'ONLINE':
       return 'text-up bg-up-dim border-up/20'
@@ -119,9 +119,8 @@ export function operatorClass(state: OperatorState): string {
     case 'STALE':
       return 'text-warn bg-warn-dim border-warn/20'
     case 'OFFLINE':
-      return 'text-down bg-down-dim border-down/25'
     case 'BACKEND OFFLINE':
-      return 'text-down bg-down-dim border-down/25'
+      return 'text-warn bg-warn-dim border-warn/20'
     case 'LOCKED':
       return 'text-text-dim bg-white/[0.04] border-border-strong'
     case 'UNAVAILABLE':
@@ -130,7 +129,7 @@ export function operatorClass(state: OperatorState): string {
   }
 }
 
-export function operatorDot(state: OperatorState): string {
+export function connectionStateDot(state: ConnectionState): string {
   switch (state) {
     case 'ONLINE':
       return 'bg-up shadow-[0_0_6px_rgba(22,199,132,0.6)]'
@@ -140,7 +139,7 @@ export function operatorDot(state: OperatorState): string {
       return 'bg-warn'
     case 'OFFLINE':
     case 'BACKEND OFFLINE':
-      return 'bg-down'
+      return 'bg-warn'
     case 'LOCKED':
       return 'bg-locked'
     default:
@@ -258,7 +257,8 @@ function severityForStatus(status: string): UiSeverity {
   if (['ONLINE', 'LIVE', 'READY', 'CONNECTED', 'OPEN', 'MARKET OPEN'].includes(status)) return 'ok'
   if (['LOCKED', 'PAPER LOCKED'].includes(status)) return 'locked'
   if (['CONNECTING', 'RECONNECTING', 'WAKING', 'WARMING', 'WAITING', 'STALE', 'DELAYED'].includes(status)) return 'warn'
-  if (['OFFLINE', 'BACKEND OFFLINE', 'ERROR', 'DISCONNECTED'].includes(status)) return 'bad'
+  if (['OFFLINE', 'BACKEND OFFLINE', 'DISCONNECTED'].includes(status)) return 'warn'
+  if (['ERROR'].includes(status)) return 'bad'
   if (['POST-MARKET', 'PRE-MARKET', 'MARKET CLOSED', 'WEEKEND'].includes(status)) return 'info'
   return 'muted'
 }

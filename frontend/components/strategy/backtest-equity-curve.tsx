@@ -39,7 +39,7 @@ export function BacktestEquityCurve({ points }: { points: BacktestEquityPoint[] 
             stroke="rgba(255,255,255,0.06)"
           />
         ))}
-        <polyline points={path} fill="none" stroke="#54c1ec" strokeWidth="2" />
+        <polyline points={path} fill="none" stroke="#38bdf8" strokeWidth="2" />
       </svg>
     </div>
   )

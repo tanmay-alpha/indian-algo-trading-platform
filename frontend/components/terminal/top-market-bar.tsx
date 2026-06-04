@@ -7,22 +7,36 @@ import { cn, getNseMarketSession } from '@/lib/utils'
 import { useIstClock } from '@/lib/use-ist-clock'
 import { WorkspacePresetSelector } from './workspace-preset-selector'
 import { ChartLayoutSelector } from './chart-layout-selector'
-import { OperatorStatusStrip } from './operator-status-strip'
+import { MarketStatusStrip } from './market-status-strip'
 import { SafetyBadgeGroup } from './safety-badge'
 import type { IndexSnapshot, NseMarketSession } from '@/lib/types'
 
 export function TopMarketBar() {
   const [mounted, setMounted] = useState(false)
+  const [coldStartVisible, setColdStartVisible] = useState(false)
+  const [coldStartDismissed, setColdStartDismissed] = useState(false)
   const indices = useTerminalStore((s) => s.indices)
-  const backendWakeState = useTerminalStore((s) => s.backendWakeState)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const istTime = useIstClock()
+  const apiConnecting = apiStatus === 'UNKNOWN' || apiStatus === 'WAKING' || apiStatus === 'OFFLINE'
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    if (!apiConnecting) {
+      setColdStartVisible(false)
+      setColdStartDismissed(false)
+      return undefined
+    }
+
+    const timer = window.setTimeout(() => setColdStartVisible(true), 30_000)
+    return () => window.clearTimeout(timer)
+  }, [apiConnecting])
+
   const session = mounted ? getNseMarketSession() : 'CLOSED'
+  const showColdStartBanner = apiConnecting && coldStartVisible && !coldStartDismissed
 
   const indexBySymbol: Record<string, IndexSnapshot | undefined> = {}
   if (indices) {
@@ -31,12 +45,18 @@ export function TopMarketBar() {
 
   return (
     <header className="flex h-topbar shrink-0 items-center border-b border-[#38bdf8]/10 bg-bg/85 backdrop-blur-sm glass-panel">
-      {(backendWakeState === 'WAKING' || apiStatus === 'OFFLINE') && (
-        <div className="absolute left-1/2 top-[48px] -translate-x-1/2 z-40 rounded border border-info/20 bg-bg-2/95 px-4 py-1.5 text-xs font-mono text-info shadow-modal backdrop-blur-sm">
-          <span className="mr-2 inline-block h-1 w-1 rounded-full bg-info animate-pulse-soft" />
-          {backendWakeState === 'WAKING'
-            ? 'Backend waking up... this can take about 30 seconds.'
-            : 'Backend unavailable - retrying.'}
+      {showColdStartBanner && (
+        <div className="absolute left-1/2 top-[48px] z-40 flex -translate-x-1/2 items-center gap-2 rounded-sm border border-warn/25 bg-warn-dim px-3 py-1.5 text-xs font-mono text-warn">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-warn animate-pulse-soft" />
+          <span>Backend cold starting — Render Free (~30s). Refresh if needed.</span>
+          <button
+            type="button"
+            onClick={() => setColdStartDismissed(true)}
+            className="ml-1 rounded-sm border border-warn/25 px-1.5 py-0.5 text-[10px] font-bold uppercase text-warn"
+            aria-label="Dismiss cold-start notice"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -67,7 +87,7 @@ export function TopMarketBar() {
       </div>
 
       <div className="flex h-full min-w-[300px] max-w-[34vw] shrink-0 items-stretch border-r border-border">
-        <OperatorStatusStrip />
+        <MarketStatusStrip />
       </div>
 
       <div className="flex h-full shrink-0 items-center gap-2 px-3">

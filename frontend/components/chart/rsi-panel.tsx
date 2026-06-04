@@ -30,10 +30,10 @@ export function RsiPanel({ points }: { points: IndicatorPoint[] }) {
               x2={WIDTH - PAD_X}
               y1={yAt(level)}
               y2={yAt(level)}
-              stroke={level === 50 ? 'rgba(255,255,255,0.12)' : 'rgba(240,169,40,0.22)'}
+              stroke={level === 50 ? 'rgba(255,255,255,0.10)' : 'rgba(245,158,11,0.22)'}
               strokeDasharray={level === 50 ? undefined : '5 5'}
             />
-            <text x={WIDTH - PAD_X + 8} y={yAt(level) + 3} fill="#6b7589" fontSize="10">{level}</text>
+            <text x={WIDTH - PAD_X + 8} y={yAt(level) + 3} fill="#475569" fontSize="10">{level}</text>
           </g>
         ))}
         {buildSegments(points).map((segment, index) => (
@@ -41,7 +41,7 @@ export function RsiPanel({ points }: { points: IndicatorPoint[] }) {
             key={index}
             points={segment}
             fill="none"
-            stroke="#54c1ec"
+            stroke="#38bdf8"
             strokeWidth={2}
             strokeLinecap="round"
           />

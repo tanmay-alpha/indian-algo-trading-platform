@@ -21,7 +21,7 @@ export function ConnectionStatusPill({
   className,
   detail,
 }: ConnectionStatusPillProps) {
-  const displayStatus = statusText || (connected ? 'CONNECTED' : 'OFFLINE')
+  const displayStatus = statusText || (connected ? 'CONNECTED' : 'Connecting...')
 
   return (
     <div
@@ -34,14 +34,14 @@ export function ConnectionStatusPill({
       <span
         className={cn(
           'w-1.5 h-1.5 rounded-full',
-          connected && !stale ? 'bg-up live-dot' : stale ? 'bg-warn animate-pulse-soft' : 'bg-down'
+          connected && !stale ? 'bg-up live-dot' : stale ? 'bg-warn animate-pulse-soft' : 'bg-warn animate-pulse-soft'
         )}
       />
       <span className="text-text-faint">{label}</span>
       <span
         className={cn(
           'font-semibold',
-          connected && !stale ? 'text-up' : stale ? 'text-warn' : 'text-down'
+          connected && !stale ? 'text-up' : 'text-warn'
         )}
       >
         {displayStatus}

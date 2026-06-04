@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { useTerminalStore } from '@/store/terminal-store'
 import { cn } from '@/lib/utils'
 import { WORKSPACES } from '@/lib/constants'
@@ -7,7 +8,6 @@ import { useNow } from '@/lib/use-now'
 
 export function StatusBar() {
   const wsConnected = useTerminalStore((s) => s.wsConnected)
-  const wsStatus = useTerminalStore((s) => s.wsStatus)
   const apiStatus = useTerminalStore((s) => s.apiStatus)
   const broker = useTerminalStore((s) => s.brokerStatus)
   const status = useTerminalStore((s) => s.terminalStatus)
@@ -16,6 +16,8 @@ export function StatusBar() {
   const portfolioSummary = useTerminalStore((s) => s.portfolioSummary)
   const lastTickAt = useTerminalStore((s) => s.lastTickAt)
   const now = useNow()
+  const previousApiStatus = useRef(apiStatus)
+  const [apiFlash, setApiFlash] = useState(false)
 
   const tickCount = status?.tick_bus?.total ?? status?.gateway?.tick_count ?? null
   const dropRate = status?.tick_bus?.drop_rate_pct ?? status?.gateway?.drop_rate_pct ?? null
@@ -26,25 +28,43 @@ export function StatusBar() {
   const brokerOnline = Boolean(broker?.logged_in)
   const workspace = WORKSPACES.find((item) => item.id === activeWorkspace)?.short ?? activeWorkspace
   const netPnl = portfolioSummary?.net_pnl ?? null
+  const apiOnline = apiStatus === 'ONLINE'
+  const apiDisplay = apiOnline ? 'ONLINE' : 'Connecting...'
+  const wsDisplay = wsConnected ? 'WS CONNECTED' : 'WS CONNECTING'
+
+  useEffect(() => {
+    if (apiStatus === 'ONLINE' && previousApiStatus.current !== 'ONLINE') {
+      setApiFlash(true)
+      const timer = window.setTimeout(() => setApiFlash(false), 600)
+      previousApiStatus.current = apiStatus
+      return () => window.clearTimeout(timer)
+    }
+    previousApiStatus.current = apiStatus
+    return undefined
+  }, [apiStatus])
 
   return (
     <footer className="hidden md:flex h-statusbar shrink-0 items-stretch border-t border-border bg-bg font-mono text-xs">
       <div
         className={cn(
           'flex shrink-0 items-center gap-1.5 border-r border-border px-3',
-          wsConnected ? 'text-up' : 'text-text-faint'
+          wsConnected ? 'text-up' : 'text-warn'
         )}
       >
         <span
           className={cn(
             'h-1.5 w-1.5 rounded-full',
-            wsConnected ? 'bg-up animate-pulse-soft' : 'bg-text-faint/40'
+            wsConnected ? 'bg-up animate-pulse-soft' : 'bg-warn animate-pulse-soft'
           )}
         />
-        <span>{wsConnected ? 'WS CONNECTED' : wsStatus}</span>
+        <span>{wsDisplay}</span>
       </div>
 
-      <StatusCell label="API" value={apiStatus} valueClass={apiStatus === 'ONLINE' ? 'text-up' : 'text-text-dim'} />
+      <StatusCell
+        label="API"
+        value={apiDisplay}
+        valueClass={cn(apiOnline ? 'text-up' : 'text-warn', apiFlash && 'flash-up')}
+      />
       <StatusCell label="BRK" value={brokerOnline ? 'ONLINE' : '—'} valueClass={brokerOnline ? 'text-up' : 'text-text-dim'} />
       <StatusCell label="TICKS" value={tickCount ?? '—'} valueClass="text-text-2 tabular-nums" />
       <StatusCell

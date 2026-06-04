@@ -10,12 +10,12 @@ export function RiskPreview() {
 
   const rows = [
     ['Execution', mode === 'PAPER' ? 'LOCKED TO PAPER' : 'LIVE GATED'],
-    ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'OFFLINE' : '—'],
-    ['Feed', broker?.feed_token_available ? 'AVAILABLE' : '—'],
-    ['Tick Drop', status?.tick_bus?.drop_rate_pct == null ? '—' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
-    ['Max Qty', '—'],
-    ['Max Notional', '—'],
-    ['Max Daily Loss', '—'],
+    ['Broker', broker?.logged_in ? 'ONLINE' : broker ? 'Connecting...' : '-'],
+    ['Feed', broker?.feed_token_available ? 'AVAILABLE' : '-'],
+    ['Tick Drop', status?.tick_bus?.drop_rate_pct == null ? '-' : `${status.tick_bus.drop_rate_pct.toFixed(2)}%`],
+    ['Max Qty', '-'],
+    ['Max Notional', '-'],
+    ['Max Daily Loss', '-'],
     ['Stale Data Rule', 'BLOCK'],
     ['Kill Switch', 'PLACEHOLDER'],
   ]
@@ -28,10 +28,10 @@ export function RiskPreview() {
       </div>
       <div className="grid grid-cols-1 gap-2">
         {rows.map(([label, value]) => (
-        <div key={label} className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-md font-mono text-xs">
-          <span className="text-text-dim">{label}</span>
-          <span className="text-text">{value}</span>
-        </div>
+          <div key={label} className="h-8 px-2 flex items-center justify-between border border-border bg-panel/60 rounded-md font-mono text-xs">
+            <span className="text-text-dim">{label}</span>
+            <span className="text-text">{value}</span>
+          </div>
         ))}
       </div>
       <div className="border border-warn/20 bg-warn-dim text-warn rounded-sm p-2 text-2xs font-mono leading-relaxed">

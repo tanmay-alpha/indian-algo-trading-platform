@@ -65,13 +65,13 @@ export function SafetyStatusCard() {
         <StatusRow
           icon={<Activity className="w-3.5 h-3.5 text-text-faint" />}
           label="Backend API"
-          value={isOnline ? 'ONLINE' : backendOffline ? 'OFFLINE' : 'WAKING'}
+          value={isOnline ? 'ONLINE' : 'Connecting...'}
           valueClass={isOnline ? 'text-up' : 'text-warn'}
         />
         <StatusRow
           icon={<Activity className="w-3.5 h-3.5 text-text-faint" />}
           label="WebSocket"
-          value={isConnected ? 'CONNECTED' : wsStatus ?? 'OFFLINE'}
+          value={isConnected ? 'CONNECTED' : 'Connecting...'}
           valueClass={isConnected ? 'text-up' : 'text-warn'}
         />
         <StatusRow

@@ -21,7 +21,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const session = useMarketSession()
   const topSymbols = symbols.slice(0, 5)
   const marketDataUnavailable = apiStatus !== 'ONLINE'
-  const feedLabel = apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Waiting'
+  const feedLabel = apiStatus === 'ONLINE' || wsStatus === 'CONNECTED' ? 'Available' : 'Connecting...'
   const sessionLabel = session === 'OPEN' ? 'Open' : session.replace(/_/g, ' ')
 
   return (
@@ -155,7 +155,7 @@ function StateTile({ label, value, state }: { label: string; value: string; stat
       ? 'bg-maet-green'
       : state === 'locked'
       ? 'bg-maet-amber'
-      : 'bg-maet-blue-soft'
+      : 'bg-maet-amber'
   return (
     <div className="rounded-2xl border border-maet-glass-border bg-maet-bg-deep/40 px-3 py-2 shadow-inner">
       <div className="text-xs text-maet-text-muted">{label}</div>

@@ -70,9 +70,9 @@ export function DesktopSidebar({ active, onNavigate }: DesktopSidebarProps) {
 
       <div className="mt-auto overflow-hidden rounded-2xl border border-maet-glass-border bg-maet-glass-1 p-2 shadow-inner">
         <div className="flex items-center gap-2">
-          <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', dataOnline ? 'bg-maet-green shadow-[0_0_10px_rgba(0,214,143,0.7)]' : 'bg-maet-red')} />
+          <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', dataOnline ? 'bg-maet-green shadow-[0_0_10px_rgba(0,214,143,0.7)]' : 'bg-maet-amber pulse-soft')} />
           <div className="sr-only">
-            <div className="truncate font-mono text-xs font-bold text-maet-text">{dataOnline ? 'Market data connected' : 'Market data waiting'}</div>
+            <div className="truncate font-mono text-xs font-bold text-maet-text">{dataOnline ? 'Market data connected' : 'Market data connecting'}</div>
             <div className="truncate text-xs text-maet-text-muted">Connection status</div>
           </div>
         </div>

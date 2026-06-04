@@ -1,13 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="maetIconGradient" x1="10" x2="54" y1="8" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="0.55" stop-color="#2f80ff"/>
-      <stop offset="1" stop-color="#16c784"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="#020617"/>
-  <rect x="5" y="5" width="54" height="54" rx="12" fill="none" stroke="url(#maetIconGradient)" stroke-width="2"/>
-  <path d="M16 45V19h6l10 16 10-16h6v26h-7V31L34 42h-4L23 31v14h-7Z" fill="#f8fafc"/>
-  <path d="M18 50h28" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
+  <rect width="64" height="64" rx="4" fill="#05070B"/>
+  <rect x="5" y="5" width="54" height="54" rx="4" fill="none" stroke="#38BDF8" stroke-width="2"/>
+  <path d="M16 45V19h6l10 16 10-16h6v26h-7V31L34 42h-4L23 31v14h-7Z" fill="#E2E8F0"/>
+  <path d="M18 50h28" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
 </svg>

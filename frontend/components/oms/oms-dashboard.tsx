@@ -527,7 +527,7 @@ function DataStateBadge({ state }: { state: OmsDataState }) {
     LOADING: { label: 'LOADING', cls: 'text-text-dim border-border' },
     ONLINE: { label: 'LIVE', cls: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/5' },
     ADMIN_REQUIRED: { label: 'LOCKED', cls: 'text-amber-400 border-amber-500/30 bg-amber-500/5' },
-    BACKEND_UNAVAILABLE: { label: 'OFFLINE', cls: 'text-rose-400 border-rose-500/30 bg-rose-500/5' },
+    BACKEND_UNAVAILABLE: { label: 'Connecting...', cls: 'text-amber-400 border-amber-500/30 bg-amber-500/5' },
     ERROR: { label: 'ERROR', cls: 'text-rose-400 border-rose-500/30' },
   }
   const { label, cls } = map[state] ?? map.ERROR

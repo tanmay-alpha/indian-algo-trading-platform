@@ -30,10 +30,10 @@ const productBadges = [
 ]
 
 const watchRows = [
-  { symbol: 'RELIANCE', name: 'Reliance Industries', state: 'Waiting' },
-  { symbol: 'SBIN', name: 'State Bank of India', state: 'Waiting' },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank', state: 'Waiting' },
-  { symbol: 'INFY', name: 'Infosys', state: 'Waiting' },
+  { symbol: 'RELIANCE', name: 'Reliance Industries', price: '₹2,847.50', changePct: '+1.24%', direction: 'up' },
+  { symbol: 'SBIN', name: 'State Bank of India', price: '₹834.20', changePct: '+0.68%', direction: 'up' },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank', price: '₹1,712.80', changePct: '-0.31%', direction: 'down' },
+  { symbol: 'INFY', name: 'Infosys', price: '₹1,623.40', changePct: '+0.45%', direction: 'up' },
 ]
 
 const previewSteps = ['Watchlist', 'Chart', 'Dry-run', 'Portfolio']
@@ -110,7 +110,7 @@ export default function LandingPage() {
       <header className="relative z-10 border-b border-white/10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl border border-maet-glass-border bg-gradient-to-br from-maet-cyan to-maet-blue font-heading text-lg font-extrabold text-[#00111f] shadow-cyan">
+            <div className="grid h-11 w-11 place-items-center rounded-xl border border-maet-glass-border bg-maet-cyan font-heading text-lg font-extrabold text-[#05070b]">
               M
             </div>
             <div>
@@ -264,7 +264,7 @@ function ProductPreview() {
         <PremiumCard strong className="p-3 shadow-float">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-2 pb-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-maet-glass-border bg-gradient-to-br from-maet-cyan to-maet-blue font-heading text-base font-extrabold text-[#00111f]">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-maet-glass-border bg-maet-cyan font-heading text-base font-extrabold text-[#05070b]">
                 M
               </div>
               <div>
@@ -290,7 +290,10 @@ function ProductPreview() {
           </div>
 
           <div className="grid min-h-[440px] gap-3 pt-3 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
-            <div className="maet-glass flex min-h-0 flex-col p-3">
+            <div className="maet-glass relative flex min-h-0 flex-col p-3">
+              <span className="absolute right-3 top-3 inline-flex h-6 items-center rounded-sm border border-maet-amber/30 bg-maet-amber/10 px-2 font-mono text-[10px] font-extrabold uppercase text-maet-amber">
+                DEMO · Not live data
+              </span>
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <div className="font-heading text-sm font-bold">Watchlist</div>
@@ -302,19 +305,19 @@ function ProductPreview() {
                 {watchRows.map((row, index) => (
                   <div
                     key={row.symbol}
-                    className={`grid h-[54px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border px-3 ${
+                    className={`grid h-8 grid-cols-[82px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-sm border px-2 ${
                       index === 0
                         ? 'border-maet-cyan/40 bg-maet-cyan/10'
                         : 'border-maet-glass-border bg-maet-ink-950/40'
                     }`}
                   >
-                    <div className="min-w-0">
-                      <div className="truncate font-mono text-sm font-extrabold text-maet-text">{row.symbol}</div>
-                      <div className="truncate text-xs text-maet-text-muted">{row.name}</div>
-                    </div>
+                    <div className="truncate font-mono text-xs font-extrabold text-maet-text">{row.symbol}</div>
+                    <div className="min-w-0 truncate text-xs text-maet-text-muted">{row.name}</div>
                     <div className="text-right">
-                      <div className="font-mono text-sm font-bold text-maet-text-muted">--</div>
-                      <div className="text-xs font-bold text-maet-text-faint">{row.state}</div>
+                      <div className="mono tabular text-xs font-bold text-maet-text">{row.price}</div>
+                    </div>
+                    <div className={`mono tabular text-right text-xs font-bold ${row.direction === 'up' ? 'price-up' : 'price-down'}`}>
+                      {row.changePct}
                     </div>
                   </div>
                 ))}
@@ -342,8 +345,8 @@ function ProductPreview() {
                 <svg className="absolute inset-0 h-full w-full" viewBox="0 0 640 360" role="img" aria-label="Visual demo chart, not live market data">
                   <defs>
                     <linearGradient id="landingChartLine" x1="0" x2="1" y1="0" y2="0">
-                      <stop stopColor="#22d3ee" />
-                      <stop offset="0.56" stopColor="#2f80ff" />
+                      <stop stopColor="#38bdf8" />
+                      <stop offset="0.56" stopColor="#38bdf8" />
                       <stop offset="1" stopColor="#16c784" />
                     </linearGradient>
                     <linearGradient id="landingArea" x1="0" x2="0" y1="0" y2="1">
@@ -355,7 +358,7 @@ function ProductPreview() {
                   <path d="M38 260 C112 202 142 278 204 180 C268 78 314 194 384 136 C456 80 500 118 586 58" fill="none" stroke="url(#landingChartLine)" strokeLinecap="round" strokeWidth="5" />
                   <path d="M52 302 H592" stroke="rgba(148,163,184,0.28)" strokeWidth="1" />
                 </svg>
-                <div className="absolute bottom-4 left-4 rounded-xl border border-maet-amber/30 bg-maet-amber/10 px-3 py-2 backdrop-blur-xl">
+                <div className="absolute bottom-4 left-4 rounded-xl border border-maet-amber/30 bg-maet-amber/10 px-3 py-2">
                   <div className="text-xs font-bold text-maet-amber">Visual demo</div>
                   <div className="text-xs text-maet-text-muted">Not live market data</div>
                 </div>

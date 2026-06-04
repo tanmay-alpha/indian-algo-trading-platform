@@ -43,8 +43,8 @@ export function MacdPanel({ points }: { points: MacdPoint[] }) {
             />
           )
         })}
-        <MacdLine points={points} range={range} color="#54c1ec" valueOf={(point) => point.macd} />
-        <MacdLine points={points} range={range} color="#f0a928" valueOf={(point) => point.signal} />
+        <MacdLine points={points} range={range} color="#38bdf8" valueOf={(point) => point.macd} />
+        <MacdLine points={points} range={range} color="#f59e0b" valueOf={(point) => point.signal} />
       </svg>
     </div>
   )

@@ -58,7 +58,7 @@ export type PortfolioDataQuality =
   | 'LOADING'
   | 'ERROR'
 
-export type OperatorState =
+export type ConnectionState =
   | 'ONLINE'
   | 'DEGRADED'
   | 'RECONNECTING'
@@ -192,7 +192,7 @@ export interface PortfolioPerformance {
   max_drawdown: number
 }
 
-// ----- System / Operator status -----
+// ----- System / connection status -----
 export interface GatewayStatus {
   connection_state?: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED'
   tick_count?: number
