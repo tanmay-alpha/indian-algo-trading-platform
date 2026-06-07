@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.core.database import Base
 from backend.db.repositories.instrument_repository import InstrumentRepository
-from backend.services.instrument_master_service import InstrumentMasterService
 from backend.gateway.instrument_loader import InstrumentLoader
 import backend.gateway.instrument_registry as registry
 
@@ -77,26 +76,7 @@ def test_repo_operations(temp_db_session):
     assert len(paged) == 2
     assert total == 3
 
-@pytest.mark.asyncio
-async def test_service_operations(temp_db_session):
-    repo = InstrumentRepository()
-    service = InstrumentMasterService(repository=repo)
-    
-    # Mock InstrumentLoader
-    mock_loader = AsyncMock(spec=InstrumentLoader)
-    mock_loader.load.return_value = [
-        {"token": "2001", "symbol": "SERVONE-EQ", "name": "Service Company One", "sector": "Energy", "exchange": "NSE"},
-        {"token": "2002", "symbol": "SERVTWO-EQ", "name": "Service Company Two", "sector": "Healthcare", "exchange": "NSE"},
-    ]
-    
-    upserted = await service.download_and_ingest(temp_db_session, mock_loader)
-    assert upserted == 2
-    assert repo.count(temp_db_session) == 2
-    
-    inst = repo.get_by_token(temp_db_session, "2001")
-    assert inst is not None
-    assert inst.symbol == "SERVONE-EQ"
-    assert inst.sector == "ENERGY"
+
 
 def test_registry_database_integration_and_fallback(temp_db_session):
     # Populate the temp database

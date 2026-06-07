@@ -1,7 +1,4 @@
-import asyncio
 from typing import Optional
-
-from loguru import logger
 
 from backend.core.events import OrderRequestEvent, OrderStateEvent, LogEvent
 from backend.core.types import OrderSide, OrderStatus, OrderType, TradingMode
@@ -51,6 +48,27 @@ class LiveOrderManager:
         rejection = self._safety_rejection(order_request)
         if rejection:
             return self._rejected_event(order_request, rejection)
+
+        # Pre-flight gate check (validates market staleness, session validity, kill switch, max notional, etc.)
+        est_notional = (ltp or 0.0) * order_request.quantity
+        preflight_result = self.preflight_gate.evaluate(
+            trading_mode=self.trading_mode,
+            live_enabled=self.live_enabled,
+            symbol=order_request.symbol,
+            quantity=order_request.quantity,
+            estimated_notional=est_notional,
+        )
+        if not preflight_result.passed:
+            reason = preflight_result.reason or "preflight_failed"
+            if self.event_bus:
+                await self.event_bus.publish(
+                    LogEvent(
+                        level="WARNING",
+                        component="LIVE_SAFETY",
+                        message=f"Live order preflight checks failed: {reason}"
+                    )
+                )
+            return self._rejected_event(order_request, reason)
 
         # 2. Broker Mutation Guard Check (Blocks all mutations by default)
         guard_result = self.mutation_guard.check_mutation("place_order", {"request": order_request})

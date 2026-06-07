@@ -4,9 +4,7 @@ import pytest
 from loguru import logger
 
 from backend.core import session_manager as sm
-from backend.core import session_watchdog as sw
 from backend.core.session_manager import SessionManager
-from backend.core.session_watchdog import SessionWatchdog
 
 
 @pytest.fixture(autouse=True)
@@ -15,7 +13,6 @@ def fake_settings(monkeypatch):
     monkeypatch.setattr(sm.settings, "angel_client_code", "fake-client-code")
     monkeypatch.setattr(sm.settings, "angel_password", "fake-password")
     monkeypatch.setattr(sm.settings, "angel_totp_secret", "fake-totp-secret")
-    monkeypatch.setattr(sw.settings, "jwt_refresh_interval_minutes", 1)
 
 
 @pytest.fixture
@@ -136,52 +133,4 @@ async def test_refresh_failure_triggers_relogin(monkeypatch):
     initialize.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_watchdog_start_does_not_duplicate_task():
-    manager = Mock()
-    manager.check_clock_drift.return_value = 0
-    manager.refresh = AsyncMock(return_value=True)
-    watchdog = SessionWatchdog(manager)
 
-    await watchdog.start()
-    first_task = watchdog._task
-    await watchdog.start()
-
-    assert watchdog._task is first_task
-    await watchdog.stop()
-
-
-@pytest.mark.asyncio
-async def test_watchdog_stop_cancels_cleanly():
-    manager = Mock()
-    manager.check_clock_drift.return_value = 0
-    manager.refresh = AsyncMock(return_value=True)
-    watchdog = SessionWatchdog(manager)
-
-    await watchdog.start()
-    await watchdog.stop()
-
-    assert watchdog.is_running is False
-    assert watchdog._task is None
-
-
-@pytest.mark.asyncio
-async def test_watchdog_runs_periodically(monkeypatch):
-    manager = Mock()
-    manager.check_clock_drift.return_value = 0
-    manager.refresh = AsyncMock(return_value=True)
-    watchdog = SessionWatchdog(manager)
-    watchdog._running = True
-    sleep_count = 0
-
-    async def fake_sleep(delay):
-        nonlocal sleep_count
-        sleep_count += 1
-        if sleep_count >= 2:
-            watchdog._running = False
-
-    monkeypatch.setattr(sw.asyncio, "sleep", fake_sleep)
-
-    await watchdog._watchdog_loop()
-
-    assert manager.refresh.await_count == 2

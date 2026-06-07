@@ -94,6 +94,9 @@ class ExecutionRouter:
             trading_mode=self.mode,
             live_enabled=self.live_enabled,
         )
+        self.live_manager.preflight_gate.kill_switch = self.kill_switch
+        self.live_manager.preflight_gate.market_watch = self.market_watch
+        self.live_manager.preflight_gate.settings = settings
         self.executor = self.paper_manager if self.mode == TradingMode.PAPER.value else self.live_manager
         self._processed_request_ids: set[str] = set()
 
