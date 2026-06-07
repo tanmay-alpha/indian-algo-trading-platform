@@ -1,15 +1,39 @@
+@import '../src/styles/tokens.css';
+
 :root {
-  /* Nifty Dark: finance-first surfaces. */
-  --bg-void: #05070b;
-  --bg-base: #0a0e16;
-  --bg-panel: #0f1520;
-  --bg-card: #141b28;
+  --bg-void: var(--color-bg-base);
+  --bg-base: var(--color-bg-base);
+  --bg-panel: var(--color-bg-panel);
+  --bg-card: var(--color-bg-surface);
+
+  --up: var(--color-up);
+  --up-dim: rgba(34, 197, 94, 0.12);
+  --down: var(--color-dn);
+  --down-dim: rgba(239, 68, 68, 0.12);
+  --dn: var(--color-dn);
+  --dn-dim: rgba(239, 68, 68, 0.12);
+  --neutral: var(--color-accent);
+  --neutral-dim: var(--color-accent-dim);
+  --warn: var(--color-warn);
+  --warn-dim: rgba(245, 158, 11, 0.12);
+  --locked: var(--color-text-muted);
+
+  --text-1: var(--color-text-primary);
+  --text-2: var(--color-text-muted);
+  --text-3: var(--color-text-hint);
+  --text-4: #1f2937;
+  --border: var(--color-border);
+  --border-2: var(--color-border-strong);
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --font-sans: var(--font-ui);
 
   --maet-ink-950: var(--bg-void);
   --maet-ink-900: var(--bg-base);
   --maet-ink-850: var(--bg-panel);
   --maet-ink-800: var(--bg-card);
-  --maet-ink-760: #182233;
+  --maet-ink-760: var(--color-bg-hover);
 
   --maet-panel: var(--bg-panel);
   --maet-panel-soft: var(--bg-panel);
@@ -18,25 +42,25 @@
 
   --maet-glass-bg: var(--bg-panel);
   --maet-glass-bg-strong: var(--bg-card);
-  --maet-glass-border: rgba(255, 255, 255, 0.055);
-  --maet-glass-border-strong: rgba(255, 255, 255, 0.10);
-  --maet-glass-highlight: rgba(255, 255, 255, 0.10);
+  --maet-glass-border: var(--border);
+  --maet-glass-border-strong: var(--border-2);
+  --maet-glass-highlight: var(--border-2);
 
-  --maet-text: #e2e8f0;
-  --maet-text-soft: #94a3b8;
-  --maet-text-muted: #94a3b8;
-  --maet-text-faint: #475569;
-  --maet-text-ghost: #2d3748;
+  --maet-text: var(--text-1);
+  --maet-text-soft: var(--text-2);
+  --maet-text-muted: var(--text-2);
+  --maet-text-faint: var(--text-3);
+  --maet-text-ghost: var(--text-4);
 
-  --maet-green: #16c784;
-  --maet-red: #ea3943;
-  --maet-cyan: #38bdf8;
-  --maet-blue: #38bdf8;
-  --maet-blue-soft: #38bdf8;
-  --maet-blue-strong: #0ea5e9;
-  --maet-amber: #f59e0b;
+  --maet-green: var(--up);
+  --maet-red: var(--down);
+  --maet-cyan: var(--neutral);
+  --maet-blue: var(--neutral);
+  --maet-blue-soft: var(--neutral);
+  --maet-blue-strong: #2563eb;
+  --maet-amber: var(--warn);
   --maet-violet: #818cf8;
-  --maet-locked: #64748b;
+  --maet-locked: var(--locked);
 
   --maet-glow-cyan: transparent;
   --maet-glow-blue: transparent;
@@ -51,11 +75,11 @@
   --maet-shadow-inner: none;
   --maet-shadow-rail: none;
 
-  --maet-radius-xs: 2px;
-  --maet-radius-sm: 2px;
-  --maet-radius-md: 4px;
-  --maet-radius-lg: 4px;
-  --maet-radius-xl: 4px;
+  --maet-radius-xs: var(--radius-sm);
+  --maet-radius-sm: var(--radius-sm);
+  --maet-radius-md: var(--radius-md);
+  --maet-radius-lg: var(--radius-md);
+  --maet-radius-xl: var(--radius-md);
 
   --safety-locked: var(--maet-locked);
   --safety-paper: var(--maet-amber);
@@ -68,7 +92,6 @@
   --safety-strip-h: 46px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* Backwards-compatible aliases used by existing MAET components. */
   --maet-bg-deep: var(--bg-void);
   --maet-bg-night: var(--bg-base);
   --maet-bg-ink: var(--bg-panel);
@@ -79,7 +102,7 @@
 
   --maet-glass-1: var(--bg-panel);
   --maet-glass-2: var(--bg-card);
-  --maet-glass-3: rgba(255, 255, 255, 0.10);
+  --maet-glass-3: var(--border-2);
   --maet-glass-edge: var(--maet-glass-highlight);
 
   --maet-text-main: var(--maet-text);
@@ -90,39 +113,32 @@
   --bg-surface: var(--bg-panel);
   --bg-elevated: var(--bg-card);
   --bg-overlay: var(--bg-panel);
-  --border-subtle: rgba(255, 255, 255, 0.055);
-  --border-strong: rgba(255, 255, 255, 0.10);
-  --text-primary: var(--maet-text);
-  --text-secondary: var(--maet-text-soft);
-  --text-muted: var(--maet-text-muted);
-  --text-faint: var(--maet-text-faint);
-  --accent-green: var(--maet-green);
-  --accent-red: var(--maet-red);
-  --accent-amber: var(--maet-amber);
-  --accent-blue: var(--maet-blue);
+  --border-subtle: var(--border);
+  --border-strong: var(--border-2);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-muted: var(--text-2);
+  --text-faint: var(--text-3);
+  --accent-green: var(--up);
+  --accent-red: var(--down);
+  --accent-amber: var(--warn);
+  --accent-blue: var(--neutral);
   --accent-violet: var(--maet-violet);
 
   --bg: var(--bg-base);
   --bg-2: var(--bg-panel);
   --panel: var(--bg-panel);
   --panel-2: var(--bg-card);
-  --panel-3: var(--bg-card);
-  --border: var(--border-subtle);
-  --border-accent: rgba(56, 189, 248, 0.34);
-  --border-card: var(--border-subtle);
+  --panel-3: var(--color-bg-hover);
+  --border-accent: rgba(59, 130, 246, 0.34);
+  --border-card: var(--border);
   --text: var(--text-primary);
   --text-2: var(--text-secondary);
   --text-dim: var(--text-secondary);
-  --up: var(--accent-green);
-  --up-dim: rgba(22, 199, 132, 0.10);
   --up-glow: transparent;
-  --down: var(--accent-red);
-  --down-dim: rgba(234, 57, 67, 0.10);
-  --warn: var(--accent-amber);
-  --warn-dim: rgba(245, 158, 11, 0.10);
-  --info: var(--accent-blue);
-  --info-dim: rgba(56, 189, 248, 0.10);
-  --locked: var(--maet-locked);
+  --down-glow: transparent;
+  --info: var(--neutral);
+  --info-dim: var(--neutral-dim);
   --violet: var(--accent-violet);
   --violet-dim: rgba(129, 140, 248, 0.10);
   --paper: var(--safety-paper);

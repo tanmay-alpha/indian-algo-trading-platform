@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { SafetyStrip } from '@/components/layout/safety-strip'
 import { ToastProvider } from '@/components/ui-maet/toast'
 import './globals.css'
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ['latin'],
+  weight: ['400', '500'],
   display: 'swap',
-  variable: '--font-sans',
+  variable: '--font-ui',
 })
 
 const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
+  weight: ['400', '500'],
   display: 'swap',
   variable: '--font-mono',
 })
@@ -39,9 +41,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrains.variable} bg-maet-base`}
+      className={`${dmSans.variable} ${jetbrains.variable} bg-base`}
     >
-      <body className="bg-maet-base text-maet-text antialiased">
+      <body className="bg-base text-primary antialiased">
         <ToastProvider>
           <SafetyStrip />
           {children}

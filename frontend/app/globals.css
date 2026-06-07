@@ -5,29 +5,30 @@
 @tailwind utilities;
 
 :root {
-  --bg-void:    #05070B;
-  --bg-base:    #0A0E16;
-  --bg-panel:   #0F1520;
-  --bg-card:    #141B28;
-  --up:         #16C784;
-  --up-dim:     rgba(22,199,132,0.12);
-  --down:       #EA3943;
-  --down-dim:   rgba(234,57,67,0.12);
-  --neutral:    #38BDF8;
-  --neutral-dim:rgba(56,189,248,0.10);
-  --warn:       #F59E0B;
-  --warn-dim:   rgba(245,158,11,0.10);
-  --locked:     #64748B;
-  --text-1:     #E2E8F0;
-  --text-2:     #94A3B8;
-  --text-3:     #475569;
-  --text-4:     #2D3748;
-  --border:     rgba(255,255,255,0.055);
-  --border-2:   rgba(255,255,255,0.10);
+  --bg-void:    var(--color-bg-base);
+  --bg-base:    var(--color-bg-base);
+  --bg-panel:   var(--color-bg-panel);
+  --bg-card:    var(--color-bg-surface);
+  --up:         var(--color-up);
+  --up-dim:     rgba(34,197,94,0.12);
+  --down:       var(--color-dn);
+  --down-dim:   rgba(239,68,68,0.12);
+  --dn:         var(--color-dn);
+  --dn-dim:     rgba(239,68,68,0.12);
+  --neutral:    var(--color-accent);
+  --neutral-dim:var(--color-accent-dim);
+  --warn:       var(--color-warn);
+  --warn-dim:   rgba(245,158,11,0.12);
+  --locked:     var(--color-text-muted);
+  --text-1:     var(--color-text-primary);
+  --text-2:     var(--color-text-muted);
+  --text-3:     var(--color-text-hint);
+  --text-4:     #1f2937;
+  --border:     var(--color-border);
+  --border-2:   var(--color-border-strong);
   --radius-sm:  2px;
   --radius-md:  4px;
-  --font-mono:  'JetBrains Mono', ui-monospace, monospace;
-  --font-ui:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:  var(--font-ui);
 }
 
 :root {
@@ -52,7 +53,7 @@
   --maet-green: var(--up);
   --maet-red: var(--down);
   --maet-amber: var(--warn);
-  --maet-violet: #A78BFA;
+  --maet-violet: #818cf8;
   --maet-glass-bg: var(--bg-card);
   --maet-glass-border: var(--border);
   --maet-glass-border-strong: var(--border-2);
