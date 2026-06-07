@@ -1,0 +1,12 @@
+export const DEMO_SYMBOLS = [
+  { sym: 'RELIANCE', name: 'Reliance Industries', price: 2847.50, chg: +1.24, open: 2811.00, high: 2861.80, low: 2796.40 },
+  { sym: 'SBIN', name: 'State Bank of India', price: 792.30, chg: +0.68, open: 786.50, high: 797.10, low: 783.20 },
+  { sym: 'HDFCBANK', name: 'HDFC Bank', price: 1641.75, chg: -0.33, open: 1647.00, high: 1655.00, low: 1634.00 },
+  { sym: 'INFY', name: 'Infosys', price: 1538.45, chg: +2.11, open: 1509.00, high: 1548.00, low: 1504.00 },
+  { sym: 'TCS', name: 'Tata Consultancy', price: 3421.00, chg: -0.78, open: 3447.00, high: 3458.00, low: 3404.00 },
+  { sym: 'WIPRO', name: 'Wipro Ltd', price: 488.60, chg: +0.44, open: 485.00, high: 492.00, low: 483.50 },
+  { sym: 'ICICIBANK', name: 'ICICI Bank', price: 1298.40, chg: +1.05, open: 1283.00, high: 1304.00, low: 1278.00 },
+  { sym: 'NIFTY50', name: 'Nifty 50 Index', price: 23847.60, chg: +0.42, open: 23746.00, high: 23920.00, low: 23710.00 },
+] as const
+
+export type DemoSymbol = typeof DEMO_SYMBOLS[number]

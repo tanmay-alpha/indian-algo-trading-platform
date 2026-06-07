@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { DM_Sans, JetBrains_Mono } from 'next/font/google'
-import { SafetyStrip } from '@/components/layout/safety-strip'
 import { ToastProvider } from '@/components/ui-maet/toast'
 import './globals.css'
 
@@ -45,7 +44,6 @@ export default function RootLayout({
     >
       <body className="bg-base text-primary antialiased">
         <ToastProvider>
-          <SafetyStrip />
           {children}
         </ToastProvider>
       </body>
