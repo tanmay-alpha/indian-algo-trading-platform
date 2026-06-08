@@ -35,10 +35,10 @@ class Settings(BaseSettings):
     max_order_qty: int = 500
     max_order_notional: float = 500000.0
     max_daily_loss: float = -25000.0
-    jwt_refresh_interval_minutes: int = 30
-    jwt_secret_key: str = "change-me-local-development-jwt-secret-32"
+    jwt_refresh_interval_minutes: int = Field(gt=0, default=30)
+    jwt_secret_key: str = Field(default="", description="REQUIRED: Set a strong secret key for JWT signing")
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 120
+    jwt_access_token_expire_minutes: int = Field(gt=0, default=120)
     ws_reconnect_delay_seconds: int = 3
     live_trading_enabled: bool = False
     live_execution_enabled: bool = False

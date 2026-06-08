@@ -1,6 +1,6 @@
 # backend/db/models.py
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship, validates
 from backend.core.database import Base
 
@@ -59,17 +59,20 @@ class WatchlistItem(Base):
 
 class OrderRequestModel(Base):
     __tablename__ = "order_requests"
-    
+    __table_args__ = (
+        Index("ix_order_requests_symbol_created", "symbol", "created_at"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     request_id = Column(String, unique=True, index=True, nullable=False)
     client_order_id = Column(String, nullable=True)
     idempotency_key = Column(String, unique=True, index=True, nullable=True)
-    symbol = Column(String, nullable=True)
+    symbol = Column(String, nullable=True, index=True)
     side = Column(String, nullable=True)
     quantity = Column(Integer, nullable=True)
     order_type = Column(String, nullable=True)
     mode = Column(String, nullable=True)
-    status = Column(String, nullable=True)
+    status = Column(String, nullable=True, index=True)
     broker_order_id = Column(String, nullable=True)
     reject_reason = Column(String, nullable=True)
     avg_fill_price = Column(Float, nullable=True)
@@ -91,12 +94,15 @@ class OrderEventModel(Base):
 
 class OrderFillModel(Base):
     __tablename__ = "order_fills"
-    
+    __table_args__ = (
+        Index("ix_order_fills_symbol_created", "symbol", "created_at"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     fill_id = Column(String, unique=True, index=True, nullable=False)
-    request_id = Column(String, nullable=False)
+    request_id = Column(String, nullable=False, index=True)
     broker_order_id = Column(String, nullable=True)
-    symbol = Column(String, nullable=False)
+    symbol = Column(String, nullable=False, index=True)
     side = Column(String, nullable=False)
     filled_quantity = Column(Integer, nullable=False)
     fill_price = Column(Float, nullable=False)
@@ -107,9 +113,13 @@ class OrderFillModel(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
-    
+    __table_args__ = (
+        Index("ix_audit_logs_user_created", "user_id", "created_at"),
+        Index("ix_audit_logs_action_created", "action", "created_at"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String, nullable=True)
+    user_id = Column(String, nullable=True, index=True)
     action = Column(String, nullable=False)
     details = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
@@ -144,10 +154,13 @@ class StrategyConfigModel(Base):
 
 class StrategySignalModel(Base):
     __tablename__ = "strategy_signals"
-    
+    __table_args__ = (
+        Index("ix_strategy_signals_symbol_status", "symbol", "status"),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    strategy_id = Column(Integer, ForeignKey("strategy_configs.id", ondelete="CASCADE"), nullable=False)
-    symbol = Column(String, nullable=False)
+    strategy_id = Column(Integer, ForeignKey("strategy_configs.id", ondelete="CASCADE"), nullable=False, index=True)
+    symbol = Column(String, nullable=False, index=True)
     side = Column(String, nullable=False)  # BUY | SELL | NEUTRAL
     confidence = Column(Float, nullable=True)
     reason = Column(String, nullable=True)
@@ -160,7 +173,7 @@ class StrategySignalModel(Base):
     # GENERATED / VALIDATED / REJECTED → DISMISSED
     # Terminal statuses: PAPER_EXECUTED, DISMISSED, ERROR
     # Forbidden: APPROVED_LIVE, LIVE_EXECUTED
-    status = Column(String, nullable=False, default="GENERATED")
+    status = Column(String, nullable=False, default="GENERATED", index=True)
     dismiss_reason = Column(String, nullable=True)  # set on DISMISSED transition
     created_at = Column(String, nullable=False)
 

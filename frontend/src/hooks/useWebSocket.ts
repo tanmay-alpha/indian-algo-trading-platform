@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { WS_URL } from '@/lib/constants'
 import { useTerminalStore } from '@/store/terminal-store'
 import type { TickPayload, WsConnectionStatus } from '@/lib/types'
@@ -9,11 +9,15 @@ export type FrontendWsStatus = 'connected' | 'connecting' | 'degraded' | 'offlin
 
 const CONNECT_TIMEOUT_MS = 4000
 const RECONNECT_DELAYS_MS = [2000, 4000, 8000, 16_000, 30_000]
+const MAX_MESSAGE_SIZE_BYTES = 1024 * 10 // 10KB max message size
+const MAX_RECONNECT_ATTEMPTS = 10
 
 export function useWebSocket() {
   const wsStatus = useTerminalStore((state) => state.wsStatus)
   const demo = useTerminalStore((state) => state.wsDemoMode)
   const reconnectInSeconds = useTerminalStore((state) => state.wsReconnectInSeconds)
+  const attemptRef = useRef(0)
+  const messageCountRef = useRef(0)
 
   useEffect(() => {
     let socket: WebSocket | null = null
@@ -22,7 +26,6 @@ export function useWebSocket() {
     let reconnectTimer: number | null = null
     let countdownTimer: number | null = null
     let simulationTimer: number | null = null
-    let attempt = 0
 
     const setWsStatus = (status: WsConnectionStatus) => useTerminalStore.getState().setWsStatus(status)
     const setDemo = (value: boolean) => useTerminalStore.getState().setWsDemoMode(value)
@@ -80,17 +83,43 @@ export function useWebSocket() {
     }
 
     const handleMessage = (event: MessageEvent<string>) => {
-      const message = parseMessage(event.data)
-      if (!message) return
+      try {
+        // Validate message size
+        const dataSize = new Blob([event.data]).size
+        if (dataSize > MAX_MESSAGE_SIZE_BYTES) {
+          console.warn('WebSocket message too large, discarding')
+          return
+        }
 
-      if (message.type === 'ping') {
-        sendJson(socket, { type: 'pong', ts: Date.now() })
-        return
-      }
+        const message = parseMessage(event.data)
+        if (!message) {
+          console.warn('Failed to parse WebSocket message:', event.data)
+          return
+        }
 
-      if (message.type === 'tick') {
-        const tick = normalizeTick(message.payload ?? message)
-        if (tick) useTerminalStore.getState().ingestTick(tick)
+        // Track message count for rate limiting
+        messageCountRef.current++
+        if (messageCountRef.current > 1000) {
+          messageCountRef.current = 0
+          console.log('WebSocket message count reset')
+        }
+
+        if (message.type === 'ping') {
+          sendJson(socket, { type: 'pong', ts: Date.now() })
+          return
+        }
+
+        if (message.type === 'tick') {
+          const tick = normalizeTick(message.payload ?? message)
+          if (tick) {
+            useTerminalStore.getState().ingestTick(tick)
+          } else {
+            console.warn('Invalid tick data received:', message.payload)
+          }
+        }
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error)
+        setConnectionError('message processing error')
       }
     }
 
@@ -189,19 +218,41 @@ function sendJson(socket: WebSocket | null, payload: unknown) {
 function normalizeTick(payload: unknown): TickPayload | null {
   if (!payload || typeof payload !== 'object') return null
   const data = payload as Record<string, unknown>
-  const symbol = typeof data.symbol === 'string' ? data.symbol : null
+
+  // Validate and extract required fields
+  if (!data || !('symbol' in data)) {
+    console.warn('Tick payload missing symbol field')
+    return null
+  }
+
+  const symbol = String(data.symbol)
   const ltp = Number(data.ltp ?? data.price)
-  if (!symbol || !Number.isFinite(ltp)) return null
+
+  // Validate numeric fields
+  if (symbol.length === 0 || symbol.length > 20) {
+    console.warn('Invalid symbol length in tick payload')
+    return null
+  }
+
+  if (!Number.isFinite(ltp) || ltp < 0) {
+    console.warn('Invalid LTP value in tick payload:', data.ltp)
+    return null
+  }
+
+  // Extract optional fields with validation
+  const volume = 'volume' in data && Number.isFinite(Number(data.volume))
+    ? Math.max(0, Number(data.volume))
+    : undefined
 
   return {
     symbol,
     ltp,
     price: ltp,
-    exchange: typeof data.exchange === 'string' ? data.exchange : undefined,
-    token: typeof data.token === 'string' ? data.token : undefined,
-    volume: Number.isFinite(Number(data.volume)) ? Number(data.volume) : undefined,
+    exchange: 'exchange' in data ? String(data.exchange) : undefined,
+    token: 'token' in data ? String(data.token) : undefined,
+    volume,
     received_at: new Date().toISOString(),
-    mode: data.mode === 'LIVE' ? 'LIVE' : 'PAPER',
+    mode: ('mode' in data && String(data.mode) === 'LIVE') ? 'LIVE' : 'PAPER',
   }
 }
 
