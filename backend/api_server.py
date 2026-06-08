@@ -78,6 +78,7 @@ def get_cors_origins() -> list[str]:
     required_origins = [
         "https://indian-algo-trading-platform.vercel.app",
         "http://localhost:3000",
+        "http://localhost:3001",
     ]
     origins = [*required_origins, *(settings.allowed_origin_list or [])]
     origins = list(dict.fromkeys(origins))
@@ -90,6 +91,7 @@ def get_cors_origins() -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

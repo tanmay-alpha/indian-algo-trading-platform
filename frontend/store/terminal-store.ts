@@ -100,6 +100,15 @@ interface ChartFetchDiagnostics {
   error: string | null
 }
 
+export interface PaperOrder {
+  sym: string
+  side: 'BUY' | 'SELL'
+  qty: number
+  price: number
+  product: string
+  ts: number
+}
+
 export interface TerminalState {
   // Workspace
   activeWorkspace: WorkspaceId
@@ -188,6 +197,9 @@ export interface TerminalState {
   lastTickAt: number | null
   lastTickBySymbol: Record<string, number>
   dataQualityBySymbol: Record<string, DataQuality>
+  tickCount: number
+  dayPnl: number
+  paperOrders: PaperOrder[]
 
   // Mode
   executionMode: 'PAPER' | 'LIVE'
@@ -306,6 +318,9 @@ export interface TerminalActions {
   ingestTick: (tick: TickPayload) => void
   ingestSignal: (s: SignalEvent) => void
   ingestEvent: (e: Omit<SystemEvent, 'id' | 'ts'> & { ts?: number }) => void
+  incTickCount: () => void
+  setDayPnl: (n: number) => void
+  addPaperOrder: (o: PaperOrder) => void
 
   setMode: (m: 'PAPER' | 'LIVE') => void
   setAutoPilot: (v: boolean) => void
@@ -455,6 +470,9 @@ const initialState: TerminalState = {
   lastTickAt: null,
   lastTickBySymbol: {},
   dataQualityBySymbol: {},
+  tickCount: 0,
+  dayPnl: 0,
+  paperOrders: [],
 
   executionMode: 'PAPER',
   autoPilot: false,
@@ -1237,6 +1255,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         autoPilot: tick.auto_pilot ?? state.autoPilot,
         portfolio: tick.portfolio ?? state.portfolio,
         selectedSymbol: state.selectedSymbol ?? symbol,
+        tickCount: state.tickCount + 1,
       }
     }),
 
@@ -1274,6 +1293,10 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   setMode: (m) => set({ executionMode: m }),
   setAutoPilot: (v) => set({ autoPilot: v }),
+  incTickCount: () => set((state) => ({ tickCount: state.tickCount + 1 })),
+  setDayPnl: (dayPnl) => set({ dayPnl }),
+  addPaperOrder: (order) =>
+    set((state) => ({ paperOrders: [order, ...state.paperOrders].slice(0, 100) })),
 
   // ---- OMS Actions (Phase 18L) ----
   setOmsAdminToken: (token) => set({ omsAdminToken: token, omsAdminRequired: false }),

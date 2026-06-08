@@ -1,51 +1,51 @@
-:root,
-:root[data-theme='dark'] {
-  --color-bg-base: #0B0E17;
-  --color-bg-panel: #111420;
-  --color-bg-surface: #181C2E;
-  --color-bg-hover: #1E2235;
+:root {
+  /* Canvas layers */
+  --color-base: #0c0d12;
+  --color-panel: #131722;
+  --color-surface: #1e222d;
+  --color-hover: #252938;
 
-  --color-accent: #3B82F6;
-  --color-accent-dim: #3B82F615;
+  /* Borders */
+  --color-border: #2a2e39;
+  --color-border-light: #363a47;
 
-  --color-up: #22C55E;
-  --color-dn: #EF4444;
-  --color-warn: #F59E0B;
+  /* Text */
+  --color-text-primary: #e0e3eb;
+  --color-text-muted: #787b86;
+  --color-text-hint: #4c515f;
 
-  --color-text-primary: #E8EAF0;
-  --color-text-muted: #6B7280;
-  --color-text-hint: #374151;
+  /* Brand */
+  --color-accent: #2962ff;
+  --color-accent-dim: rgba(41,98,255,0.12);
 
-  --color-border: #ffffff0f;
-  --color-border-strong: #ffffff1a;
-
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-ui: 'DM Sans', sans-serif;
+  /* Semantic */
+  --color-up: #26a69a;
+  --color-up-dim: rgba(38,166,154,0.12);
+  --color-dn: #ef5350;
+  --color-dn-dim: rgba(239,83,80,0.12);
+  --color-warn: #f59e0b;
 
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --color-bg-base: #0B0E17;
-    --color-bg-panel: #111420;
-    --color-bg-surface: #181C2E;
-    --color-bg-hover: #1E2235;
-
-    --color-accent: #3B82F6;
-    --color-accent-dim: #3B82F615;
-
-    --color-up: #22C55E;
-    --color-dn: #EF4444;
-    --color-warn: #F59E0B;
-
-    --color-text-primary: #E8EAF0;
-    --color-text-muted: #6B7280;
-    --color-text-hint: #374151;
-
-    --color-border: #ffffff0f;
-    --color-border-strong: #ffffff1a;
-
+    --color-base: #0c0d12;
+    --color-panel: #131722;
+    --color-surface: #1e222d;
+    --color-hover: #252938;
+    --color-border: #2a2e39;
+    --color-border-light: #363a47;
+    --color-text-primary: #e0e3eb;
+    --color-text-muted: #787b86;
+    --color-text-hint: #4c515f;
+    --color-accent: #2962ff;
+    --color-accent-dim: rgba(41,98,255,0.12);
+    --color-up: #26a69a;
+    --color-up-dim: rgba(38,166,154,0.12);
+    --color-dn: #ef5350;
+    --color-dn-dim: rgba(239,83,80,0.12);
+    --color-warn: #f59e0b;
     color-scheme: dark;
   }
 }

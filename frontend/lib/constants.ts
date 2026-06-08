@@ -12,7 +12,9 @@ const CLOUD_API_FALLBACK = 'https://maet-backend.onrender.com'
 const WS_MARKET_STREAM_PATH = '/ws/market_stream'
 
 const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL
 
 export const API_URL = normalizeBaseUrl(configuredApiUrl)
 
@@ -289,7 +291,12 @@ function normalizeWsUrl(value: string | undefined, apiUrl: string): string {
       if (isHttpsBrowser() && explicit.protocol === 'ws:' && !isLocalHost(explicit.hostname)) {
         explicit.protocol = 'wss:'
       }
-      if (!explicit.pathname || explicit.pathname === '/' || explicit.pathname === '/ws/terminal') {
+      if (
+        !explicit.pathname ||
+        explicit.pathname === '/' ||
+        explicit.pathname === '/ws' ||
+        explicit.pathname === '/ws/terminal'
+      ) {
         explicit.pathname = WS_MARKET_STREAM_PATH
       }
       explicit.search = ''

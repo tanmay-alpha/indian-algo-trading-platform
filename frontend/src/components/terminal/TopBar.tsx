@@ -30,24 +30,34 @@ export function TopBar() {
   }, [])
 
   const status = normalizeStatus(wsStatus)
-  const dotClass = status === 'connected' ? 'bg-up' : status === 'offline' ? 'bg-dn' : 'bg-warn'
+  const dotClass =
+    status === 'connected'
+      ? 'bg-up'
+      : status === 'offline'
+      ? 'bg-dn'
+      : status === 'connecting'
+      ? 'animate-pulse bg-warn'
+      : 'bg-warn'
 
   return (
-    <header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-panel px-4">
+    <header className="flex h-[44px] shrink-0 items-center justify-between border-b border-border bg-panel px-4">
       <div className="flex items-center gap-3">
-        <div className="font-mono text-sm font-medium tracking-normal text-primary">MAET</div>
-        <Badge variant="paper">Paper mode</Badge>
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="font-mono text-sm font-medium tracking-normal text-text-primary">MAET</span>
+        </div>
+        <Badge variant="paper">paper mode</Badge>
       </div>
 
-      <div className="flex items-center gap-3 font-mono text-[10px] text-muted">
+      <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted">
         <span className="flex items-center gap-1.5">
-          <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-          <span>NSE live</span>
+          <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+          <span>NSE</span>
         </span>
         <span>{clock} IST</span>
         <button
           type="button"
-          className="grid h-7 w-7 place-items-center rounded-sm border border-border text-muted transition-colors hover:border-strong hover:bg-hover hover:text-primary"
+          className="grid h-7 w-7 place-items-center rounded-sm border border-border text-text-muted transition-colors hover:border-border-light hover:bg-hover hover:text-text-primary"
           aria-label="Settings"
         >
           <Settings className="h-4 w-4" />
@@ -57,8 +67,9 @@ export function TopBar() {
   )
 }
 
-function normalizeStatus(status: string) {
+function normalizeStatus(status: string): 'connected' | 'connecting' | 'degraded' | 'offline' {
   if (status === 'CONNECTED' || status === 'connected') return 'connected'
+  if (status === 'CONNECTING' || status === 'connecting') return 'connecting'
   if (status === 'OFFLINE' || status === 'offline') return 'offline'
   return 'degraded'
 }

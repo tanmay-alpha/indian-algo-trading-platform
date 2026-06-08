@@ -2,21 +2,15 @@
 
 import { useTerminalStore } from '@/store/terminal-store'
 
-interface StatusBarProps {
-  ticks: number
-  dayPnl: number
-  version?: string
-}
+const VERSION = 'v0.1'
 
-function formatMoney(value: number) {
-  return value.toLocaleString('en-IN', { minimumFractionDigits: 2 })
-}
-
-export function StatusBar({ ticks, dayPnl, version = 'v0.2' }: StatusBarProps) {
-  const positive = dayPnl >= 0
+export function StatusBar() {
   const wsStatus = useTerminalStore((state) => state.wsStatus)
   const reconnectInSeconds = useTerminalStore((state) => state.wsReconnectInSeconds)
+  const tickCount = useTerminalStore((state) => state.tickCount)
+  const dayPnl = useTerminalStore((state) => state.dayPnl)
   const status = normalizeStatus(wsStatus)
+  const positive = dayPnl >= 0
   const dotClass =
     status === 'connected'
       ? 'bg-up'
@@ -27,34 +21,33 @@ export function StatusBar({ ticks, dayPnl, version = 'v0.2' }: StatusBarProps) {
     reconnectInSeconds != null && status === 'degraded'
       ? `reconnecting in ${reconnectInSeconds}s`
       : status === 'connected'
-      ? 'WS connected'
+      ? 'connected'
       : status === 'connecting'
-      ? 'WS connecting'
+      ? 'connecting'
       : status === 'offline'
-      ? 'WS offline'
-      : 'WS degraded'
+      ? 'offline'
+      : 'degraded'
 
   return (
-    <footer className="flex h-9 shrink-0 items-center justify-between border-t border-border bg-panel px-4 font-mono text-[10px] text-muted">
-      <div className="flex items-center gap-3">
+    <footer className="flex h-8 shrink-0 items-center border-t border-border bg-panel font-mono text-[10px] text-text-muted">
+      <div className="flex items-center gap-4 px-4">
         <span className="flex items-center gap-1.5">
-          <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-          <span>{label}</span>
+          <span className={`h-[5px] w-[5px] rounded-full ${dotClass}`} />
+          <span>WS {label}</span>
         </span>
-        <span className="h-3 w-px bg-border-strong" />
-        <span>Feed: {ticks.toLocaleString('en-IN')} ticks</span>
-        <span className="h-3 w-px bg-border-strong" />
+        <span>Feed: {tickCount.toLocaleString('en-IN')} ticks</span>
         <span>Broker: paper</span>
-        <span className="h-3 w-px bg-border-strong" />
-        <span>Engine: ready</span>
+        <span>Engine: C++ ready</span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-4 px-4">
         <span className={positive ? 'text-up' : 'text-dn'}>
-          Day P&amp;L: {positive ? '+' : ''}{formatMoney(dayPnl)}
+          P&amp;L {positive ? '+' : ''}{dayPnl.toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </span>
-        <span className="h-3 w-px bg-border-strong" />
-        <span>{version}</span>
+        <span>{VERSION}</span>
       </div>
     </footer>
   )

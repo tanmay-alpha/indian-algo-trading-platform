@@ -6,7 +6,7 @@ import { TechStack } from '@/components/landing/TechStack'
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-base text-primary">
+    <main className="min-h-screen bg-base font-sans text-text-primary">
       <Nav />
       <Hero />
       <FeatureGrid />

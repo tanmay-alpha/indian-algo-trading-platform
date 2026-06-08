@@ -2,20 +2,14 @@
 
 import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
+import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
+import { useCandles } from '@/hooks/useCandles'
 import { useTerminalStore } from '@/store/terminal-store'
-import { DEMO_SYMBOLS } from '@/lib/demoSymbols'
-import type { Candle } from '@/lib/types'
 
 const CandleChart = dynamic(
   () => import('./CandleChart').then((module) => module.CandleChart),
   { ssr: false }
 )
-
-interface ChartAreaProps {
-  candles: Candle[]
-  isDemo: boolean
-  isLoading: boolean
-}
 
 const TIMEFRAMES = [
   { label: '1m', value: '1m' },
@@ -27,14 +21,11 @@ const TIMEFRAMES = [
 
 const INDICATORS = ['EMA', 'VWAP', 'BB', 'RSI', 'MACD', 'ATR'] as const
 
-function formatPrice(value: number) {
-  return value.toLocaleString('en-IN', { minimumFractionDigits: 2 })
-}
-
-export function ChartArea({ candles, isDemo, isLoading }: ChartAreaProps) {
+export function ChartArea() {
   const activeSym = useTerminalStore((state) => state.activeSym)
   const timeframe = useTerminalStore((state) => state.chartTimeframe)
   const setChartTimeframe = useTerminalStore((state) => state.setChartTimeframe)
+  const { candles, isDemo, isLoading } = useCandles(activeSym, timeframe)
   const [activeIndicators, setActiveIndicators] = useState<string[]>(['EMA', 'VWAP'])
 
   const selected = DEMO_SYMBOLS.find((item) => item.sym === activeSym) ?? DEMO_SYMBOLS[0]
@@ -61,21 +52,22 @@ export function ChartArea({ candles, isDemo, isLoading }: ChartAreaProps) {
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-panel px-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="min-w-0">
-            <div className="truncate font-mono text-[12px] font-medium text-primary">{activeSym}</div>
-            <div className="truncate text-[10px] text-muted">{selected.name}</div>
+            <div className="truncate font-mono text-[12px] font-medium text-text-primary">{activeSym}</div>
+            <div className="truncate text-[10px] text-text-muted">{selected.name}</div>
           </div>
-          <div className="font-mono text-[13px] text-primary">₹{formatPrice(currentPrice)}</div>
+          <div className="font-mono text-[13px] text-text-primary">{formatINR(currentPrice)}</div>
           <div
             className={[
-              'rounded-sm border px-1.5 py-0.5 font-mono text-[10px]',
-              positive ? 'border-up bg-up/10 text-up' : 'border-dn bg-dn/10 text-dn',
+              'rounded border px-1.5 py-0.5 font-mono text-[10px]',
+              positive ? 'border-up bg-up-dim text-up' : 'border-dn bg-dn-dim text-dn',
             ].join(' ')}
           >
-            {positive ? '+' : ''}{changePct.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+            {positive ? '+' : ''}{changePct.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}%
           </div>
-          {isLoading && (
-            <div className="font-mono text-[10px] text-muted">syncing {activeTfLabel}</div>
-          )}
+          {isLoading && <div className="font-mono text-[10px] text-text-muted">syncing {activeTfLabel}</div>}
         </div>
 
         <div className="flex items-center gap-1">
@@ -87,10 +79,10 @@ export function ChartArea({ candles, isDemo, isLoading }: ChartAreaProps) {
                 type="button"
                 onClick={() => setChartTimeframe(item.value)}
                 className={[
-                  'h-6 rounded-sm border px-2 font-mono text-[10px] transition-colors',
+                  'h-6 rounded border px-2 font-mono text-[10px] transition-colors',
                   active
                     ? 'border-accent bg-accent-dim text-accent'
-                    : 'border-border bg-base text-muted hover:border-strong hover:text-primary',
+                    : 'border-border bg-base text-text-muted hover:border-border-light hover:text-text-primary',
                 ].join(' ')}
               >
                 {item.label}
@@ -113,10 +105,10 @@ export function ChartArea({ candles, isDemo, isLoading }: ChartAreaProps) {
               type="button"
               onClick={() => toggleIndicator(indicator)}
               className={[
-                'h-5 rounded-sm border px-2 font-mono text-[10px] transition-colors',
+                'h-5 rounded border px-2 font-mono text-[10px] transition-colors',
                 active
                   ? 'border-accent bg-transparent text-accent'
-                  : 'border-border bg-transparent text-muted hover:border-strong hover:text-primary',
+                  : 'border-border bg-transparent text-text-muted hover:border-border-light hover:text-text-primary',
               ].join(' ')}
             >
               {indicator}

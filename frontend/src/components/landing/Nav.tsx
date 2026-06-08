@@ -2,16 +2,17 @@ import Link from 'next/link'
 
 export function Nav() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-base/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="font-mono text-sm font-semibold text-primary" aria-label="MAET home">
-          MAET
+    <header className="sticky top-0 z-50 h-14 border-b border-border bg-base">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2 font-mono text-sm font-medium text-text-primary" aria-label="MAET home">
+          <span>MAET</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         </Link>
         <Link
           href="/terminal"
-          className="inline-flex h-8 items-center justify-center rounded-sm bg-accent px-3 font-sans text-[13px] font-medium text-white transition-colors hover:bg-[#2563EB] focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-base"
+          className="inline-flex items-center gap-2 rounded bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
         >
-          Open terminal
+          Launch Terminal →
         </Link>
       </div>
     </header>

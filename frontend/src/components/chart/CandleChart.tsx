@@ -10,6 +10,7 @@ import {
   LineStyle,
 } from 'lightweight-charts'
 import type { CandlestickData, IChartApi, LineData, Time } from 'lightweight-charts'
+import { TOKENS } from '@/lib/tokens'
 import type { Candle } from '@/lib/types'
 
 interface CandleChartProps {
@@ -36,8 +37,8 @@ export function CandleChart({ candles, isDemo, activeIndicators }: CandleChartPr
       width: container.clientWidth,
       height: container.clientHeight,
       layout: {
-        background: { type: ColorType.Solid, color: '#0B0E17' },
-        textColor: '#6B7280',
+        background: { type: ColorType.Solid, color: TOKENS.base },
+        textColor: TOKENS.textMuted,
       },
       grid: { vertLines: { color: '#ffffff06' }, horzLines: { color: '#ffffff06' } },
       crosshair: { mode: CrosshairMode.Normal },
@@ -49,12 +50,12 @@ export function CandleChart({ candles, isDemo, activeIndicators }: CandleChartPr
     chartRef.current = chart
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22C55E',
-      downColor: '#EF4444',
-      borderUpColor: '#22C55E',
-      borderDownColor: '#EF4444',
-      wickUpColor: '#22C55E',
-      wickDownColor: '#EF4444',
+      upColor: TOKENS.up,
+      downColor: TOKENS.dn,
+      borderUpColor: TOKENS.up,
+      borderDownColor: TOKENS.dn,
+      wickUpColor: TOKENS.up,
+      wickDownColor: TOKENS.dn,
     })
     candleSeries.setData(chartData)
 
@@ -106,8 +107,8 @@ export function CandleChart({ candles, isDemo, activeIndicators }: CandleChartPr
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
       {isDemo && (
-        <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[10px] text-muted">
-          demo data — connect broker for live feed
+        <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[10px] text-text-muted">
+          demo data - connect broker for live feed
         </div>
       )}
     </div>

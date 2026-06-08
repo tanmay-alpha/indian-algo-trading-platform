@@ -21,20 +21,35 @@ export function useWebSocket() {
     let connectTimer: number | null = null
     let reconnectTimer: number | null = null
     let countdownTimer: number | null = null
+    let simulationTimer: number | null = null
     let attempt = 0
 
     const setWsStatus = (status: WsConnectionStatus) => useTerminalStore.getState().setWsStatus(status)
     const setDemo = (value: boolean) => useTerminalStore.getState().setWsDemoMode(value)
     const setReconnect = (seconds: number | null) => useTerminalStore.getState().setWsReconnectInSeconds(seconds)
     const setConnectionError = (message: string | null) => useTerminalStore.getState().setConnectionError(message)
+    const startSimulation = () => {
+      if (simulationTimer) return
+      simulationTimer = window.setInterval(() => {
+        const state = useTerminalStore.getState()
+        state.incTickCount()
+        state.setDayPnl(state.dayPnl + (Math.random() - 0.48) * 18)
+      }, 1200)
+    }
+    const stopSimulation = () => {
+      if (simulationTimer) window.clearInterval(simulationTimer)
+      simulationTimer = null
+    }
 
     const clearTimers = () => {
       if (connectTimer) window.clearTimeout(connectTimer)
       if (reconnectTimer) window.clearTimeout(reconnectTimer)
       if (countdownTimer) window.clearInterval(countdownTimer)
+      if (simulationTimer) window.clearInterval(simulationTimer)
       connectTimer = null
       reconnectTimer = null
       countdownTimer = null
+      simulationTimer = null
     }
 
     const scheduleReconnect = () => {
@@ -47,6 +62,7 @@ export function useWebSocket() {
       setDemo(true)
       setReconnect(secondsLeft)
       setConnectionError(`reconnecting in ${secondsLeft}s`)
+      startSimulation()
 
       if (countdownTimer) window.clearInterval(countdownTimer)
       countdownTimer = window.setInterval(() => {
@@ -94,6 +110,7 @@ export function useWebSocket() {
           setWsStatus('degraded')
           setDemo(true)
           setConnectionError('backend warming up')
+          startSimulation()
         }, CONNECT_TIMEOUT_MS)
 
         socket.onopen = () => {
@@ -107,6 +124,7 @@ export function useWebSocket() {
           setDemo(false)
           setReconnect(null)
           setConnectionError(null)
+          stopSimulation()
         }
 
         socket.onmessage = handleMessage
@@ -116,6 +134,7 @@ export function useWebSocket() {
           setWsStatus('degraded')
           setDemo(true)
           setConnectionError('websocket transport error')
+          startSimulation()
         }
 
         socket.onclose = () => {
@@ -129,6 +148,7 @@ export function useWebSocket() {
         setWsStatus('offline')
         setDemo(true)
         setConnectionError('websocket unavailable')
+        startSimulation()
         scheduleReconnect()
       }
     }

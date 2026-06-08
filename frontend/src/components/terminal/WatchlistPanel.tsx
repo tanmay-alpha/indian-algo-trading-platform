@@ -2,19 +2,13 @@
 
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { DEMO_SYMBOLS, type DemoSymbol } from '@/lib/demoSymbols'
+import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
+import { useTerminalStore } from '@/store/terminal-store'
 
-interface WatchlistPanelProps {
-  activeSymbol: string
-  onSelect: (symbol: DemoSymbol) => void
-}
-
-function formatPrice(value: number) {
-  return value.toLocaleString('en-IN', { minimumFractionDigits: 2 })
-}
-
-export function WatchlistPanel({ activeSymbol, onSelect }: WatchlistPanelProps) {
+export function WatchlistPanel() {
   const [query, setQuery] = useState('')
+  const activeSym = useTerminalStore((state) => state.activeSym)
+  const setActiveSym = useTerminalStore((state) => state.setActiveSym)
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -26,42 +20,49 @@ export function WatchlistPanel({ activeSymbol, onSelect }: WatchlistPanelProps) 
   }, [query])
 
   return (
-    <aside className="flex min-h-0 w-[220px] shrink-0 flex-col border-r border-border bg-panel">
+    <aside className="flex min-h-0 w-[240px] shrink-0 flex-col overflow-hidden border-r border-border bg-panel">
       <div className="border-b border-border p-3">
         <label className="relative block">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search"
-            className="h-8 w-full rounded-sm border border-border bg-base pl-7 pr-2 font-mono text-[11px] text-primary outline-none placeholder:text-hint focus:border-strong"
+            placeholder="Search NSE / BSE..."
+            className="h-8 w-full rounded border border-border bg-surface pl-7 pr-2 font-mono text-[10px] text-text-primary outline-none placeholder:text-text-hint focus:border-accent"
           />
         </label>
       </div>
 
+      <div className="border-b border-border px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-widest text-text-muted">
+        Watchlist
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         {rows.map((item) => {
-          const active = activeSymbol === item.sym
+          const active = activeSym === item.sym
           const positive = item.chg >= 0
 
           return (
             <button
               key={item.sym}
               type="button"
-              onClick={() => onSelect(item)}
-              className={[
-                'grid h-[46px] w-full grid-cols-[minmax(0,1fr)_74px] items-center gap-2 border-b border-border bg-panel px-3 text-left transition-colors hover:bg-hover',
-                active ? 'border-l-2 border-l-accent bg-surface pl-[10px]' : 'border-l-2 border-l-transparent',
-              ].join(' ')}
+              onClick={() => setActiveSym(item.sym)}
+              className="w-full border-b border-border px-3 py-2 text-left transition-colors hover:bg-hover data-[active=true]:border-l-2 data-[active=true]:border-l-accent data-[active=true]:bg-surface data-[active=true]:pl-[10px]"
+              data-active={active}
             >
-              <span className="min-w-0">
-                <span className="block truncate font-mono text-[12px] font-medium leading-4 text-primary">{item.sym}</span>
-                <span className="block truncate text-[10px] leading-3 text-muted">{item.name}</span>
-              </span>
-              <span className="min-w-0 text-right">
-                <span className="block font-mono text-[12px] leading-4 text-primary">{formatPrice(item.price)}</span>
-                <span className={`block font-mono text-[10px] leading-3 ${positive ? 'text-up' : 'text-dn'}`}>
-                  {positive ? '+' : ''}{item.chg.toLocaleString('en-IN', { minimumFractionDigits: 2 })}%
+              <span className="flex items-center justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block truncate font-mono text-xs font-medium text-text-primary">{item.sym}</span>
+                  <span className="block truncate text-[10px] text-text-muted">{item.name}</span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className="block font-mono text-xs text-text-primary">{formatINR(item.price)}</span>
+                  <span className={`block font-mono text-[10px] ${positive ? 'text-up' : 'text-dn'}`}>
+                    {positive ? '+' : ''}{item.chg.toLocaleString('en-IN', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}%
+                  </span>
                 </span>
               </span>
             </button>

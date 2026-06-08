@@ -4,14 +4,14 @@ import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { ToastProvider } from '@/components/ui-maet/toast'
 import './globals.css'
 
-const dmSans = DM_Sans({
+const sans = DM_Sans({
   subsets: ['latin'],
   weight: ['400', '500'],
   display: 'swap',
-  variable: '--font-ui',
+  variable: '--font-sans',
 })
 
-const jetbrains = JetBrains_Mono({
+const mono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   display: 'swap',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#05070B',
+  themeColor: '#0c0d12',
   width: 'device-width',
   initialScale: 1,
 }
@@ -40,9 +40,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${jetbrains.variable} bg-base`}
+      className={`${mono.variable} ${sans.variable}`}
     >
-      <body className="bg-base text-primary antialiased">
+      <body className="bg-base text-text-primary antialiased">
         <ToastProvider>
           {children}
         </ToastProvider>
