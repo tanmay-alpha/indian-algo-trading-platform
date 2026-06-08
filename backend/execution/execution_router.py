@@ -1,6 +1,7 @@
+import logging
 from typing import Optional
 
-from loguru import logger
+logger = logging.getLogger(__name__)
 
 from backend.core.config import settings
 from backend.core.events import LogEvent, OrderRequestEvent, OrderStateEvent, EventType

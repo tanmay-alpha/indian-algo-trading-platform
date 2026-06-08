@@ -56,11 +56,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def safe_error_message(error):
-    message = str(error) or error.__class__.__name__
-    sensitive_terms = ("api_key", "password", "secret", "jwt", "refresh", "feed", "token")
-    if any(term in message.lower() for term in sensitive_terms):
-        return error.__class__.__name__
-    return message
+    # Delegated to the orchestrator's implementation to keep a single source of truth.
+    from backend.core.orchestrator import safe_error_message as _orchestrator_safe_error_message
+    return _orchestrator_safe_error_message(error)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -286,15 +284,9 @@ def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 def parse_event_datetime(value) -> datetime:
-    if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-    if isinstance(value, str) and value:
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-        except ValueError:
-            pass
-    return datetime.now(timezone.utc)
+    # Re-export from orchestrator to keep a single source of truth.
+    from backend.core.orchestrator import parse_event_datetime as _parse_event_datetime
+    return _parse_event_datetime(value)
 
 async def websocket_broadcast(message: dict):
     await broadcaster.broadcast(message)

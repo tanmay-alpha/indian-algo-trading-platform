@@ -171,9 +171,11 @@ class OrderStateMachine:
                 skipped += 1
                 continue
 
-        from loguru import logger
+        import logging
+        logger = logging.getLogger(__name__)
         logger.info(
-            f"OMS RECOVERY: Recovered {loaded} active orders; skipped {skipped} rows."
+            "OMS RECOVERY: Recovered %d active orders; skipped %d rows.",
+            loaded, skipped,
         )
         return loaded
 

@@ -1,8 +1,14 @@
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
-from loguru import logger
+from typing import Optional, List, Dict, Union, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
+# SQLite connection pool for better performance
+_db_connections: Dict[str, sqlite3.Connection] = {}
+_POOL_SIZE = 5
 
 
 # -----------------------------------------------------------------------
@@ -42,11 +48,47 @@ class OrderStore:
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         self._migrate_schema()
+        self._create_indexes()
 
     def _get_conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=10.0)
         conn.row_factory = sqlite3.Row
+        # Enable WAL mode for better concurrency
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA foreign_keys=ON")
         return conn
+
+    def _create_indexes(self) -> None:
+        """Create indexes for common query patterns to improve performance."""
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            # Index for active requests recovery (non-terminal status)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_requests_status ON order_requests(status)"
+            )
+            # Index for fill aggregation by request_id
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_fills_request_id ON order_fills(request_id)"
+            )
+            # Index for recent activity queries
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_requests_created ON order_requests(created_at)"
+            )
+            # Index for fill chronology
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_fills_created ON order_fills(created_at)"
+            )
+            # Index for events by request_id (audit trail)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_events_request_id ON order_events(request_id)"
+            )
+            conn.commit()
+        except Exception as exc:
+            logger.warning("Index creation warning: %s", exc.__class__.__name__)
+        finally:
+            conn.close()
 
     def _init_db(self) -> None:
         """Create tables if they do not exist (fresh DB)."""
@@ -242,55 +284,27 @@ class OrderStore:
         Does NOT overwrite existing broker_order_id when None is passed.
         """
         now = datetime.now(timezone.utc).isoformat()
+        # Build dynamic update based on which optional fields are provided
+        update_fields = ["status = ?", "updated_at = ?"]
+        params: List[Union[str, float, None]] = [status, now]
+
+        if reason is not None:
+            update_fields.append("reject_reason = ?")
+            params.append(reason)
+        if broker_order_id is not None:
+            update_fields.append("broker_order_id = ?")
+            params.append(broker_order_id)
+        if avg_fill_price is not None:
+            update_fields.append("avg_fill_price = ?")
+            params.append(avg_fill_price)
+
+        params.append(request_id)
+        sql = f"UPDATE order_requests SET {', '.join(update_fields)} WHERE request_id = ?"
+
         conn = self._get_conn()
         try:
             cursor = conn.cursor()
-            if broker_order_id is not None and avg_fill_price is not None:
-                cursor.execute(
-                    """
-                    UPDATE order_requests
-                    SET status = ?, reject_reason = ?, broker_order_id = ?,
-                        avg_fill_price = ?, updated_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (status, reason, broker_order_id, avg_fill_price, now, request_id),
-                )
-            elif broker_order_id is not None:
-                cursor.execute(
-                    """
-                    UPDATE order_requests
-                    SET status = ?, reject_reason = ?, broker_order_id = ?, updated_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (status, reason, broker_order_id, now, request_id),
-                )
-            elif avg_fill_price is not None:
-                cursor.execute(
-                    """
-                    UPDATE order_requests
-                    SET status = ?, reject_reason = ?, avg_fill_price = ?, updated_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (status, reason, avg_fill_price, now, request_id),
-                )
-            elif reason is not None:
-                cursor.execute(
-                    """
-                    UPDATE order_requests
-                    SET status = ?, reject_reason = ?, updated_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (status, reason, now, request_id),
-                )
-            else:
-                cursor.execute(
-                    """
-                    UPDATE order_requests
-                    SET status = ?, updated_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (status, now, request_id),
-                )
+            cursor.execute(sql, params)
             conn.commit()
         finally:
             conn.close()

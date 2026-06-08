@@ -1,10 +1,11 @@
 import asyncio
+import logging
 from collections import defaultdict, deque
 from typing import Awaitable, Callable, Optional
 
-from loguru import logger
-
 from backend.core.events import AnyEvent, event_to_dict, get_event_type
+
+logger = logging.getLogger(__name__)
 
 
 class EventBus:
@@ -49,7 +50,7 @@ class EventBus:
         for result in results:
             if isinstance(result, Exception):
                 self._failed_handler_count += 1
-                logger.error(f"Event handler failed: {result.__class__.__name__}")
+                logger.error("Event handler failed: %s", result.__class__.__name__)
 
     def get_stats(self) -> dict:
         return {
