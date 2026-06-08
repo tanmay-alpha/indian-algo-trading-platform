@@ -16,6 +16,7 @@ export function OrderPanel() {
   const setDayPnl = useTerminalStore((state) => state.setDayPnl)
   const addPaperOrder = useTerminalStore((state) => state.addPaperOrder)
   const validateManualOrder = useTerminalStore((state) => state.validateManualOrder)
+  const adminToken = useTerminalStore((state) => state.omsAdminToken)
   const selected = DEMO_SYMBOLS.find((item) => item.sym === activeSym) ?? DEMO_SYMBOLS[0]
 
   const [side, setSide] = useState<Side>('BUY')
@@ -43,14 +44,20 @@ export function OrderPanel() {
       price_override: orderType === 'Market' ? null : price,
     }
 
+    const localOrder = { sym: activeSym, side, qty, price, product, ts: Date.now() }
+    addPaperOrder(localOrder)
+
+    if (!adminToken) {
+      setLastMsg(`PASS - local paper check for ${activeSym}`)
+      return
+    }
+
     const result = await Promise.race([
       validateManualOrder(request),
       new Promise<{ ok: false; backendUnavailable: true }>((resolve) => {
         window.setTimeout(() => resolve({ ok: false, backendUnavailable: true }), 3500)
       }),
     ])
-    const localOrder = { sym: activeSym, side, qty, price, product, ts: Date.now() }
-    addPaperOrder(localOrder)
 
     if (result.ok) {
       setLastMsg(`PASS - ${side} ${qty} ${activeSym} @ ${formatINR(price)}`)

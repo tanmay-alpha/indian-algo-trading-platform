@@ -6,6 +6,7 @@ import {
   getPortfolioHoldings,
   getPortfolioPositions,
 } from '@/lib/api'
+import { useTerminalStore } from '@/store/terminal-store'
 
 type TabId = 'positions' | 'orders' | 'holdings'
 
@@ -26,13 +27,23 @@ export function BottomTabs() {
   const [activeTab, setActiveTab] = useState<TabId>('positions')
   const [rows, setRows] = useState<RowData[]>([])
   const [loading, setLoading] = useState(false)
+  const adminToken = useTerminalStore((state) => state.omsAdminToken)
 
   useEffect(() => {
     let mounted = true
+    if (!adminToken) {
+      setRows([])
+      setLoading(false)
+      return () => {
+        mounted = false
+      }
+    }
+
+    const token = adminToken
     setLoading(true)
 
     async function load() {
-      const nextRows = await loadRows(activeTab)
+      const nextRows = await loadRows(activeTab, token)
       if (!mounted) return
       setRows(nextRows)
       setLoading(false)
@@ -43,7 +54,7 @@ export function BottomTabs() {
     return () => {
       mounted = false
     }
-  }, [activeTab])
+  }, [activeTab, adminToken])
 
   const active = tabs.find((tab) => tab.id === activeTab) ?? tabs[0]
 
@@ -97,10 +108,10 @@ export function BottomTabs() {
   )
 }
 
-async function loadRows(tab: TabId): Promise<RowData[]> {
+async function loadRows(tab: TabId, adminToken: string): Promise<RowData[]> {
   try {
     if (tab === 'positions') {
-      const positions = await getPortfolioPositions()
+      const positions = await getPortfolioPositions(adminToken)
       return positions.map((position) => ({
         id: position.symbol,
         left: position.symbol,
@@ -110,7 +121,7 @@ async function loadRows(tab: TabId): Promise<RowData[]> {
     }
 
     if (tab === 'holdings') {
-      const holdings = await getPortfolioHoldings()
+      const holdings = await getPortfolioHoldings(adminToken)
       return holdings.map((holding) => ({
         id: holding.symbol,
         left: holding.symbol,
@@ -119,7 +130,7 @@ async function loadRows(tab: TabId): Promise<RowData[]> {
       }))
     }
 
-    const result = await getManualOrderTickets(null, 50)
+    const result = await getManualOrderTickets(adminToken, 50)
     if (!result.ok) return []
     return result.data.map((order) => ({
       id: order.ticket_id,
