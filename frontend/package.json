@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.44.0",
     "clsx": "^2.1.1",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^0.460.0",

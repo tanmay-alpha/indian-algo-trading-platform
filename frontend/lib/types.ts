@@ -68,7 +68,15 @@ export type ConnectionState =
   | 'UNAVAILABLE'
   | 'BACKEND OFFLINE'
 
-export type WsConnectionStatus = 'CONNECTED' | 'CONNECTING' | 'RECONNECTING' | 'OFFLINE'
+export type WsConnectionStatus =
+  | 'CONNECTED'
+  | 'CONNECTING'
+  | 'RECONNECTING'
+  | 'OFFLINE'
+  | 'connected'
+  | 'connecting'
+  | 'degraded'
+  | 'offline'
 export type StatusSource = 'WS' | 'REST' | 'REST_FALLBACK' | 'NONE'
 export type ApiStatus = 'UNKNOWN' | 'WAKING' | 'ONLINE' | 'OFFLINE'
 export type BackendWakeState = 'IDLE' | 'WAKING' | 'ONLINE' | 'UNAVAILABLE'

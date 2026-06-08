@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { useTerminalStore } from '@/store/terminal-store'
 
 function formatIstTime() {
   return new Intl.DateTimeFormat('en-GB', {
@@ -16,27 +17,20 @@ function formatIstTime() {
 
 export function TopBar() {
   const [clock, setClock] = useState('--:--:--')
-  const [online, setOnline] = useState<boolean | null>(null)
+  const wsStatus = useTerminalStore((state) => state.wsStatus)
 
   useEffect(() => {
     setClock(formatIstTime())
-    setOnline(navigator.onLine)
 
     const timer = window.setInterval(() => setClock(formatIstTime()), 1000)
-    const handleOnline = () => setOnline(true)
-    const handleOffline = () => setOnline(false)
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
 
     return () => {
       window.clearInterval(timer)
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
     }
   }, [])
 
-  const dotClass = online === true ? 'bg-up' : online === false ? 'bg-dn' : 'bg-warn'
+  const status = normalizeStatus(wsStatus)
+  const dotClass = status === 'connected' ? 'bg-up' : status === 'offline' ? 'bg-dn' : 'bg-warn'
 
   return (
     <header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-panel px-4">
@@ -61,4 +55,10 @@ export function TopBar() {
       </div>
     </header>
   )
+}
+
+function normalizeStatus(status: string) {
+  if (status === 'CONNECTED' || status === 'connected') return 'connected'
+  if (status === 'OFFLINE' || status === 'offline') return 'offline'
+  return 'degraded'
 }

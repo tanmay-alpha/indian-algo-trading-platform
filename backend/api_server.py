@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,7 +75,12 @@ app = FastAPI(title="High-Frequency Trading Terminal", lifespan=lifespan)
 register_rate_limiter(app)
 
 def get_cors_origins() -> list[str]:
-    origins = settings.allowed_origin_list or ["http://localhost:3000"]
+    required_origins = [
+        "https://indian-algo-trading-platform.vercel.app",
+        "http://localhost:3000",
+    ]
+    origins = [*required_origins, *(settings.allowed_origin_list or [])]
+    origins = list(dict.fromkeys(origins))
     if settings.environment.upper() == "PRODUCTION":
         origins = [origin for origin in origins if origin != "*"]
     return origins
@@ -364,6 +370,10 @@ def health_check():
 @app.get("/live")
 def live_check():
     return {"status": "alive"}
+
+@app.get("/ping")
+async def ping():
+    return {"status": "ok", "ts": time.time()}
 
 @app.get("/ready")
 def ready_check():

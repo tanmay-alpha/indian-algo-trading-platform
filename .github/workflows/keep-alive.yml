@@ -1,0 +1,14 @@
+name: Keep backend alive
+
+on:
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend
+        run: |
+          curl -sf https://maet-backend.onrender.com/ping || echo "Backend warming up"

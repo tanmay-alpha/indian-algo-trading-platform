@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Set
 from fastapi import WebSocket
@@ -15,7 +16,7 @@ def _utc_timestamp() -> str:
 
 
 class WebSocketBroadcaster:
-    def __init__(self, heartbeat_interval_seconds: int = 25):
+    def __init__(self, heartbeat_interval_seconds: int = 20):
         self.active_connections: Set[WebSocket] = set()
         self._connection_paths: dict[WebSocket, str] = {}
         self.queue = asyncio.Queue()
@@ -96,11 +97,12 @@ class WebSocketBroadcaster:
     async def _heartbeat_loop(self):
         while self._heartbeat_enabled:
             await asyncio.sleep(self._heartbeat_interval_seconds)
-            await self.broadcast({
-                "type": "ping",
-                "payload": {"source": "server"},
-                "ts": _utc_timestamp(),
-            })
+            for ws in list(self.active_connections):
+                try:
+                    await ws.send_json({"type": "ping", "ts": time.time()})
+                except Exception:
+                    self.last_error = "heartbeat_failure"
+                    self.disconnect(ws)
 
     def start(self, loop: asyncio.AbstractEventLoop):
         """Starts the background broadcast task."""

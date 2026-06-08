@@ -113,6 +113,7 @@ export interface TerminalState {
   shortcutsOpen: boolean
 
   // Selection
+  activeSym: string
   selectedSymbol: string | null
   selectedExchange: string | null
   selectedInstrumentName: string | null
@@ -133,6 +134,8 @@ export interface TerminalState {
   wsConnected: boolean
   wsReconnectAttempts: number
   wsStatus: WsConnectionStatus
+  wsDemoMode: boolean
+  wsReconnectInSeconds: number | null
   statusSource: StatusSource
   reconnectAttempt: number
   apiStatus: ApiStatus
@@ -239,6 +242,7 @@ export interface TerminalActions {
   toggleShortcuts: (open?: boolean) => void
 
   setSelectedSymbol: (s: string | null) => void
+  setActiveSym: (symbol: string) => void
   setSelectedInstrument: (
     symbol: string,
     exchange: string,
@@ -259,6 +263,8 @@ export interface TerminalActions {
 
   setWsConnected: (v: boolean) => void
   setWsStatus: (status: WsConnectionStatus) => void
+  setWsDemoMode: (demo: boolean) => void
+  setWsReconnectInSeconds: (seconds: number | null) => void
   setStatusSource: (source: StatusSource) => void
   setReconnectAttempt: (attempt: number) => void
   incrementReconnect: () => void
@@ -343,6 +349,7 @@ const initialState: TerminalState = {
   commandPaletteOpen: false,
   shortcutsOpen: false,
 
+  activeSym: 'RELIANCE',
   selectedSymbol: null,
   selectedExchange: null,
   selectedInstrumentName: null,
@@ -366,6 +373,8 @@ const initialState: TerminalState = {
   backendReachable: false,
   backendWakeState: 'IDLE',
   backendOffline: false,
+  wsDemoMode: true,
+  wsReconnectInSeconds: null,
   lastStatusFetchAt: null,
   lastStatusError: null,
   connectionError: null,
@@ -523,8 +532,22 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   toggleShortcuts: (open) =>
     set((s) => ({ shortcutsOpen: open ?? !s.shortcutsOpen })),
 
+  setActiveSym: (symbol) =>
+    set((state) => {
+      const activeSym = symbol.trim().toUpperCase()
+      return {
+        activeSym,
+        selectedSymbol: activeSym,
+        selectedExchange: state.selectedExchange ?? 'NSE',
+        selectedInstrumentSource: 'watchlist',
+        lastSelectedAt: Date.now(),
+        backtestConfig: { ...state.backtestConfig, symbol: activeSym },
+      }
+    }),
+
   setSelectedSymbol: (s) => {
     set((state) => ({
+      activeSym: s ? s.trim().toUpperCase() : state.activeSym,
       selectedSymbol: s,
       selectedExchange: s ? state.selectedExchange ?? 'NSE' : null,
       selectedInstrumentName: s ? state.selectedInstrumentName : null,
@@ -542,6 +565,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   setSelectedInstrument: (symbol, exchange, name, token, source = 'watchlist') => {
     const normalizedSymbol = symbol.trim().toUpperCase()
     set((state) => ({
+      activeSym: normalizedSymbol,
       selectedSymbol: normalizedSymbol,
       selectedExchange: exchange || 'NSE',
       selectedInstrumentName: name ?? null,
@@ -632,8 +656,10 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   setWsStatus: (wsStatus) =>
     set({
       wsStatus,
-      wsConnected: wsStatus === 'CONNECTED',
+      wsConnected: wsStatus === 'CONNECTED' || wsStatus === 'connected',
     }),
+  setWsDemoMode: (wsDemoMode) => set({ wsDemoMode }),
+  setWsReconnectInSeconds: (wsReconnectInSeconds) => set({ wsReconnectInSeconds }),
   setStatusSource: (statusSource) => set({ statusSource }),
   setReconnectAttempt: (attempt) =>
     set({ reconnectAttempt: attempt, wsReconnectAttempts: attempt }),
