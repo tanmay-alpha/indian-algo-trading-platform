@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { BadgeCheck, Brain, CandlestickChart, Github, Linkedln, Mail, Shield } from 'lucide-react'
+import { BadgeCheck, Brain, CandlestickChart, Github, Linkedin, Mail, Shield } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'About | MAET Terminal',
@@ -67,7 +67,7 @@ export default function AboutPage() {
               href="https://linkedin.com/in/tanmaymangal"
               className="inline-flex items-center gap-2 text-sm text-maet-text-muted hover:text-maet-text"
             >
-              <Linkedln className="h-4 w-4" />
+              <Linkedin className="h-4 w-4" />
               LinkedIn
             </Link>
             <Link

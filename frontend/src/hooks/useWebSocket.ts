@@ -57,8 +57,9 @@ export function useWebSocket() {
 
     const scheduleReconnect = () => {
       if (!mounted) return
-      const delay = RECONNECT_DELAYS_MS[Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)]
-      attempt += 1
+      const attemptVal = attemptRef.current
+      const delay = RECONNECT_DELAYS_MS[Math.min(attemptVal, RECONNECT_DELAYS_MS.length - 1)]
+      attemptRef.current += 1
       let secondsLeft = Math.ceil(delay / 1000)
 
       setWsStatus('degraded')
@@ -127,7 +128,8 @@ export function useWebSocket() {
       if (!mounted) return
       if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
 
-      setWsStatus(attempt > 0 ? 'degraded' : 'connecting')
+      const attemptVal = attemptRef.current
+      setWsStatus(attemptVal > 0 ? 'degraded' : 'connecting')
       setDemo(true)
       setConnectionError(null)
 
@@ -148,7 +150,7 @@ export function useWebSocket() {
           if (countdownTimer) window.clearInterval(countdownTimer)
           connectTimer = null
           countdownTimer = null
-          attempt = 0
+          attemptRef.current = 0
           setWsStatus('connected')
           setDemo(false)
           setReconnect(null)
