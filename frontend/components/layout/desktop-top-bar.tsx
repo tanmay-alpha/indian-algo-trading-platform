@@ -85,6 +85,7 @@ export function DesktopTopBar({ activeTab }: { activeTab: AppTab }) {
       </div>
 
       <div className="flex max-w-[640px] flex-wrap items-center justify-end gap-2">
+        <StatusChip label="PAPER MODE" tone="warn" icon={<Activity className="h-3.5 w-3.5" />} />
         <StatusChip label={sessionLabel} tone={session === 'OPEN' ? 'good' : 'warn'} icon={<Activity className="h-3.5 w-3.5" />} />
         <StatusChip label={clockLabel} tone="muted" icon={<Clock className="h-3.5 w-3.5" />} />
         <StatusChip

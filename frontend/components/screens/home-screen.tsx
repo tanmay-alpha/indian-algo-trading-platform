@@ -1,6 +1,7 @@
 'use client'
 
 import { BarChart2, Brain, Briefcase, ListChecks, Plus, Radio, Search, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 import type { AppTab } from '@/components/mobile/mobile-bottom-nav'
 import { MobilePage } from '@/components/mobile/mobile-page'
 import { WatchlistRow } from '@/components/ui-maet/watchlist-row'
@@ -10,6 +11,12 @@ import { useMarketSession } from '@/lib/use-market-session'
 interface HomeScreenProps {
   onNavigate: (tab: AppTab) => void
 }
+
+const HEADER_LINKS = [
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+]
 
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const apiStatus = useTerminalStore((s) => s.apiStatus)
@@ -26,6 +33,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
   return (
     <MobilePage className="space-y-4 pb-4">
+      <HeaderNav />
       <section className="maet-glass-strong overflow-hidden p-4 shadow-card">
         <div className="maet-subtle-grid rounded-2xl border border-white/10 bg-maet-ink-950/42 p-4">
           <div className="max-w-2xl">
@@ -146,6 +154,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           </div>
         </div>
       </section>
+      <Footer />
     </MobilePage>
   )
 }
@@ -178,5 +187,45 @@ function QuickAction({ label, icon, onClick }: { label: string; icon: React.Reac
       <span className="text-maet-blue">{icon}</span>
       {label}
     </button>
+  )
+}
+
+function HeaderNav() {
+  return (
+    <nav className="mb-4 flex flex-wrap items-center gap-4 text-sm">
+      {HEADER_LINKS.map(({ href, label }) => (
+        <Link
+          key={href}
+          href={href}
+          className="font-medium text-maet-text-muted transition-colors hover:text-maet-text"
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+function Footer() {
+  const year = new Date().getFullYear()
+  return (
+    <footer className="mt-6 space-y-3 border-t border-maet-glass-border pt-4 text-center text-xs text-maet-text-muted">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+        <Link href="/disclaimer" className="hover:text-maet-text">
+          Disclaimer
+        </Link>
+        <Link href="/pricing" className="hover:text-maet-text">
+          Pricing
+        </Link>
+        <Link href="/about" className="hover:text-maet-text">
+          About
+        </Link>
+        <Link href="/blog" className="hover:text-maet-text">
+          Blog
+        </Link>
+      </div>
+      <p>MAET Terminal is a paper-mode research platform</p>
+      <p>Not SEBI registered • Not investment advice • © {year} Tanmay Mangal</p>
+    </footer>
   )
 }

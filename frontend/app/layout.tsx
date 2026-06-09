@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { ToastProvider } from '@/components/ui-maet/toast'
+import { SebiWarningBanner } from '@/components/ui-maet/sebi-warning-banner'
 import './globals.css'
 
 const sans = DM_Sans({
@@ -44,6 +45,7 @@ export default function RootLayout({
     >
       <body className="bg-base text-text-primary antialiased">
         <ToastProvider>
+          <SebiWarningBanner />
           {children}
         </ToastProvider>
       </body>
