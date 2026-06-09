@@ -16,6 +16,7 @@ import { AppCard } from '@/components/ui-maet/app-card'
 import { SectionHeader } from '@/components/ui-maet/section-header'
 import { ReflectionCard } from '@/components/effects/reflection-card'
 import { useTerminalStore } from '@/store/terminal-store'
+import { useWindowSize } from '@/lib/use-window-size'
 
 interface DesktopTerminalShellProps {
   activeTab: AppTab
@@ -23,6 +24,8 @@ interface DesktopTerminalShellProps {
 }
 
 export function DesktopTerminalShell({ activeTab, onNavigate }: DesktopTerminalShellProps) {
+  // Hook is here for any future desktop layout adjustments based on viewport
+  useWindowSize()
   return (
     <div className="desktop-app flex h-full overflow-hidden bg-transparent text-maet-text">
       <DesktopSidebar active={activeTab} onNavigate={onNavigate} />

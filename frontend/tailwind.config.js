@@ -6,6 +6,15 @@ module.exports = {
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    screens: {
+      // Mobile-first approach with explicit named breakpoints
+      mobile: '375px',   // iPhone SE / small Android
+      tablet: '768px',   // iPad / large phone breakpoint
+      laptop: '1024px',  // Small laptop
+      desktop: '1280px', // Standard desktop
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         base: 'var(--color-base)',

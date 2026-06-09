@@ -94,3 +94,108 @@ pre {
 .flash-down {
   animation: flashDown 0.5s ease-out;
 }
+
+/* -----------------------------------------------------------
+   Mobile / Desktop breakpoint utilities
+   - Default rules apply on mobile (<768px).
+   - @media (min-width: 768px) targets tablet and up.
+   ----------------------------------------------------------- */
+
+:root {
+  --bottom-nav-h: 80px;
+  --top-header-h: 56px;
+  --safety-strip-h: 0px;
+}
+
+@media (max-width: 767px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  /* Keep mobile bottom nav above all content */
+  .mobile-bottom-nav-fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  /* Make sure main content reserves space for bottom nav */
+  .mobile-content-with-nav {
+    padding-bottom: calc(var(--bottom-nav-h, 80px) + env(safe-area-inset-bottom, 0px));
+  }
+  /* Prevent iOS bounce from hiding the bottom nav */
+  .mobile-app {
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Add iOS safe-area padding for the top header */
+  .mobile-top-header-fixed {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Smaller chart heights for mobile */
+  .mobile-chart-height {
+    height: calc(100dvh - 200px);
+  }
+  /* Adjust mobile app container */
+  .maet-page-bg {
+    height: 100dvh;
+    padding-bottom: var(--bottom-nav-h);
+  }
+  /* Ensure tab content scrolls within available space */
+  .mobile-tab-content {
+    height: calc(100dvh - var(--top-header-h) - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 767px) {
+  body, html {
+    overflow-x: hidden;
+  }
+  /* Tighter touch targets for mobile */
+  button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@media (min-width: 768px) {
+  .desktop-hidden {
+    display: none !important;
+  }
+}
+
+/* -----------------------------------------------------------
+   Swipe gesture transitions for mobile tabs
+   ----------------------------------------------------------- */
+.mobile-screen {
+  will-change: transform, opacity;
+  transition: transform 220ms ease-out, opacity 220ms ease-out;
+}
+
+.mobile-screen-swipe-left {
+  transform: translateX(-20%);
+  opacity: 0.4;
+}
+
+.mobile-screen-swipe-right {
+  transform: translateX(20%);
+  opacity: 0.4;
+}
+
+/* -----------------------------------------------------------
+   Ensure no horizontal scroll on mobile
+   ----------------------------------------------------------- */
+@media (max-width: 767px) {
+  body, html {
+    overflow-x: hidden;
+  }
+  /* Tighter touch targets for mobile */
+  button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
