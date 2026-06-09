@@ -1,0 +1,47 @@
+import { useTerminalStore } from './terminal-store-core'
+import type { TerminalStore } from './terminal-store-core'
+
+export type OrderStore = Pick<
+  TerminalStore,
+  | 'executionMode'
+  | 'autoPilot'
+  | 'dayPnl'
+  | 'paperOrders'
+  | 'omsAdminToken'
+  | 'omsHealth'
+  | 'omsStatus'
+  | 'recentOmsOrders'
+  | 'recentOmsEvents'
+  | 'recentOmsFills'
+  | 'selectedOmsOrderAudit'
+  | 'omsReconciliationStatus'
+  | 'omsLoading'
+  | 'omsError'
+  | 'omsAdminRequired'
+  | 'omsDataState'
+  | 'omsLastUpdatedAt'
+  | 'manualOrderTickets'
+  | 'manualOrderStatus'
+  | 'setMode'
+  | 'setAutoPilot'
+  | 'setDayPnl'
+  | 'addPaperOrder'
+  | 'setOmsAdminToken'
+  | 'clearOmsAdminToken'
+  | 'fetchOmsHealth'
+  | 'fetchOmsStatus'
+  | 'fetchRecentOmsOrders'
+  | 'fetchRecentOmsEvents'
+  | 'fetchRecentOmsFills'
+  | 'fetchOrderAudit'
+  | 'clearOrderAudit'
+  | 'fetchOmsReconciliationStatus'
+  | 'refreshOmsDashboard'
+  | 'fetchManualOrderStatus'
+  | 'validateManualOrder'
+  | 'fetchManualOrderTickets'
+>
+
+export function useOrderStore<T>(selector: (state: OrderStore) => T): T {
+  return useTerminalStore(selector as (state: TerminalStore) => T)
+}

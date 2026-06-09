@@ -163,7 +163,9 @@ export function ChartScreen() {
         {selectedSymbol ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex min-h-0 flex-1">
-              {candles.length === 0 ? (
+              {indicatorLoading && candles.length === 0 ? (
+                <ChartSkeleton symbol={cleanSymbol ?? selectedSymbol} timeframe={chartTimeframe} />
+              ) : candles.length === 0 ? (
                 <OfflineChartState
                   symbol={cleanSymbol ?? selectedSymbol}
                   exchange={displayExchange}
@@ -275,6 +277,44 @@ function ExternalButton({ href, label, disabled }: { href: string; label: string
       {label}
       <ExternalLink className="h-3.5 w-3.5" />
     </a>
+  )
+}
+
+function ChartSkeleton({ symbol, timeframe }: { symbol: string; timeframe: string }) {
+  return (
+    <div className="flex h-full min-h-[340px] flex-1 flex-col bg-maet-ink-950/40 p-4" aria-label={`Loading chart for ${symbol}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+          <div className="mt-2 h-5 w-44 animate-pulse rounded bg-white/10" />
+        </div>
+        <div className="h-7 w-20 animate-pulse rounded-full bg-white/10" />
+      </div>
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--radius-md)] border border-white/10 bg-maet-ink-950/60">
+        <div className="absolute inset-0 grid grid-cols-6 gap-px opacity-60">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="border-l border-white/[0.04]" />
+          ))}
+        </div>
+        <div className="absolute inset-0 grid grid-rows-5 gap-px opacity-60">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="border-t border-white/[0.04]" />
+          ))}
+        </div>
+        <div className="absolute inset-x-6 bottom-10 flex h-48 items-end gap-2">
+          {[44, 72, 56, 88, 64, 110, 78, 96, 62, 118, 74, 92, 52, 104, 80, 124].map((height, index) => (
+            <span
+              key={index}
+              className="w-2 flex-1 animate-pulse rounded-sm bg-maet-blue/25"
+              style={{ height }}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-maet-text-muted">
+        Loading {symbol} candles · {timeframe}
+      </div>
+    </div>
   )
 }
 

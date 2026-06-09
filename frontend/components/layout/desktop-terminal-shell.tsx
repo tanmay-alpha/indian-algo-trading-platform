@@ -15,6 +15,7 @@ import { StatusBar } from '@/components/terminal/status-bar'
 import { AppCard } from '@/components/ui-maet/app-card'
 import { SectionHeader } from '@/components/ui-maet/section-header'
 import { ReflectionCard } from '@/components/effects/reflection-card'
+import { ErrorBoundary } from '@/components/effects/error-boundary'
 import { useTerminalStore } from '@/store/terminal-store'
 import { useWindowSize } from '@/lib/use-window-size'
 
@@ -248,7 +249,9 @@ function DesktopPane({
     <ReflectionCard as="section" className={`desktop-pane flex min-h-0 flex-col overflow-hidden shadow-card ${className}`}>
       <SectionHeader title={title} icon={icon} className="shrink-0 px-4 py-3" />
       <div className={primary || compact ? 'min-h-0 flex-1' : 'min-h-0 flex-1'}>
-        {children}
+        <ErrorBoundary boundaryName={title}>
+          {children}
+        </ErrorBoundary>
       </div>
     </ReflectionCard>
   )

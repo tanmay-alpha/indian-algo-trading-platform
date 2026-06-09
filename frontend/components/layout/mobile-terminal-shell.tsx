@@ -9,6 +9,7 @@ import { ChartScreen } from '@/components/screens/chart-screen'
 import { PortfolioScreen } from '@/components/screens/portfolio-screen'
 import { AiScreen } from '@/components/screens/ai-screen'
 import { SystemScreen } from '@/components/screens/system-screen'
+import { ErrorBoundary } from '@/components/effects/error-boundary'
 import { useSwipeGesture } from '@/lib/use-swipe-gesture'
 
 const SCREEN_TITLES: Record<AppTab, string> = {
@@ -93,5 +94,9 @@ export function MobileTerminalShell({ activeTab, onNavigate, previousTab = 'home
 
 function ScreenWrapper({ active, children }: { active: boolean; children: ReactNode }) {
   if (!active) return null
-  return <div className="mobile-tab-content h-full">{children}</div>
+  return (
+    <ErrorBoundary boundaryName="Mobile screen">
+      <div className="mobile-tab-content h-full">{children}</div>
+    </ErrorBoundary>
+  )
 }

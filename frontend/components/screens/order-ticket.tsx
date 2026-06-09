@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Bot, Eye, EyeOff, History, Info, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react'
+import { z } from 'zod'
 import { StatusBadge } from '@/components/ui-maet/status-badge'
 import { useToast } from '@/components/ui-maet/toast'
 import { useTerminalStore } from '@/store/terminal-store'
@@ -10,6 +11,41 @@ import type { ManualOrderTicket } from '@/lib/types'
 
 type Side = 'BUY' | 'SELL'
 type OrderKind = 'MARKET' | 'LIMIT' | 'SL'
+
+const orderTicketSchema = z.object({
+  symbol: z.string().trim().min(1, 'Symbol is required.'),
+  exchange: z.enum(['NSE', 'BSE']),
+  side: z.enum(['BUY', 'SELL']),
+  quantity: z.number().int('Quantity must be a whole number.').positive('Quantity must be greater than zero.'),
+  orderType: z.enum(['MARKET', 'LIMIT', 'SL']),
+  price: z.string(),
+  trigger: z.string(),
+  acknowledged: z.boolean().refine((value) => value, {
+    message: 'Confirm dry-run safety before validation.',
+  }),
+}).superRefine((value, ctx) => {
+  if (value.orderType !== 'MARKET') {
+    const price = Number(value.price)
+    if (!value.price.trim() || !Number.isFinite(price) || price <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['price'],
+        message: 'Price must be greater than zero for LIMIT and SL validation.',
+      })
+    }
+  }
+
+  if (value.orderType === 'SL') {
+    const trigger = Number(value.trigger)
+    if (!value.trigger.trim() || !Number.isFinite(trigger) || trigger <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['trigger'],
+        message: 'Trigger must be greater than zero for SL validation.',
+      })
+    }
+  }
+})
 
 export function OrderTicket({ compact = false }: { compact?: boolean }) {
   const { pushToast } = useToast()
@@ -66,35 +102,34 @@ export function OrderTicket({ compact = false }: { compact?: boolean }) {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    const normalizedSymbol = symbol.trim().toUpperCase()
-    if (!normalizedSymbol) {
-      setError('Symbol is required.')
-      return
-    }
-    if (quantity <= 0) {
-      setError('Quantity must be greater than zero.')
-      return
-    }
-    if (orderType !== 'MARKET' && !price.trim()) {
-      setError('Price is required for LIMIT and SL validation.')
-      return
-    }
-    if (!acknowledged) {
-      setError('Confirm dry-run safety before validation.')
+    const parsed = orderTicketSchema.safeParse({
+      symbol,
+      exchange,
+      side,
+      quantity,
+      orderType,
+      price,
+      trigger,
+      acknowledged,
+    })
+
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Check the order ticket fields.')
       return
     }
 
+    const normalizedSymbol = parsed.data.symbol.toUpperCase()
     setError(null)
     setTicket(null)
     setIsValidating(true)
     const result = await validateOrder({
       symbol: normalizedSymbol,
-      exchange,
-      side,
-      quantity,
+      exchange: parsed.data.exchange,
+      side: parsed.data.side,
+      quantity: parsed.data.quantity,
       product_type: 'CNC',
-      order_type: orderType,
-      price_override: orderType === 'MARKET' ? null : Number(price),
+      order_type: parsed.data.orderType,
+      price_override: parsed.data.orderType === 'MARKET' ? null : Number(parsed.data.price),
     })
     setIsValidating(false)
 

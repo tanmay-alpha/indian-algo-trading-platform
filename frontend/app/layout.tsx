@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { ToastProvider } from '@/components/ui-maet/toast'
 import { SebiWarningBanner } from '@/components/ui-maet/sebi-warning-banner'
+import { ErrorBoundary } from '@/components/effects/error-boundary'
 import './globals.css'
 
 const sans = DM_Sans({
@@ -46,7 +47,9 @@ export default function RootLayout({
       <body className="bg-base text-text-primary antialiased">
         <ToastProvider>
           <SebiWarningBanner />
-          {children}
+          <ErrorBoundary boundaryName="Application shell">
+            {children}
+          </ErrorBoundary>
         </ToastProvider>
       </body>
     </html>

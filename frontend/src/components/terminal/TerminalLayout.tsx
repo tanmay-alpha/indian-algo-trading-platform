@@ -8,6 +8,7 @@ import { TopBar } from '@/components/terminal/TopBar'
 import { WatchlistPanel } from '@/components/terminal/WatchlistPanel'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { SebiWarningBanner } from '@/components/ui-maet/sebi-warning-banner'
+import { ErrorBoundary } from '@/components/effects/error-boundary'
 
 export function TerminalLayout() {
   useWebSocket()
@@ -17,12 +18,20 @@ export function TerminalLayout() {
       <SebiWarningBanner />
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <WatchlistPanel />
+        <ErrorBoundary boundaryName="Watchlist panel">
+          <WatchlistPanel />
+        </ErrorBoundary>
         <div className="flex min-w-0 flex-1 flex-col">
-          <ChartArea />
-          <BottomTabs />
+          <ErrorBoundary boundaryName="Chart workspace">
+            <ChartArea />
+          </ErrorBoundary>
+          <ErrorBoundary boundaryName="Terminal tabs">
+            <BottomTabs />
+          </ErrorBoundary>
         </div>
-        <OrderPanel />
+        <ErrorBoundary boundaryName="Order panel">
+          <OrderPanel />
+        </ErrorBoundary>
       </div>
       <StatusBar />
     </main>

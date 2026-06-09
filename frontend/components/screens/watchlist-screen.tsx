@@ -227,7 +227,10 @@ export function WatchlistScreen({ onNavigate }: WatchlistScreenProps) {
             })}
           </div>
         ) : watchlistLoading ? (
-          <SkeletonRows count={6} />
+          <div>
+            <MarketHeader />
+            <SkeletonRows count={6} />
+          </div>
         ) : rows.length === 0 ? (
           <div className="reflection-card grid min-h-[260px] place-items-center p-6 text-center">
             <div>

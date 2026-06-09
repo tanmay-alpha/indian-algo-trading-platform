@@ -114,7 +114,7 @@ export function PortfolioScreen() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {activeTab === 'overview' && (
-          <Overview summary={summary} reconciliationLabel={reconciliationLabel} locked={!adminToken} />
+          loading ? <OverviewSkeleton /> : <Overview summary={summary} reconciliationLabel={reconciliationLabel} locked={!adminToken} />
         )}
         {activeTab === 'positions' && (
           <Positions positions={positions} loading={loading} locked={!adminToken} />
@@ -123,10 +123,28 @@ export function PortfolioScreen() {
           <Holdings holdings={holdings} loading={loading} locked={!adminToken} />
         )}
         {activeTab === 'curve' && (
-          <EquityCurve points={equityCurve} locked={!adminToken} />
+          loading ? <TableSkeleton /> : <EquityCurve points={equityCurve} locked={!adminToken} />
         )}
       </div>
     </MobilePage>
+  )
+}
+
+function OverviewSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="maet-glass p-4">
+            <SkeletonWave className="h-10 w-10 rounded-xl" />
+            <SkeletonWave className="mt-4 h-3 w-24" />
+            <SkeletonWave className="mt-3 h-6 w-32" />
+            <SkeletonWave className="mt-2 h-3 w-28" />
+          </div>
+        ))}
+      </div>
+      <TableSkeleton />
+    </div>
   )
 }
 
