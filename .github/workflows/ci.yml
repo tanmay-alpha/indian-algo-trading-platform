@@ -33,6 +33,7 @@ jobs:
       ANGEL_PASSWORD: dummy_password
       ANGEL_TOTP_SECRET: JBSWY3DPEHPK3PXP
       DATABASE_URL: sqlite:///./ci_test.db
+      JWT_SECRET_KEY: ci-only-jwt-secret-key-for-auth-tests
 
     steps:
       - name: Checkout repository

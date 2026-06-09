@@ -154,7 +154,7 @@ export default function AboutPage() {
         <section className="maet-card space-y-4 p-6">
           <h2 className="font-heading text-lg font-bold text-maet-text">Get in Touch</h2>
           <p className="text-sm text-maet-text-secondary">
-            Have questions, feedback, or want to contribute? We'd love to hear from you.
+            Have questions, feedback, or want to contribute? We&apos;d love to hear from you.
           </p>
           <Link
             href="mailto:tanmay@maet.in"

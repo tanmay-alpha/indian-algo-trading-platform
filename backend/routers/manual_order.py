@@ -9,7 +9,6 @@ SAFETY CONTRACT:
   - This router NEVER triggers live order routing, broker API calls, or portfolio changes.
 """
 
-import re
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
@@ -19,12 +18,6 @@ from backend.core.security import require_admin_token, sanitize_response, get_db
 from backend.services.manual_order_ticket_service import ManualOrderTicketService
 
 router = APIRouter(prefix="/manual-order", tags=["manual-order"])
-
-# Validators for order fields
-VALID_SIDES = {"BUY", "SELL"}
-VALID_PRODUCT_TYPES = {"CNC", "DELIVERY", "MARGIN", "INTRADAY", "BO"}
-VALID_ORDER_TYPES = {"MARKET", "LIMIT", "SL", "SLM"}
-VALID_EXCHANGES = {"NSE", "BSE", "NFO", "MCX"}
 
 _SAFETY_MARKERS = {
     "validation_only": True,
@@ -37,45 +30,18 @@ _SAFETY_MARKERS = {
 
 
 class ManualOrderValidateRequest(BaseModel):
-    symbol: str = Field(..., min_length=1, max_length=20, description="Trading symbol")
+    symbol: str = Field(..., description="Trading symbol")
     exchange: str = Field(..., description="Exchange (NSE, BSE, NFO, MCX)")
     side: str = Field(..., description="Order side (BUY or SELL)")
-    quantity: int = Field(..., ge=1, le=10000, description="Order quantity")
+    quantity: int = Field(..., description="Order quantity")
     product_type: str = Field(..., description="Product type (CNC, DELIVERY, MARGIN, INTRADAY, BO)")
     order_type: str = Field(..., description="Order type (MARKET, LIMIT, SL, SLM)")
-    price_override: Optional[float] = Field(None, ge=0, description="Limit price override")
+    price_override: Optional[float] = Field(None, description="Limit price override")
 
-    @field_validator("exchange")
+    @field_validator("symbol", "exchange", "side", "product_type", "order_type")
     @classmethod
-    def validate_exchange(cls, v: str) -> str:
-        v = v.upper()
-        if v not in VALID_EXCHANGES:
-            raise ValueError(f"Invalid exchange. Must be one of: {VALID_EXCHANGES}")
-        return v
-
-    @field_validator("side")
-    @classmethod
-    def validate_side(cls, v: str) -> str:
-        v = v.upper()
-        if v not in VALID_SIDES:
-            raise ValueError(f"Invalid side. Must be one of: {VALID_SIDES}")
-        return v
-
-    @field_validator("product_type")
-    @classmethod
-    def validate_product_type(cls, v: str) -> str:
-        v = v.upper()
-        if v not in VALID_PRODUCT_TYPES:
-            raise ValueError(f"Invalid product_type. Must be one of: {VALID_PRODUCT_TYPES}")
-        return v
-
-    @field_validator("order_type")
-    @classmethod
-    def validate_order_type(cls, v: str) -> str:
-        v = v.upper()
-        if v not in VALID_ORDER_TYPES:
-            raise ValueError(f"Invalid order_type. Must be one of: {VALID_ORDER_TYPES}")
-        return v
+    def normalize_text_fields(cls, v: str) -> str:
+        return v.strip().upper()
 
 
 @router.get("/status", dependencies=[Depends(require_admin_token)])

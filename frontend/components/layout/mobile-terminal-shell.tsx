@@ -1,6 +1,5 @@
 'use client'
 
-import { useRef } from 'react'
 import type { ReactNode } from 'react'
 import { MobileTopHeader } from '@/components/mobile/mobile-top-header'
 import { MobileBottomNav, type AppTab } from '@/components/mobile/mobile-bottom-nav'
@@ -50,13 +49,6 @@ export function MobileTerminalShell({ activeTab, onNavigate, previousTab = 'home
     if (prevTab) {
       onNavigate(prevTab)
     }
-  }
-
-  // Update previousTab when activeTab changes
-  const activeTabRef = useRef(activeTab)
-  if (activeTabRef.current !== activeTab) {
-    previousTab = activeTabRef.current
-    activeTabRef.current = activeTab
   }
 
   return (

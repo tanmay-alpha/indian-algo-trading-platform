@@ -9,6 +9,8 @@ __pycache__/
 logs/
 *.log
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/*.sqlite
 node_modules/
 .next/

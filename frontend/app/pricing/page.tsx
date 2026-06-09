@@ -37,7 +37,7 @@ export default function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="mt-2 text-maet-text-secondary">
-            Start free during beta. Upgrade when you're ready.
+            Start free during beta. Upgrade when you&apos;re ready.
           </p>
         </header>
 

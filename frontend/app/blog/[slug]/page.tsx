@@ -182,7 +182,7 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
     notFound()
   }
 
-  const content = post.content.trim().split('\n').map((line, i) => {
+  const content = post.content.trim().split('\n').map((line) => {
     if (line.startsWith('## ')) {
       return { type: 'h2' as const, content: line.replace('## ', '') }
     }

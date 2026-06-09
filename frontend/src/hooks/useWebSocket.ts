@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { WS_URL } from '@/lib/constants'
 import { useTerminalStore } from '@/store/terminal-store'
 import type { TickPayload, WsConnectionStatus } from '@/lib/types'
@@ -10,7 +10,6 @@ export type FrontendWsStatus = 'connected' | 'connecting' | 'degraded' | 'offlin
 const CONNECT_TIMEOUT_MS = 4000
 const RECONNECT_DELAYS_MS = [2000, 4000, 8000, 16_000, 30_000]
 const MAX_MESSAGE_SIZE_BYTES = 1024 * 10 // 10KB max message size
-const MAX_RECONNECT_ATTEMPTS = 10
 
 export function useWebSocket() {
   const wsStatus = useTerminalStore((state) => state.wsStatus)
