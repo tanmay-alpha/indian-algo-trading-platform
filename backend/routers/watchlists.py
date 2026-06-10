@@ -30,7 +30,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from backend.core.security import require_admin_token, sanitize_response
+from backend.core.security import require_admin_token, get_current_user, sanitize_response
 from backend.core.database import create_engine_safe, get_session_factory, init_db_metadata
 from backend.db.repositories.watchlist_repository import WatchlistRepository, WATCHLIST_ITEM_CAP
 from backend.gateway import instrument_registry
@@ -87,10 +87,11 @@ def _item_to_dict(item) -> dict:
 
 
 # ------------------------------------------------------------------
-# Reads (public)
+# Reads — require authentication. User-specific data is never exposed
+# without a valid session token (Authorization: Bearer ...) or admin token.
 # ------------------------------------------------------------------
 
-@router.get("")
+@router.get("", dependencies=[Depends(get_current_user)])
 def list_watchlists():
     """List all watchlists for the default user."""
     session = None
@@ -110,7 +111,7 @@ def list_watchlists():
             session.close()
 
 
-@router.get("/default/items")
+@router.get("/default/items", dependencies=[Depends(get_current_user)])
 def get_default_watchlist_items(request: Request):
     """
     Return items in the default watchlist with available tick state.
@@ -162,7 +163,7 @@ def get_default_watchlist_items(request: Request):
             session.close()
 
 
-@router.get("/{watchlist_id}")
+@router.get("/{watchlist_id}", dependencies=[Depends(get_current_user)])
 def get_watchlist(watchlist_id: int):
     """Get a specific watchlist by ID."""
     session = None

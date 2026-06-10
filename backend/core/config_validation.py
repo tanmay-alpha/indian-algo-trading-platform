@@ -31,8 +31,11 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     errors = []
 
     # Validate JWT configuration
-    if not settings.get("jwt_secret_key"):
-        errors.append("JWT secret key is required")
+    jwt_secret = settings.get("jwt_secret_key") or ""
+    if not jwt_secret:
+        errors.append("JWT secret key is required (set JWT_SECRET_KEY env var)")
+    elif len(jwt_secret) < 32:
+        errors.append("JWT secret key must be at least 32 characters long")
 
     if settings.get("jwt_access_token_expire_minutes", 0) <= 0:
         errors.append("JWT access token expire time must be positive")
@@ -49,8 +52,8 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         errors.append("Trading mode must be PAPER or LIVE")
 
     # Validate environment
-    if settings.get("environment") not in ["LOCAL", "DEMO", "PRODUCTION"]:
-        errors.append("Environment must be LOCAL, DEMO, or PRODUCTION")
+    if settings.get("environment") not in ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT"]:
+        errors.append("Environment must be LOCAL, DEMO, PRODUCTION, or DEVELOPMENT")
 
     # Validate database path
     if settings.get("environment") == "PRODUCTION":
@@ -105,9 +108,13 @@ def validate_security_config(settings: Dict[str, Any]) -> Dict[str, Any]:
             errors.append("Admin token should not start with common patterns like 'admin' or 'test'")
 
     # Validate CORS origins
-    allowed_origins = settings.get("allowed_origins", "").split(",")
+    allowed_origins_raw = settings.get("allowed_origins", "")
+    if isinstance(allowed_origins_raw, list):
+        allowed_origins = allowed_origins_raw
+    else:
+        allowed_origins = str(allowed_origins_raw).split(",")
     for origin in allowed_origins:
-        origin = origin.strip()
+        origin = str(origin).strip()
         if origin and not origin.startswith(("http://", "https://")) and origin != "*":
             errors.append(f"Invalid CORS origin: {origin}")
 

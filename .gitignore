@@ -37,6 +37,9 @@ ci_test.db
 .DS_Store
 Thumbs.db
 
+# Playwright MCP session artifacts
+.playwright-mcp/
+
 # Stale file endings
 *.orig
 *.bak

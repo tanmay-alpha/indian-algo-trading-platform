@@ -1,7 +1,10 @@
 # backend/api_server.py
 
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 from pydantic import BaseModel
 import json
 import logging
@@ -9,6 +12,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 from backend.candles.candle_store import CandleStore
 from backend.core.config import settings
@@ -80,6 +84,62 @@ app = FastAPI(
 )
 register_rate_limiter(app)
 
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response: Response = await call_next(request)
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+        # Prevent MIME-type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # Referrer policy for privacy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Content Security Policy (restrictive, allow self + Vercel)
+        csp_origin = settings.public_backend_url or "*"
+        response.headers["Content-Security-Policy"] = (
+            f"default-src 'self'; "
+            f"connect-src 'self' https://*.vercel.app {csp_origin}; "
+            f"script-src 'self' 'unsafe-inline'; "
+            f"style-src 'self' 'unsafe-inline'; "
+            f"img-src 'self' data: https:; "
+            f"frame-ancestors 'none'"
+        )
+        return response
+
+
+# Methods that mutate state and need CSRF / Origin protection
+_UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+class CSRFGuardMiddleware(BaseHTTPMiddleware):
+    """Reject state-changing requests that come from an untrusted Origin.
+
+    Browsers automatically attach cookies on cross-origin requests, so even
+    a Bearer-token API should reject state-changing requests from origins
+    outside its allowlist. This is a defense-in-depth measure on top of
+    the standard `Authorization: Bearer ...` pattern.
+
+    The check passes if:
+      - The Origin header matches the CORS allowlist, OR
+      - The request is not a state-changing method, OR
+      - No Origin header is present (e.g., direct API call from a tool)
+    """
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.method.upper() in _UNSAFE_METHODS:
+            origin = request.headers.get("origin", "")
+            if origin:  # Browsers always send Origin on POST/PUT/PATCH/DELETE
+                allowed = get_cors_origins()
+                if allowed and origin not in allowed:
+                    return Response(
+                        content='{"detail": "CSRF: untrusted origin"}',
+                        status_code=403,
+                        media_type="application/json",
+                    )
+        return await call_next(request)
+
 def get_cors_origins() -> list[str]:
     required_origins = [
         "https://indian-algo-trading-platform.vercel.app",
@@ -101,6 +161,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Security headers (must be added AFTER CORSMiddleware so it doesn't override CORS)
+app.add_middleware(SecurityHeadersMiddleware)
+# CSRF protection — reject state-changing requests from untrusted origins
+app.add_middleware(CSRFGuardMiddleware)
 app.include_router(candles_router.router)
 app.include_router(indicators_router.router)
 app.include_router(portfolio_router.router)
@@ -325,6 +389,37 @@ async def load_instrument_master_best_effort():
 
 async def startup_event():
     """Initializes the backend services on startup."""
+    # Validate critical configuration BEFORE starting any service. Fail-fast on
+    # empty JWT secrets, weak admin tokens, or missing production DB.
+    from backend.core.config_validation import (
+        validate_all_config,
+        ConfigValidationError,
+    )
+    try:
+        config_snapshot = {
+            "jwt_secret_key": settings.jwt_secret_key,
+            "jwt_access_token_expire_minutes": settings.jwt_access_token_expire_minutes,
+            "max_order_qty": settings.max_order_qty,
+            "max_order_notional": settings.max_order_notional,
+            "trading_mode": settings.trading_mode,
+            "environment": settings.environment,
+            "database_url": settings.database_url,
+            "db_path": settings.db_path,
+            "admin_token": settings.admin_token,
+            "allowed_origins": settings.allowed_origins,
+            "live_trading_enabled": settings.live_trading_enabled,
+            "angel_api_key": settings.angel_api_key,
+            "angel_client_code": settings.angel_client_code,
+            "angel_password": settings.angel_password,
+            "angel_totp_secret": settings.angel_totp_secret,
+            "symbols": settings.symbols,
+        }
+        validate_all_config(config_snapshot)
+        logger.info("[startup] Configuration validation passed")
+    except ConfigValidationError as e:
+        logger.error("[startup] Refusing to start: %s", e)
+        raise RuntimeError(f"Configuration validation failed: {e}") from e
+
     await orchestrator.startup(app.state)
 
 async def shutdown_event():
@@ -364,6 +459,28 @@ def check_database_status():
 @app.get("/")
 @app.get("/health")
 def health_check():
+    """Public health check — returns only overall status, no internals.
+    Use /admin/health (with admin auth) for detailed diagnostics.
+    """
+    db_status = check_database_status()
+    return {
+        "status": "online" if db_status["connected"] else "degraded",
+    }
+
+
+@app.get("/admin/health")
+async def admin_health_check(
+    x_admin_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    """Detailed health check with full diagnostics. Admin-only.
+    Exposes DB URL, broker status, portfolio summary — all sanitized.
+    """
+    from backend.core.security import require_admin_token
+    await require_admin_token(
+        x_admin_token=x_admin_token,
+        authorization=authorization,
+    )
     db_status = check_database_status()
     return sanitize_response({
         "status": "online" if db_status["connected"] else "degraded",
@@ -645,10 +762,56 @@ async def get_recent_orders(limit: int = Query(default=50, ge=1, le=100)):
         })
     return sanitize_response({"orders": sanitized_requests})
 
+def _validate_websocket_auth(websocket: WebSocket) -> bool:
+    """Validate WebSocket authentication. Returns True if authenticated.
+
+    Accepts JWT via:
+      - query param ?token=<jwt>
+      - Sec-WebSocket-Protocol header (sometimes used to pass tokens)
+
+    Also validates the Origin header against the CORS allowlist.
+    """
+    from backend.core.security import decode_access_token, sanitize_response
+    import hmac as _hmac
+
+    # 1. Origin check — prevents browser-based CSRF-style WS handshakes from
+    #    attacker sites. WebSockets don't honor CORS, so this must be explicit.
+    origin = websocket.headers.get("origin", "")
+    if origin:
+        allowed = get_cors_origins()
+        if allowed and origin not in allowed:
+            return False
+
+    # 2. Token extraction — query string is the standard pattern
+    token = None
+    if websocket.query_params.get("token"):
+        token = websocket.query_params.get("token")
+
+    # 3. Legacy X-Admin-Token support for compatibility
+    if not token and settings.admin_token:
+        candidate = websocket.headers.get("x-admin-token") or websocket.query_params.get("admin_token")
+        if candidate and _hmac.compare_digest(candidate, settings.admin_token):
+            return True
+
+    if not token:
+        return False
+
+    payload = decode_access_token(token)
+    return payload is not None
+
+
 @app.websocket("/ws/market_stream")
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket):
-    """Handles frontend terminal connections via the unified broadcaster."""
+    """Handles frontend terminal connections via the unified broadcaster.
+    Requires JWT or admin token; Origin is checked against CORS allowlist.
+    """
+    # Reject unauthenticated connections BEFORE accepting the handshake
+    if not _validate_websocket_auth(websocket):
+        await websocket.close(code=1008, reason="Unauthorized")
+        obs_timeline.record_state_change("websocket", "REJECTED", websocket.url.path)
+        return
+
     await broadcaster.connect(websocket)
     obs_timeline.record_state_change("websocket", "CONNECTED", websocket.url.path)
     await websocket.send_json({

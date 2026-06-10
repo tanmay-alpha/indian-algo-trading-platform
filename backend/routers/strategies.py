@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 from backend.candles.candle_store import CandleStore
 from backend.core.json_utils import json_safe
 from backend.core.rate_limit import limiter
-from backend.core.security import require_admin_token, sanitize_response
+from backend.core.security import require_admin_token, get_current_user, sanitize_response
 from backend.indicators.engine import IndicatorEngine
 from backend.strategy.backtest_engine import BacktestEngine
 from backend.strategy.models import StrategyConfig
@@ -189,7 +189,7 @@ def signal_preview(payload: StrategySignalPreviewRequest, request: Request):
 # Strategy Configuration & Signal CRUD / Actions
 # ------------------------------------------------------------------
 
-@router.get("/configs")
+@router.get("/configs", dependencies=[Depends(get_current_user)])
 def get_strategy_configs():
     session = None
     try:
@@ -318,7 +318,7 @@ def create_strategy_config(payload: CreateStrategyConfigRequest):
             session.close()
 
 
-@router.get("/configs/{id}")
+@router.get("/configs/{id}", dependencies=[Depends(get_current_user)])
 def get_strategy_config(id: int):
     session = None
     try:
@@ -460,7 +460,7 @@ async def evaluate_strategy(id: int, request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to evaluate strategy: {exc}")
 
 
-@router.get("/configs/{id}/signals")
+@router.get("/configs/{id}/signals", dependencies=[Depends(get_current_user)])
 def get_strategy_signals(id: int):
     session = None
     try:
@@ -481,7 +481,7 @@ def get_strategy_signals(id: int):
             session.close()
 
 
-@router.get("/signals")
+@router.get("/signals", dependencies=[Depends(get_current_user)])
 def get_all_recorded_signals():
     session = None
     try:

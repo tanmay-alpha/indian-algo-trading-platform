@@ -12,6 +12,8 @@ from backend.core.security import (
     get_db,
     sanitize_response,
 )
+from backend.core.encryption import encrypt_secret, decrypt_secret
+from backend.core.rate_limit import limiter
 from backend.db.models import User
 from backend.db.repositories.user_repository import UserRepository
 
@@ -52,12 +54,30 @@ class MfaVerifyRequest(BaseModel):
 
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit("5/minute")  # Tight rate limit to prevent brute force attacks
 def login(payload: LoginRequest, request: Request, db=Depends(get_db)):
     """Authenticate a user and return a JWT access token."""
     user = _repo.get_user_by_username(db, payload.username)
     ip = request.client.host if request.client else None
-    
-    if not user or not verify_password(payload.password, user.password_hash):
+
+    # Constant-time guard: if no user, still run pwhash against a dummy hash so
+    # response time is similar for both branches. Prevents username enumeration.
+    if not user:
+        verify_password(payload.password, _get_dummy_pwhash())
+        _repo.log_audit(
+            db,
+            user_id=None,
+            action="LOGIN_FAILURE",
+            details=f"Failed login attempt for username: {payload.username}",
+            ip_address=ip
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(payload.password, user.password_hash):
         _repo.log_audit(
             db,
             user_id=None,
@@ -106,7 +126,9 @@ def login(payload: LoginRequest, request: Request, db=Depends(get_db)):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": "MFA_REQUIRED", "message": "MFA code required"},
             )
-        if not _verify_totp(user.mfa_totp_secret, payload.mfa_code):
+        # Decrypt TOTP secret before verification.
+        decrypted_totp = decrypt_secret(user.mfa_totp_secret)
+        if not _verify_totp(decrypted_totp, payload.mfa_code):
             _repo.log_audit(
                 db,
                 user_id=str(user.id),
@@ -115,6 +137,20 @@ def login(payload: LoginRequest, request: Request, db=Depends(get_db)):
                 ip_address=ip,
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
+
+    # Enforce MFA for ADMIN role (defense in depth).
+    if user.role and user.role.upper() == "ADMIN" and not user.mfa_enabled:
+        _repo.log_audit(
+            db,
+            user_id=str(user.id),
+            action="LOGIN_FAILURE",
+            details=f"ADMIN user without MFA attempted login: {user.username}",
+            ip_address=ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ADMIN users must enable MFA before logging in. Contact support.",
+        )
 
     # Success: log audit
     _repo.log_audit(
@@ -188,13 +224,18 @@ def setup_mfa(current_user: User = Depends(get_current_user), db=Depends(get_db)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     if not user.mfa_totp_secret:
-        user.mfa_totp_secret = pyotp.random_base32()
+        raw_secret = pyotp.random_base32()
+        user.mfa_totp_secret = encrypt_secret(raw_secret)
         user.updated_at = _utc_now()
         db.commit()
         db.refresh(user)
 
+    # Always return the plaintext secret in the setup response (so the user
+    # can scan it into their authenticator app) — but it's stored encrypted.
+    decrypted_secret = decrypt_secret(user.mfa_totp_secret)
+
     return {
-        "secret": user.mfa_totp_secret,
+        "secret": decrypted_secret,
         "otpauth_url": pyotp.totp.TOTP(user.mfa_totp_secret).provisioning_uri(
             name=user.username,
             issuer_name="MAET Terminal",
@@ -237,6 +278,20 @@ def disable_mfa(payload: MfaVerifyRequest, current_user: User = Depends(get_curr
 def _verify_totp(secret: str, code: str) -> bool:
     normalized = str(code or "").strip().replace(" ", "")
     return pyotp.TOTP(secret).verify(normalized, valid_window=1)
+
+
+# Pre-computed dummy hash used to keep login response time constant when a
+# username does not exist. Without this, an attacker can enumerate valid
+# usernames by measuring response time (pwhash is ~50ms, dict miss is <1ms).
+_DUMMY_PWHASH = None
+
+
+def _get_dummy_pwhash():
+    global _DUMMY_PWHASH
+    if _DUMMY_PWHASH is None:
+        from backend.core.security import hash_password
+        _DUMMY_PWHASH = hash_password("dummy-do-not-use")
+    return _DUMMY_PWHASH
 
 
 def _utc_now() -> str:

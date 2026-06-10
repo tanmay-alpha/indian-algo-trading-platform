@@ -1,6 +1,7 @@
 # backend/core/security.py
 
 import logging
+import hmac
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from fastapi import Header, HTTPException, Depends, status
@@ -13,7 +14,7 @@ from backend.db.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto", pbkdf2_sha256__rounds=600_000)
 
 SENSITIVE_KEY_PARTS = (
     "token",
@@ -192,7 +193,8 @@ async def get_current_user(
         x_admin_token = None
 
     # 1. Check legacy X-Admin-Token first to keep backwards compatibility
-    if settings.admin_token and x_admin_token == settings.admin_token:
+    # Use hmac.compare_digest for constant-time comparison to prevent timing attacks.
+    if settings.admin_token and x_admin_token and hmac.compare_digest(x_admin_token, settings.admin_token):
         # Return a virtual user representing admin
         virtual_admin = User(
             id=0,
@@ -261,8 +263,8 @@ async def require_admin_token(
         close_db = True
 
     try:
-        # Allow if legacy admin token matches
-        if settings.admin_token and x_admin_token == settings.admin_token:
+        # Allow if legacy admin token matches (constant-time comparison)
+        if settings.admin_token and x_admin_token and hmac.compare_digest(x_admin_token, settings.admin_token):
             return
 
         # Or if valid JWT has ADMIN role
