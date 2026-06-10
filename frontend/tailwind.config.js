@@ -19,10 +19,21 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Depth-first precision palette (overrides existing aliases).
+        void: '#080A10',
         base: 'var(--color-base)',
         panel: 'var(--color-panel)',
-        surface: 'var(--color-surface)',
+        surface: '#161B27',
+        elevated: '#1E2535',
         hover: 'var(--color-hover)',
+        // Accents.
+        gold: {
+          DEFAULT: '#F0C040',
+          bright: '#FFD700',
+        },
+        bull: '#4ADE80',
+        bear: '#F87171',
+        parchment: '#E8E6DF',
         border: {
           DEFAULT: 'var(--color-border)',
           light: 'var(--color-border-light)',
@@ -98,6 +109,7 @@ module.exports = {
         mono: ["var(--font-mono, 'JetBrains Mono')", "'Roboto Mono'", 'monospace'],
         sans: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
         heading: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
+        data: ['"JetBrains Mono"', '"Roboto Mono"', 'monospace'],
       },
       fontSize: {
         '2xs': ['10px', { lineHeight: '14px' }],
@@ -122,21 +134,33 @@ module.exports = {
         pill: '4px',
       },
       boxShadow: {
-        float: 'none',
-        card: 'none',
-        glass: 'none',
-        raised: 'none',
-        inner: 'none',
-        modal: 'none',
+        float: '0 4px 24px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        card: '0 4px 24px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        glow: '0 0 20px rgba(240,192,64,0.25)',
+        glass: '0 4px 24px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        raised: '0 4px 24px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        inner: 'inset 0 0.5px 0 rgba(255,255,255,0.06)',
+        modal: '0 24px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.06)',
       },
       keyframes: {
         pulseSoft: {
           '0%, 100%': { opacity: '0.55' },
           '50%': { opacity: '1' },
         },
+        goldPulse: {
+          '0%': { opacity: '1' },
+          '50%': { opacity: '0.4' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'pulse-soft': 'pulseSoft 2.4s ease-in-out infinite',
+        'gold-pulse': 'goldPulse 2s ease-in-out infinite',
+        'slide-up': 'slideUp 0.25s ease-out both',
       },
     },
   },

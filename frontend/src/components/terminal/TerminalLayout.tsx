@@ -41,7 +41,7 @@ export function TerminalLayout() {
     <main className="flex h-[100dvh] select-none flex-col overflow-hidden bg-base text-text-primary">
       <TopBar />
 
-      <div className="hidden min-h-0 flex-1 md:flex">
+      <div className="hidden min-h-0 flex-1 md:flex grid-bg">
         <TerminalSidebar />
         <ErrorBoundary boundaryName="Watchlist panel">
           <WatchlistPanel />

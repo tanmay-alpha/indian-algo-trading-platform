@@ -96,6 +96,87 @@ pre {
 }
 
 /* -----------------------------------------------------------
+   Precision Gold Terminal — depth & motion utilities
+   ----------------------------------------------------------- */
+
+/* 3D card lift: floating surface with subtle inset highlight */
+.card {
+  background: rgba(22, 27, 39, 0.8);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+
+.card:hover {
+  border-color: rgba(240, 192, 64, 0.18);
+}
+
+/* Gold glow — hover only, for CTAs and active items */
+.glow {
+  transition: box-shadow 200ms ease;
+}
+
+.glow:hover {
+  box-shadow: 0 0 20px rgba(240, 192, 64, 0.25);
+}
+
+/* Glass panels: stronger blur for overlays + screener cards */
+.glass-panel {
+  background: rgba(22, 27, 39, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Subtle 40px grid for terminal workspace only */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Live data dot pulse */
+@keyframes goldPulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.gold-pulse-dot {
+  animation: goldPulse 2s ease-in-out infinite;
+}
+
+/* Panel entry */
+@keyframes slideUp {
+  0%   { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+
+.slide-up {
+  animation: slideUp 0.25s ease both;
+}
+
+/* Tabular numerics + JetBrains Mono for all data fields.
+   Use .num, .font-mono, or the new .font-data / .data utility. */
+.data,
+.font-data {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Gold gradient helper for hero cards / stat blocks */
+.gold-gradient {
+  background: linear-gradient(135deg, rgba(240, 192, 64, 0.12) 0%, rgba(240, 192, 64, 0.02) 100%);
+}
+
+/* -----------------------------------------------------------
    Mobile / Desktop breakpoint utilities
    - Default rules apply on mobile (<768px).
    - @media (min-width: 768px) targets tablet and up.

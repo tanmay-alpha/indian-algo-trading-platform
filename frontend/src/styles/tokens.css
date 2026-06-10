@@ -1,10 +1,10 @@
 :root,
 :root[data-theme='light'] {
-  /* Liquid Gold Terminal */
-  --color-base: #0B0D13;
-  --color-panel: #0F1117;
-  --color-surface: #151822;
-  --color-hover: rgba(240,192,64,0.06);
+  /* Precision Gold Terminal — depth-first palette */
+  --color-base: #080A10;   /* Abyss — root bg, darker than before */
+  --color-panel: #0F1219;  /* Void — sidebar bg */
+  --color-surface: #161B27;/* Surface — cards, panels (glass tint) */
+  --color-hover: #1E2535;  /* Elevated — hover, active */
 
   --color-bg-base: var(--color-base);
   --color-bg-panel: var(--color-panel);
@@ -15,17 +15,19 @@
   --color-border-light: rgba(240,192,64,0.35);
   --color-border-strong: rgba(240,192,64,0.35);
 
-  --color-text-primary: #E8E6DF;
+  --color-text-primary: #E8E6DF;  /* Parchment */
   --color-text-muted: #6B6A65;
   --color-text-hint: #3D3C39;
 
-  --color-accent: #F0C040;
+  --color-accent: #F0C040;        /* Gold */
+  --color-accent-bright: #FFD700; /* Gold Bright — hover glow only */
   --color-accent-dim: rgba(240,192,64,0.12);
   --color-accent-soft: rgba(240,192,64,0.06);
+  --color-accent-glass: rgba(240,192,64,0.08); /* Gold Glass — 3D depth */
 
-  --color-up: #4ADE80;
+  --color-up: #4ADE80;            /* Bull */
   --color-up-dim: rgba(74,222,128,0.12);
-  --color-dn: #F87171;
+  --color-dn: #F87171;            /* Bear */
   --color-dn-dim: rgba(248,113,113,0.12);
   --color-warn: #F0C040;
   --color-warn-dim: rgba(240,192,64,0.12);
