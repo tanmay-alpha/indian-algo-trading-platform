@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 export function Nav() {
   return (
@@ -8,12 +9,15 @@ export function Nav() {
           <span>MAET</span>
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         </Link>
-        <Link
-          href="/terminal"
-          className="inline-flex items-center gap-2 rounded bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
-        >
-          Launch Terminal →
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            href="/terminal"
+            className="inline-flex items-center gap-2 rounded bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+          >
+            Open terminal
+          </Link>
+        </div>
       </div>
     </header>
   )

@@ -3,6 +3,7 @@
 import os
 import tempfile
 import pytest
+import pyotp
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends
 from fastapi.testclient import TestClient
@@ -146,6 +147,55 @@ def test_login_inactive_user(app_client, db_session):
     assert audit_record is not None
     assert audit_record.user_id == str(user.id)
     assert "Inactive user" in audit_record.details
+
+
+def test_login_requires_mfa_when_enabled(app_client, db_session):
+    repo = UserRepository()
+    secret = pyotp.random_base32()
+    user = repo.create_user(db_session, username="mfa_user", password_hash=hash_password("correct-pass"), role="ADMIN")
+    user.mfa_enabled = True
+    user.mfa_totp_secret = secret
+    db_session.commit()
+
+    response = app_client.post("/auth/login", json={"username": "mfa_user", "password": "correct-pass"})
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "MFA_REQUIRED"
+
+    code = pyotp.TOTP(secret).now()
+    response = app_client.post(
+        "/auth/login",
+        json={"username": "mfa_user", "password": "correct-pass", "mfa_code": code},
+    )
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+def test_mfa_setup_enable_disable_flow(app_client, db_session):
+    repo = UserRepository()
+    repo.create_user(db_session, username="secure_user", password_hash=hash_password("correct-pass"), role="ADMIN")
+    login_resp = app_client.post("/auth/login", json={"username": "secure_user", "password": "correct-pass"})
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    setup_resp = app_client.post("/auth/mfa/setup", headers=headers)
+    assert setup_resp.status_code == 200
+    secret = setup_resp.json()["secret"]
+    assert setup_resp.json()["enabled"] is False
+
+    code = pyotp.TOTP(secret).now()
+    enable_resp = app_client.post("/auth/mfa/enable", json={"code": code}, headers=headers)
+    assert enable_resp.status_code == 200
+    assert enable_resp.json()["status"] == "enabled"
+
+    login_mfa_resp = app_client.post(
+        "/auth/login",
+        json={"username": "secure_user", "password": "correct-pass", "mfa_code": pyotp.TOTP(secret).now()},
+    )
+    assert login_mfa_resp.status_code == 200
+
+    disable_resp = app_client.post("/auth/mfa/disable", json={"code": pyotp.TOTP(secret).now()}, headers=headers)
+    assert disable_resp.status_code == 200
+    assert disable_resp.json()["status"] == "disabled"
 
 
 # 3. GET /auth/me Tests

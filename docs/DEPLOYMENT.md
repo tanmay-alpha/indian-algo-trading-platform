@@ -3,9 +3,9 @@
 MAET Terminal is deployed as two separate services:
 
 - Frontend: Next.js app in `frontend/`, deployed on Vercel.
-- Backend: FastAPI app in `backend/`, deployed on a VPS/cloud VM.
+- Backend: FastAPI app in `backend/`, deployed on Render, VPS, or another persistent Python host.
 
-The backend must not be deployed to Vercel. It maintains long-running broker sessions, WebSocket market data, EventBus/TickBus processing, candle state, execution safety state, and portfolio state. These require a persistent process and stable network egress.
+The backend should not run as a Vercel frontend function. It maintains broker sessions, WebSocket market data, EventBus/TickBus processing, candle state, execution safety state, and portfolio state.
 
 ## Vercel Frontend
 
@@ -19,11 +19,12 @@ Use these Vercel settings:
 
 Frontend environment variables:
 
+- `NEXT_PUBLIC_BACKEND_URL=https://api.your-domain.com`
 - `NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com`
-- `NEXT_PUBLIC_API_URL=https://api.your-domain.com` (legacy alias)
+- `NEXT_PUBLIC_API_URL=https://api.your-domain.com`
 - `NEXT_PUBLIC_WS_URL=wss://api.your-domain.com/ws/market_stream`
 
-## VPS Backend
+## Backend
 
 Run the backend as a long-running process:
 
@@ -37,15 +38,37 @@ Render start command:
 uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --ws-ping-interval 20 --ws-ping-timeout 30
 ```
 
-For production-style operation, use:
+## Database
 
-- systemd service from `deployment/systemd/maet-backend.service.example`
-- Nginx reverse proxy from `deployment/nginx/maet-backend.nginx.example`
-- HTTPS certificate via certbot
+Production requires PostgreSQL:
 
-## HTTPS and WSS
+```text
+DATABASE_URL=postgresql://user:password@host:5432/maet_terminal
+ENVIRONMENT=PRODUCTION
+```
+
+Local development can use the Postgres service in `docker-compose.yml`:
+
+```bash
+docker compose up -d postgres
+alembic upgrade head
+```
+
+SQLite remains available only as a local/test fallback when `DATABASE_URL` is not set.
+
+## API Docs
+
+The backend serves Swagger UI at:
+
+```text
+https://api.your-domain.com/docs
+```
+
+OpenAPI JSON is available at `/openapi.json`.
+
+## HTTPS And WSS
 
 Browser WebSocket connections from the Vercel frontend should use `wss://`.
-Terminate HTTPS at Nginx and proxy to the backend on `127.0.0.1:8000`.
+Terminate HTTPS at Nginx or the hosting provider and proxy to the backend process.
 
-SmartAPI usage should run from the VPS backend only, not from Vercel.
+SmartAPI usage should run from the backend only, not from Vercel.

@@ -2,12 +2,14 @@
 module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     screens: {
       // Mobile-first approach with explicit named breakpoints
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
       mobile: '375px',   // iPhone SE / small Android
       tablet: '768px',   // iPad / large phone breakpoint
       laptop: '1024px',  // Small laptop

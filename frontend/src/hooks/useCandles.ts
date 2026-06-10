@@ -17,15 +17,6 @@ const IST_OFFSET_MINUTES = 5 * 60 + 30
 const LARGE_CAP_MIN_VOLUME = 500_000
 const LARGE_CAP_MAX_VOLUME = 5_000_000
 
-function backendBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    'http://localhost:8000'
-  ).replace(/\/+$/, '')
-}
-
 export function useCandles(symbol: string, timeframe: string): CandleState {
   const demoCandles = useMemo(() => generateDemoCandles(symbol, 80, timeframe), [symbol, timeframe])
   const [state, setState] = useState<CandleState>({
@@ -49,7 +40,7 @@ export function useCandles(symbol: string, timeframe: string): CandleState {
 
     async function loadBackendCandles() {
       try {
-        const url = `${backendBaseUrl()}/candles/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`
+        const url = `/api/backend/candles/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`
         const response = await fetch(url, { signal: controller.signal })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
 

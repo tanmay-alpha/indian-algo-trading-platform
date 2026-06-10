@@ -12,6 +12,8 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="VIEWER")  # ADMIN, VIEWER, TRADER_PAPER, TRADER_LIVE_DISABLED_PLACEHOLDER
     is_active = Column(Boolean, nullable=False, default=True)
+    mfa_enabled = Column(Boolean, nullable=False, default=False)
+    mfa_totp_secret = Column(String, nullable=True)
     created_at = Column(String, nullable=False)
     updated_at = Column(String, nullable=False)
 

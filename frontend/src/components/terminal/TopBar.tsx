@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { useTerminalStore } from '@/store/terminal-store'
 
 function formatIstTime() {
@@ -52,9 +53,10 @@ export function TopBar() {
       <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted">
         <span className="flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-          <span>NSE</span>
+          <span>NSE live</span>
         </span>
         <span>{clock} IST</span>
+        <ThemeToggle />
         <button
           type="button"
           className="grid h-7 w-7 place-items-center rounded-sm border border-border text-text-muted transition-colors hover:border-border-light hover:bg-hover hover:text-text-primary"

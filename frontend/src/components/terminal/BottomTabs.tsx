@@ -7,6 +7,7 @@ import {
   getPortfolioPositions,
 } from '@/lib/api'
 import { useTerminalStore } from '@/store/terminal-store'
+import { cn } from '@/lib/utils'
 
 type TabId = 'positions' | 'orders' | 'holdings'
 
@@ -23,7 +24,11 @@ const tabs: { id: TabId; label: string; empty: string }[] = [
   { id: 'holdings', label: 'Holdings', empty: 'No Holdings data' },
 ]
 
-export function BottomTabs() {
+interface BottomTabsProps {
+  className?: string
+}
+
+export function BottomTabs({ className }: BottomTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('positions')
   const [rows, setRows] = useState<RowData[]>([])
   const [loading, setLoading] = useState(false)
@@ -59,7 +64,7 @@ export function BottomTabs() {
   const active = tabs.find((tab) => tab.id === activeTab) ?? tabs[0]
 
   return (
-    <section className="flex h-[200px] shrink-0 flex-col border-t border-border bg-panel">
+    <section className={cn('flex h-[200px] shrink-0 flex-col border-t border-border bg-panel', className)}>
       <div className="flex h-8 shrink-0 items-center border-b border-border">
         {tabs.map((tab) => (
           <button

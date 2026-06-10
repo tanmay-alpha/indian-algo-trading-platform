@@ -82,6 +82,17 @@ export function useWebSocket() {
       }, delay)
     }
 
+    const checkBackendReachable = async () => {
+      try {
+        const response = await fetch('/api/backend/ping', { cache: 'no-store' })
+        if (!response.ok) return false
+        const payload = (await response.json()) as { reachable?: boolean }
+        return payload.reachable === true
+      } catch {
+        return false
+      }
+    }
+
     const handleMessage = (event: MessageEvent<string>) => {
       try {
         // Validate message size
@@ -123,7 +134,7 @@ export function useWebSocket() {
       }
     }
 
-    function connect() {
+    async function connect() {
       if (!mounted) return
       if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
 
@@ -131,6 +142,17 @@ export function useWebSocket() {
       setWsStatus(attemptVal > 0 ? 'degraded' : 'connecting')
       setDemo(true)
       setConnectionError(null)
+
+      const backendReachable = await checkBackendReachable()
+      if (!mounted) return
+      if (!backendReachable) {
+        setWsStatus('degraded')
+        setDemo(true)
+        setConnectionError('backend warming up')
+        startSimulation()
+        scheduleReconnect()
+        return
+      }
 
       try {
         socket = new WebSocket(WS_URL)

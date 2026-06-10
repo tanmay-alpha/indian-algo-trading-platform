@@ -5,12 +5,23 @@ import { Badge } from '@/components/ui/Badge'
 import { OHLCPanel } from '@/components/chart/OHLCPanel'
 import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
 import { useTerminalStore } from '@/store/terminal-store'
+import { cn } from '@/lib/utils'
+import { z } from 'zod'
 
 type Side = 'BUY' | 'SELL'
 type Product = 'MIS' | 'CNC' | 'NRML'
 type OrderType = 'Limit' | 'Market' | 'SL'
 
-export function OrderPanel() {
+const orderTicketSchema = z.object({
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(500, 'Quantity exceeds paper limit'),
+  price: z.number().positive('Price must be positive').max(1_000_000, 'Price is outside validation range'),
+})
+
+interface OrderPanelProps {
+  className?: string
+}
+
+export function OrderPanel({ className }: OrderPanelProps) {
   const activeSym = useTerminalStore((state) => state.activeSym)
   const dayPnl = useTerminalStore((state) => state.dayPnl)
   const setDayPnl = useTerminalStore((state) => state.setDayPnl)
@@ -33,18 +44,24 @@ export function OrderPanel() {
   const estimatedNotional = useMemo(() => qty * price, [price, qty])
 
   async function handleDryRun() {
+    const parsed = orderTicketSchema.safeParse({ quantity: qty, price })
+    if (!parsed.success) {
+      setLastMsg(`FAIL - ${parsed.error.issues[0]?.message ?? 'invalid order ticket'}`)
+      return
+    }
+
     setLastMsg('Validating paper order...')
     const request = {
       symbol: activeSym,
       exchange: 'NSE',
       side,
-      quantity: qty,
+      quantity: parsed.data.quantity,
       product_type: product,
       order_type: orderType,
-      price_override: orderType === 'Market' ? null : price,
+      price_override: orderType === 'Market' ? null : parsed.data.price,
     }
 
-    const localOrder = { sym: activeSym, side, qty, price, product, ts: Date.now() }
+    const localOrder = { sym: activeSym, side, qty: parsed.data.quantity, price: parsed.data.price, product, ts: Date.now() }
     addPaperOrder(localOrder)
 
     if (!adminToken) {
@@ -60,7 +77,7 @@ export function OrderPanel() {
     ])
 
     if (result.ok) {
-      setLastMsg(`PASS - ${side} ${qty} ${activeSym} @ ${formatINR(price)}`)
+      setLastMsg(`PASS - ${side} ${parsed.data.quantity} ${activeSym} @ ${formatINR(parsed.data.price)}`)
       const delta = side === 'BUY' ? -estimatedNotional * 0.0005 : estimatedNotional * 0.0005
       setDayPnl(dayPnl + delta)
       return
@@ -79,7 +96,7 @@ export function OrderPanel() {
   const labelClass = 'font-mono text-[10px] uppercase tracking-wide text-text-muted'
 
   return (
-    <aside className="flex min-h-0 w-[280px] shrink-0 flex-col overflow-hidden border-l border-border bg-panel">
+    <aside className={cn('flex min-h-0 w-[280px] shrink-0 flex-col overflow-hidden border-l border-border bg-panel', className)}>
       <div className="border-b border-border p-3">
         <OHLCPanel />
       </div>

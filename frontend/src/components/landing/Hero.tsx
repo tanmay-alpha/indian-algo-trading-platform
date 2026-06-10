@@ -14,7 +14,7 @@ export function Hero() {
         href="/terminal"
         className="mt-8 inline-flex items-center gap-2 rounded bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
       >
-        Launch Trading Terminal →
+        Open terminal
       </Link>
       <TerminalPreviewFrame />
     </section>

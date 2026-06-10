@@ -53,6 +53,13 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         errors.append("Environment must be LOCAL, DEMO, or PRODUCTION")
 
     # Validate database path
+    if settings.get("environment") == "PRODUCTION":
+        database_url = settings.get("database_url")
+        if not database_url:
+            errors.append("DATABASE_URL is required in PRODUCTION")
+        elif "postgres" not in str(database_url).lower():
+            errors.append("PRODUCTION database must use PostgreSQL")
+
     db_path = settings.get("db_path")
     if db_path:
         try:

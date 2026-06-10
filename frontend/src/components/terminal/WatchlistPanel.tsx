@@ -4,8 +4,13 @@ import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
 import { useTerminalStore } from '@/store/terminal-store'
+import { cn } from '@/lib/utils'
 
-export function WatchlistPanel() {
+interface WatchlistPanelProps {
+  className?: string
+}
+
+export function WatchlistPanel({ className }: WatchlistPanelProps) {
   const [query, setQuery] = useState('')
   const activeSym = useTerminalStore((state) => state.activeSym)
   const setActiveSym = useTerminalStore((state) => state.setActiveSym)
@@ -20,7 +25,7 @@ export function WatchlistPanel() {
   }, [query])
 
   return (
-    <aside className="flex min-h-0 w-[240px] shrink-0 flex-col overflow-hidden border-r border-border bg-panel">
+    <aside className={cn('flex min-h-0 w-[240px] shrink-0 flex-col overflow-hidden border-r border-border bg-panel', className)}>
       <div className="border-b border-border p-3">
         <label className="relative block">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />

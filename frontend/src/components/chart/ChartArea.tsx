@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
 import { useCandles } from '@/hooks/useCandles'
 import { useTerminalStore } from '@/store/terminal-store'
+import { cn } from '@/lib/utils'
 
 const CandleChart = dynamic(
   () => import('./CandleChart').then((module) => module.CandleChart),
@@ -21,7 +22,11 @@ const TIMEFRAMES = [
 
 const INDICATORS = ['EMA', 'VWAP', 'BB', 'RSI', 'MACD', 'ATR'] as const
 
-export function ChartArea() {
+interface ChartAreaProps {
+  className?: string
+}
+
+export function ChartArea({ className }: ChartAreaProps) {
   const activeSym = useTerminalStore((state) => state.activeSym)
   const timeframe = useTerminalStore((state) => state.chartTimeframe)
   const setChartTimeframe = useTerminalStore((state) => state.setChartTimeframe)
@@ -48,8 +53,8 @@ export function ChartArea() {
   }
 
   return (
-    <section className="flex min-w-0 flex-1 flex-col bg-base">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-panel px-3">
+    <section className={cn('flex min-w-0 flex-1 flex-col bg-base', className)}>
+      <div className="flex min-h-10 shrink-0 flex-col gap-2 border-b border-border bg-panel px-3 py-2 sm:h-10 sm:flex-row sm:items-center sm:justify-between sm:py-0">
         <div className="flex min-w-0 items-center gap-3">
           <div className="min-w-0">
             <div className="truncate font-mono text-[12px] font-medium text-text-primary">{activeSym}</div>
@@ -70,7 +75,7 @@ export function ChartArea() {
           {isLoading && <div className="font-mono text-[10px] text-text-muted">syncing {activeTfLabel}</div>}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto">
           {TIMEFRAMES.map((item) => {
             const active = timeframe === item.value
             return (

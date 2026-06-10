@@ -3,6 +3,7 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
+import pyotp
 
 from backend.core.security import (
     verify_password,
@@ -22,6 +23,7 @@ _repo = UserRepository()
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=64)
     password: str = Field(..., min_length=1)
+    mfa_code: str | None = Field(default=None, min_length=6, max_length=8)
 
 
 class LoginResponse(BaseModel):
@@ -34,8 +36,19 @@ class UserResponse(BaseModel):
     username: str
     role: str
     is_active: bool
+    mfa_enabled: bool = False
     created_at: str
     updated_at: str
+
+
+class MfaSetupResponse(BaseModel):
+    secret: str
+    otpauth_url: str
+    enabled: bool
+
+
+class MfaVerifyRequest(BaseModel):
+    code: str = Field(..., min_length=6, max_length=8)
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -70,6 +83,38 @@ def login(payload: LoginRequest, request: Request, db=Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user account",
         )
+
+    if user.mfa_enabled:
+        if not user.mfa_totp_secret:
+            _repo.log_audit(
+                db,
+                user_id=str(user.id),
+                action="LOGIN_FAILURE",
+                details=f"MFA enabled without secret for user: {user.username}",
+                ip_address=ip,
+            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="MFA is misconfigured")
+        if not payload.mfa_code:
+            _repo.log_audit(
+                db,
+                user_id=str(user.id),
+                action="MFA_REQUIRED",
+                details=f"MFA required for user: {user.username}",
+                ip_address=ip,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "MFA_REQUIRED", "message": "MFA code required"},
+            )
+        if not _verify_totp(user.mfa_totp_secret, payload.mfa_code):
+            _repo.log_audit(
+                db,
+                user_id=str(user.id),
+                action="MFA_FAILURE",
+                details=f"Invalid MFA code for user: {user.username}",
+                ip_address=ip,
+            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
 
     # Success: log audit
     _repo.log_audit(
@@ -129,6 +174,71 @@ def get_me(current_user: User = Depends(get_current_user)):
         "username": current_user.username,
         "role": current_user.role,
         "is_active": current_user.is_active,
+        "mfa_enabled": bool(getattr(current_user, "mfa_enabled", False)),
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at,
     })
+
+
+@router.post("/mfa/setup", response_model=MfaSetupResponse)
+def setup_mfa(current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    """Create or return a TOTP secret for the authenticated user."""
+    user = _repo.get_user_by_username(db, current_user.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not user.mfa_totp_secret:
+        user.mfa_totp_secret = pyotp.random_base32()
+        user.updated_at = _utc_now()
+        db.commit()
+        db.refresh(user)
+
+    return {
+        "secret": user.mfa_totp_secret,
+        "otpauth_url": pyotp.totp.TOTP(user.mfa_totp_secret).provisioning_uri(
+            name=user.username,
+            issuer_name="MAET Terminal",
+        ),
+        "enabled": bool(user.mfa_enabled),
+    }
+
+
+@router.post("/mfa/enable")
+def enable_mfa(payload: MfaVerifyRequest, current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    """Enable MFA after the user proves they can generate a valid TOTP code."""
+    user = _repo.get_user_by_username(db, current_user.username)
+    if not user or not user.mfa_totp_secret:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MFA setup required")
+    if not _verify_totp(user.mfa_totp_secret, payload.code):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
+
+    user.mfa_enabled = True
+    user.updated_at = _utc_now()
+    db.commit()
+    return {"status": "enabled"}
+
+
+@router.post("/mfa/disable")
+def disable_mfa(payload: MfaVerifyRequest, current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    """Disable MFA after the user confirms with a valid TOTP code."""
+    user = _repo.get_user_by_username(db, current_user.username)
+    if not user or not user.mfa_totp_secret or not user.mfa_enabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MFA is not enabled")
+    if not _verify_totp(user.mfa_totp_secret, payload.code):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
+
+    user.mfa_enabled = False
+    user.mfa_totp_secret = None
+    user.updated_at = _utc_now()
+    db.commit()
+    return {"status": "disabled"}
+
+
+def _verify_totp(secret: str, code: str) -> bool:
+    normalized = str(code or "").strip().replace(" ", "")
+    return pyotp.TOTP(secret).verify(normalized, valid_window=1)
+
+
+def _utc_now() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

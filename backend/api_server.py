@@ -69,7 +69,15 @@ async def lifespan(_: FastAPI):
         await shutdown_event()
 
 
-app = FastAPI(title="High-Frequency Trading Terminal", lifespan=lifespan)
+app = FastAPI(
+    title="MAET Terminal API",
+    description="Paper-mode market research, portfolio, chart, and dry-run validation API.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    lifespan=lifespan,
+)
 register_rate_limiter(app)
 
 def get_cors_origins() -> list[str]:
@@ -325,6 +333,15 @@ async def shutdown_event():
 def check_database_status():
     from backend.core.security import _db_engine
     from backend.core.database import create_engine_safe, check_db_health, redact_db_url, get_database_url
+    if settings.environment.upper() == "PRODUCTION" and (
+        not settings.database_url or settings.inferred_database_backend != "postgres"
+    ):
+        return {
+            "connected": False,
+            "error": "Production requires PostgreSQL DATABASE_URL",
+            "url": redact_db_url(settings.database_url or ""),
+        }
+
     engine = _db_engine
     if engine is None:
         try:

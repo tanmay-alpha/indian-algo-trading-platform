@@ -29,8 +29,8 @@ export function StatusBar() {
       : 'degraded'
 
   return (
-    <footer className="flex h-8 shrink-0 items-center border-t border-border bg-panel font-mono text-[10px] text-text-muted">
-      <div className="flex items-center gap-4 px-4">
+    <footer className="flex h-8 shrink-0 items-center overflow-x-auto whitespace-nowrap border-t border-border bg-panel font-mono text-[10px] text-text-muted">
+      <div className="flex min-w-max items-center gap-4 px-4">
         <span className="flex items-center gap-1.5">
           <span className={`h-[5px] w-[5px] rounded-full ${dotClass}`} />
           <span>WS {label}</span>
@@ -40,7 +40,7 @@ export function StatusBar() {
         <span>Engine: C++ ready</span>
       </div>
 
-      <div className="ml-auto flex items-center gap-4 px-4">
+      <div className="ml-auto flex min-w-max items-center gap-4 px-4">
         <span className={positive ? 'text-up' : 'text-dn'}>
           P&amp;L {positive ? '+' : ''}{dayPnl.toLocaleString('en-IN', {
             minimumFractionDigits: 2,
