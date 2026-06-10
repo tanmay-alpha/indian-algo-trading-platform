@@ -4,6 +4,10 @@
 
 #include "maet/types.hpp"
 
+// All functions in this header are pure: they read from const-ref inputs and
+// return freshly-allocated vectors. They are safe to call concurrently from
+// multiple threads as long as the input vectors are not mutated by another
+// thread for the duration of the call.
 namespace maet {
 
 std::vector<double> sma(const std::vector<double>& values, int period);

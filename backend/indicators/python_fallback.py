@@ -83,7 +83,10 @@ def rsi(close: list[float], period: int = 14) -> list[float]:
     gain_sum = 0.0
     loss_sum = 0.0
     for i in range(1, period + 1):
-        change = close[i] - close[i - 1]
+        prev, cur = close[i - 1], close[i]
+        if math.isnan(prev) or math.isnan(cur):
+            continue
+        change = cur - prev
         if change > 0:
             gain_sum += change
         else:
@@ -94,7 +97,11 @@ def rsi(close: list[float], period: int = 14) -> list[float]:
     output[period] = _rsi_from_averages(avg_gain, avg_loss)
 
     for i in range(period + 1, len(close)):
-        change = close[i] - close[i - 1]
+        prev, cur = close[i - 1], close[i]
+        if math.isnan(prev) or math.isnan(cur):
+            output[i] = math.nan
+            continue
+        change = cur - prev
         gain = change if change > 0 else 0.0
         loss = -change if change < 0 else 0.0
         avg_gain = ((avg_gain * (period - 1)) + gain) / period

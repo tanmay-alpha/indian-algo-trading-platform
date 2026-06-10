@@ -63,6 +63,12 @@ jobs:
       - name: Run backend tests
         run: pytest -q -ra
 
+      - name: Build and run C++ indicator tests
+        run: |
+          set -e
+          g++ -std=c++17 -I cpp/include cpp/src/indicators.cpp cpp/tests/test_indicators.cpp -o build_manual_indicator_tests
+          ./build_manual_indicator_tests
+
   frontend-checks:
     name: Frontend build
     runs-on: ubuntu-latest

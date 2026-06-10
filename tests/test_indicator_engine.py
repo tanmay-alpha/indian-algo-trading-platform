@@ -29,6 +29,18 @@ def test_python_fallback_rsi_flat_is_50():
     assert result[-1] == pytest.approx(50.0)
 
 
+def test_python_fallback_rsi_handles_nan():
+    # A single NaN should not poison later RSI values.
+    values = [float(i) for i in range(1, 31)]
+    values[5] = math.nan
+    result = python_fallback.rsi(values, 14)
+    assert len(result) == 30
+    # Index 20 is well past the NaN; must be a real RSI value, not NaN.
+    # For a rising market with one missing sample, RSI can be exactly 100.
+    assert not math.isnan(result[20])
+    assert 0.0 < result[20] <= 100.0
+
+
 def test_python_fallback_macd_shape():
     close = [float(i) for i in range(1, 61)]
     result = python_fallback.macd(close)
@@ -174,3 +186,91 @@ def test_cpp_bridge_sma_matches_fallback():
             assert math.isnan(cpp_value)
         else:
             assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_ema_matches_fallback():
+    cpp_result = cpp_bridge.ema([1, 2, 3, 4, 5, 6, 7, 8], 3)
+    fallback_result = python_fallback.ema([1, 2, 3, 4, 5, 6, 7, 8], 3)
+    for cpp_value, fallback_value in zip(cpp_result, fallback_result):
+        if math.isnan(fallback_value):
+            assert math.isnan(cpp_value)
+        else:
+            assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_rsi_matches_fallback():
+    close = [float(i) for i in range(1, 31)]
+    cpp_result = cpp_bridge.rsi(close, 14)
+    fallback_result = python_fallback.rsi(close, 14)
+    for cpp_value, fallback_value in zip(cpp_result, fallback_result):
+        if math.isnan(fallback_value):
+            assert math.isnan(cpp_value)
+        else:
+            assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_macd_matches_fallback():
+    close = [float(i) for i in range(1, 61)]
+    cpp_result = cpp_bridge.macd(close)
+    fallback_result = python_fallback.macd(close)
+    for key in ("macd", "signal", "histogram"):
+        for cpp_value, fallback_value in zip(cpp_result[key], fallback_result[key]):
+            if math.isnan(fallback_value):
+                assert math.isnan(cpp_value)
+            else:
+                assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_atr_matches_fallback():
+    candles = [
+        {"open": float(i), "high": float(i + 1), "low": float(i - 1), "close": float(i), "volume": 100.0}
+        for i in range(1, 31)
+    ]
+    cpp_result = cpp_bridge.atr(candles, 14)
+    fallback_result = python_fallback.atr(candles, 14)
+    for cpp_value, fallback_value in zip(cpp_result, fallback_result):
+        if math.isnan(fallback_value):
+            assert math.isnan(cpp_value)
+        else:
+            assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_vwap_matches_fallback():
+    candles = [
+        {"open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 10.0, "time": 1716714000},
+        {"open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 10.0, "time": 1716714060},
+        {"open": 300.0, "high": 301.0, "low": 299.0, "close": 300.5, "volume": 10.0, "time": 1716800400},
+    ]
+    cpp_result = cpp_bridge.vwap(candles)
+    fallback_result = python_fallback.vwap(candles)
+    for cpp_value, fallback_value in zip(cpp_result, fallback_result):
+        if math.isnan(fallback_value):
+            assert math.isnan(cpp_value)
+        else:
+            assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_bollinger_matches_fallback():
+    close = [float(i) for i in range(1, 31)]
+    cpp_result = cpp_bridge.bollinger_bands(close, 20, 2.0)
+    fallback_result = python_fallback.bollinger_bands(close, 20, 2.0)
+    for key in ("middle", "upper", "lower"):
+        for cpp_value, fallback_value in zip(cpp_result[key], fallback_result[key]):
+            if math.isnan(fallback_value):
+                assert math.isnan(cpp_value)
+            else:
+                assert cpp_value == pytest.approx(fallback_value)
+
+
+@pytest.mark.skipif(not cpp_bridge.cpp_available(), reason="C++ indicator module not compiled")
+def test_cpp_bridge_oversize_input_rejected():
+    # 100001 values exceed the 100,000 internal C++ ceiling.
+    big = [1.0] * 100001
+    with pytest.raises(RuntimeError):
+        cpp_bridge.sma(big, 5)

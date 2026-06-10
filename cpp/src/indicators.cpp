@@ -29,6 +29,9 @@ double window_stddev_population(
     std::size_t period,
     double mean
 ) {
+    // Population variance (divide by N) intentionally used here.
+    // Bollinger Bands classically uses population stddev; this matches
+    // the Python fallback and the way every charting library renders BB.
     double variance_sum = 0.0;
     for (std::size_t i = start; i < start + period; ++i) {
         const double diff = values[i] - mean;
@@ -41,6 +44,7 @@ double window_stddev_population(
 
 std::vector<double> sma(const std::vector<double>& values, int period) {
     validate_period(period, "SMA");
+    validate_input_length(values.size(), "SMA");
     if (values.empty()) {
         return {};
     }
@@ -76,6 +80,7 @@ std::vector<double> sma(const std::vector<double>& values, int period) {
 
 std::vector<double> ema(const std::vector<double>& values, int period) {
     validate_period(period, "EMA");
+    validate_input_length(values.size(), "EMA");
     if (values.empty()) {
         return {};
     }
@@ -125,6 +130,7 @@ std::vector<double> ema(const std::vector<double>& values, int period) {
 
 std::vector<double> rsi(const std::vector<double>& close, int period) {
     validate_period(period, "RSI");
+    validate_input_length(close.size(), "RSI");
     if (close.empty()) {
         return {};
     }
@@ -137,7 +143,14 @@ std::vector<double> rsi(const std::vector<double>& close, int period) {
     double gain_sum = 0.0;
     double loss_sum = 0.0;
     for (int i = 1; i <= period; ++i) {
-        const double change = close[static_cast<std::size_t>(i)] - close[static_cast<std::size_t>(i - 1)];
+        const double prev = close[static_cast<std::size_t>(i - 1)];
+        const double cur = close[static_cast<std::size_t>(i)];
+        // Treat NaN changes as zero so a single missing input does not poison
+        // every subsequent RSI value.
+        if (is_nan(prev) || is_nan(cur)) {
+            continue;
+        }
+        const double change = cur - prev;
         if (change > 0.0) {
             gain_sum += change;
         } else {
@@ -165,7 +178,13 @@ std::vector<double> rsi(const std::vector<double>& close, int period) {
     output[static_cast<std::size_t>(period)] = rsi_from_averages(avg_gain, avg_loss);
 
     for (std::size_t i = static_cast<std::size_t>(period) + 1; i < close.size(); ++i) {
-        const double change = close[i] - close[i - 1];
+        const double prev = close[i - 1];
+        const double cur = close[i];
+        if (is_nan(prev) || is_nan(cur)) {
+            output[i] = nan_value();
+            continue;
+        }
+        const double change = cur - prev;
         const double gain = change > 0.0 ? change : 0.0;
         const double loss = change < 0.0 ? -change : 0.0;
         avg_gain = ((avg_gain * static_cast<double>(period - 1)) + gain) / static_cast<double>(period);
@@ -185,6 +204,7 @@ MacdResult macd(
     validate_period(fast_period, "MACD fast");
     validate_period(slow_period, "MACD slow");
     validate_period(signal_period, "MACD signal");
+    validate_input_length(close.size(), "MACD");
     if (fast_period >= slow_period) {
         throw std::invalid_argument("MACD fast period must be < slow period");
     }
@@ -215,6 +235,7 @@ MacdResult macd(
 
 std::vector<double> atr(const std::vector<Candle>& candles, int period) {
     validate_period(period, "ATR");
+    validate_input_length(candles.size(), "ATR");
     if (candles.empty()) {
         return {};
     }
@@ -253,9 +274,15 @@ std::vector<double> atr(const std::vector<Candle>& candles, int period) {
 }
 
 std::vector<double> vwap(const std::vector<Candle>& candles) {
+    validate_input_length(candles.size(), "VWAP");
     if (candles.empty()) {
         return {};
     }
+    // Day boundary assumes Indian Standard Time (UTC+5:30). The 19800 second
+    // offset shifts midnight UTC to ~00:30 IST, so a new day starts at 00:30
+    // UTC, which corresponds to 06:00 IST of the same IST calendar day. This
+    // matches the python_fallback behavior. Callers feeding non-IST data
+    // should adjust their timestamps before calling.
 
     auto output = make_nan_vector(candles.size());
     double cumulative_price_volume = 0.0;
@@ -292,6 +319,7 @@ BollingerBands bollinger_bands(
     double stddev_multiplier
 ) {
     validate_period(period, "Bollinger Bands");
+    validate_input_length(close.size(), "Bollinger Bands");
     if (stddev_multiplier <= 0.0) {
         throw std::invalid_argument("Bollinger Bands stddev multiplier must be > 0");
     }

@@ -1,8 +1,10 @@
 #include "maet/indicators.hpp"
+#include "maet/errors.hpp"
 
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -76,6 +78,21 @@ void test_rsi_flat_market() {
     const auto result = maet::rsi(close, 14);
     assert_vector_size(result, 30);
     assert(approx_equal(result.back(), 50.0));
+}
+
+void test_rsi_handles_nan_input() {
+    // Single NaN at index 5 should not poison later values.
+    auto values = increasing_values(30);
+    values[5] = std::numeric_limits<double>::quiet_NaN();
+    const auto result = maet::rsi(values, 14);
+    assert_vector_size(result, 30);
+    // Index 20 is well past the NaN; the result must be a real RSI value,
+    // not NaN. For a rising market with a single missing sample, RSI is
+    // still close to 100. We just assert the bug-fix invariant: not NaN,
+    // in (0, 100] inclusive.
+    assert(!is_nan(result[20]));
+    assert(result[20] > 0.0);
+    assert(result[20] <= 100.0);
 }
 
 void test_macd_shape() {
@@ -183,6 +200,19 @@ void test_invalid_parameters() {
     assert_throws_invalid_argument([] { maet::bollinger_bands({1, 2, 3}, 3, 0.0); });
 }
 
+void test_oversize_input_rejected() {
+    const std::size_t big = maet::MAX_INPUT_LENGTH + 1;
+    std::vector<double> large(big, 1.0);
+    assert_throws_invalid_argument([&] { maet::sma(large, 5); });
+    assert_throws_invalid_argument([&] { maet::ema(large, 5); });
+    assert_throws_invalid_argument([&] { maet::rsi(large, 5); });
+    assert_throws_invalid_argument([&] { maet::macd(large); });
+    assert_throws_invalid_argument([&] { maet::bollinger_bands(large, 5, 2.0); });
+    std::vector<maet::Candle> large_candles(big, {1, 2, 0, 1, 10});
+    assert_throws_invalid_argument([&] { maet::atr(large_candles, 5); });
+    assert_throws_invalid_argument([&] { maet::vwap(large_candles); });
+}
+
 }  // namespace
 
 int main() {
@@ -190,6 +220,7 @@ int main() {
     test_ema_basic();
     test_rsi_rising_market();
     test_rsi_flat_market();
+    test_rsi_handles_nan_input();
     test_macd_shape();
     test_atr_basic();
     test_vwap_basic();
@@ -198,6 +229,7 @@ int main() {
     test_bollinger_basic();
     test_empty_input();
     test_invalid_parameters();
+    test_oversize_input_rejected();
 
     std::cout << "All C++ indicator tests passed\n";
     return 0;
