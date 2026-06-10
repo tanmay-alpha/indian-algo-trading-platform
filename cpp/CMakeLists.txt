@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# When building via CMake (not the manual g++ fallback), include the test target.
+# CI uses the manual g++ build which does not need CMake.
+option(MAET_BUILD_TESTS "Build the indicator tests" ON)
+
 add_library(maet_indicators STATIC
     src/indicators.cpp
 )
@@ -23,14 +27,23 @@ else()
     target_compile_options(maet_indicators PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-add_executable(maet_indicator_tests
-    tests/test_indicators.cpp
-)
+if(MAET_BUILD_TESTS)
+    enable_testing()
 
-target_link_libraries(maet_indicator_tests
-    PRIVATE
-        maet_indicators
-)
+    add_executable(maet_indicator_tests
+        tests/test_indicators.cpp
+    )
+
+    target_link_libraries(maet_indicator_tests
+        PRIVATE
+            maet_indicators
+    )
+
+    add_test(NAME maet_indicator_tests
+        COMMAND maet_indicator_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endif()
 
 find_package(pybind11 CONFIG QUIET)
 

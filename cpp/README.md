@@ -55,8 +55,17 @@ g++ -std=c++17 -I cpp/include cpp/src/indicators.cpp cpp/tests/test_indicators.c
 Expected output:
 
 ```text
-All C++ indicator tests passed
+[RUN ] test_sma_basic
+...
+All C++ indicator tests passed (110 assertions)
 ```
+
+The test file uses a small hand-rolled harness rather than doctest/Catch2 so it stays portable to older MinGW toolchains that lack `<mutex>`. The harness still provides:
+
+- Per-test reporting (each `RUN_TEST` block reports a `[RUN ]` line).
+- Failure location (`file:line`) and a per-test failure counter.
+- `-DNDEBUG` resilience — there is no `assert()` in the test file, so Release builds still run the tests.
+- Clear pass/fail exit code (0 on success, 1 on any failed assertion).
 
 ## pybind11 Bridge
 
