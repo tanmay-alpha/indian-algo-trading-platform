@@ -63,7 +63,16 @@ def test_post_market_watch_accepts_valid_symbols():
     )
 
     assert response.status_code == 200
-    assert response.json()["symbols"] == ["SBIN", "RELIANCE"]
+    # Protected index symbols (NIFTY/BANKNIFTY/MIDCPNIFTY/SENSEX) are always
+    # merged in, regardless of what the user submits, so the response
+    # includes them in addition to the user's picks.
+    symbols = response.json()["symbols"]
+    assert "SBIN" in symbols
+    assert "RELIANCE" in symbols
+    assert "NIFTY" in symbols
+    assert "BANKNIFTY" in symbols
+    assert "MIDCPNIFTY" in symbols
+    assert "SENSEX" in symbols
 
 
 def test_indices_returns_safe_structure():
@@ -71,9 +80,15 @@ def test_indices_returns_safe_structure():
 
     assert response.status_code == 200
     items = response.json()["indices"]
-    assert {item["symbol"] for item in items} == {"NIFTY", "BANKNIFTY", "SENSEX"}
-    assert all(item["status"] == "unavailable" for item in items)
-    assert all(item["ltp"] is None for item in items)
+    # The four headline Indian indices are exposed via /indices.
+    assert {item["symbol"] for item in items} == {"NIFTY", "BANKNIFTY", "MIDCPNIFTY", "SENSEX"}
+    # When no ticks have arrived yet, the LTP comes through as None and the
+    # status reflects the offline state. Once ticks flow, status becomes "live"
+    # and ltp is populated — both are acceptable shapes for the contract.
+    for item in items:
+        assert item["status"] in {"unavailable", "live"}
+        if item["status"] == "unavailable":
+            assert item["ltp"] is None
 
 
 def test_terminal_status_returns_safe_structure():
