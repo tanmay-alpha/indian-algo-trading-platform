@@ -97,3 +97,5 @@ user_request*.txt
 scratchpad/
 scratch/
 *_scratch.py
+build_manual_indicator_tests.exe
+maet_cpp_indicators.pyd
