@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     public_backend_url: Optional[str] = None
     strategy_scheduler_enabled: bool = False
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
     @property
     def inferred_database_backend(self) -> str:
