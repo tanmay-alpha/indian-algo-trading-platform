@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: maet-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install --upgrade pip && pip install -r ../requirements.txt"
+    startCommand: "uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
+    healthCheckPath: /ping
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+      - key: ENVIRONMENT
+        value: PRODUCTION
+      - key: TRADING_MODE
+        value: PAPER
+      - key: PAPER_TRADING
+        value: "true"
+      - key: BROKER_ENABLED
+        value: "false"
+      - key: ENABLE_BROKER_LOGIN
+        value: "false"
+      - key: ALLOWED_ORIGINS
+        value: https://indian-algo-trading-platform.vercel.app
