@@ -62,7 +62,7 @@
 These are optional future directions, not required for v2.0:
 
 - C++ backtesting core
-- Stronger Strategy Lab UI
+- Strategy Lab persistence/export
 - PostgreSQL persistence
 - VPS deployment
 - Deeper market discovery

@@ -12,5 +12,5 @@ export const DEMO_SYMBOLS = [
 export type DemoSymbol = typeof DEMO_SYMBOLS[number]
 
 export function formatINR(n: number) {
-  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `\u20B9${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }

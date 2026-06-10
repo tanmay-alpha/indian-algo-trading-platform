@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { Settings } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
-import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { useTerminalStore } from '@/store/terminal-store'
 
 function formatIstTime() {
@@ -19,6 +18,7 @@ function formatIstTime() {
 export function TopBar() {
   const [clock, setClock] = useState('--:--:--')
   const wsStatus = useTerminalStore((state) => state.wsStatus)
+  const demoMode = useTerminalStore((state) => state.wsDemoMode)
 
   useEffect(() => {
     setClock(formatIstTime())
@@ -31,32 +31,30 @@ export function TopBar() {
   }, [])
 
   const status = normalizeStatus(wsStatus)
-  const dotClass =
-    status === 'connected'
-      ? 'bg-up'
-      : status === 'offline'
-      ? 'bg-dn'
-      : status === 'connecting'
-      ? 'animate-pulse bg-warn'
-      : 'bg-warn'
+  const dotClass = status === 'connected'
+    ? 'animate-pulse bg-up'
+    : status === 'offline'
+    ? 'bg-dn'
+    : 'animate-pulse bg-warn'
+  const statusLabel = status === 'connected' ? 'NSE live' : demoMode ? 'Market replay' : 'NSE warming'
 
   return (
-    <header className="flex h-[44px] shrink-0 items-center justify-between border-b border-border bg-panel px-4">
+    <header className="group flex h-[44px] shrink-0 items-center justify-between border-b border-accent/20 bg-panel px-4 transition-colors hover:border-accent/35">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          <span className="font-mono text-sm font-medium tracking-normal text-text-primary">MAET</span>
+          <span className="font-mono text-sm font-medium tracking-normal text-accent">MAET</span>
         </div>
         <Badge variant="paper">paper mode</Badge>
+        {demoMode && <Badge variant="warn">Demo mode</Badge>}
       </div>
 
       <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted">
         <span className="flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-          <span>NSE live</span>
+          <span>{statusLabel}</span>
         </span>
         <span>{clock} IST</span>
-        <ThemeToggle />
         <button
           type="button"
           className="grid h-7 w-7 place-items-center rounded-sm border border-border text-text-muted transition-colors hover:border-border-light hover:bg-hover hover:text-text-primary"

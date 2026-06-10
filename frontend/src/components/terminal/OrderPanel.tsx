@@ -190,7 +190,7 @@ export function OrderPanel({ className }: OrderPanelProps) {
           onClick={handleDryRun}
           className="mt-auto h-9 rounded border border-accent/30 bg-accent-dim font-mono text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-white"
         >
-          Dry run →
+          Dry run -&gt;
         </button>
 
         {lastMsg && (

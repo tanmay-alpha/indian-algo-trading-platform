@@ -170,7 +170,7 @@ CandleStore
 
 ## Phase 13 - Strategy Research
 
-Phase 13 adds the backend foundation for a future Strategy Lab. It is intentionally offline and research-only. Strategy routes do not fetch broker candles, do not call SmartAPI, do not place orders, and do not route signals into the execution layer.
+Phase 13 adds the backend foundation used by the Strategy Lab. It is intentionally offline and research-only. Strategy routes do not fetch broker candles, do not call SmartAPI, do not place orders, and do not route signals into the execution layer.
 
 ```text
 Candles
@@ -179,7 +179,7 @@ Candles
   -> BacktestEngine
   -> BacktestResult
   -> Strategy API
-  -> Future Strategy Lab frontend
+  -> Strategy Lab frontend
 ```
 
 ### Strategy Templates

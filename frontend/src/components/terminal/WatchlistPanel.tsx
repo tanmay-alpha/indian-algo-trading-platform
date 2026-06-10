@@ -38,7 +38,7 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
         </label>
       </div>
 
-      <div className="border-b border-border px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-widest text-text-muted">
+      <div className="border-b border-border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">
         Watchlist
       </div>
 
@@ -55,11 +55,12 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
               className="w-full border-b border-border px-3 py-2 text-left transition-colors hover:bg-hover data-[active=true]:border-l-2 data-[active=true]:border-l-accent data-[active=true]:bg-surface data-[active=true]:pl-[10px]"
               data-active={active}
             >
-              <span className="flex items-center justify-between gap-3">
+              <span className="grid grid-cols-[minmax(0,1fr)_60px_74px] items-center gap-2">
                 <span className="min-w-0">
-                  <span className="block truncate font-mono text-xs font-medium text-text-primary">{item.sym}</span>
+                  <span className="block truncate text-xs font-semibold text-text-primary">{item.sym}</span>
                   <span className="block truncate text-[10px] text-text-muted">{item.name}</span>
                 </span>
+                <MiniSparkline symbol={item.sym} positive={positive} />
                 <span className="shrink-0 text-right">
                   <span className="block font-mono text-xs text-text-primary">{formatINR(item.price)}</span>
                   <span className={`block font-mono text-[10px] ${positive ? 'text-up' : 'text-dn'}`}>
@@ -75,5 +76,38 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
         })}
       </div>
     </aside>
+  )
+}
+
+function MiniSparkline({ symbol, positive }: { symbol: string; positive: boolean }) {
+  const values = useMemo(() => {
+    const seed = Array.from(symbol).reduce((sum, char) => sum + char.charCodeAt(0), 0)
+    return Array.from({ length: 8 }, (_, index) => {
+      const drift = Math.sin((seed + index * 17) / 11) * 7
+      const trend = positive ? index * 1.4 : (7 - index) * 1.4
+      return 16 - trend + drift
+    })
+  }, [positive, symbol])
+
+  const points = values
+    .map((value, index) => {
+      const x = 4 + index * 7
+      const y = Math.round(Math.min(18, Math.max(3, value)) * 1000) / 1000
+      return `${x},${y}`
+    })
+    .join(' ')
+
+  return (
+    <svg width="60" height="20" viewBox="0 0 60 20" className="shrink-0" aria-hidden="true">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={positive ? 'var(--color-up)' : 'var(--color-dn)'}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.9"
+      />
+    </svg>
   )
 }

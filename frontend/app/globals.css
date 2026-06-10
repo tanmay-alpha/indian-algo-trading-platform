@@ -13,7 +13,7 @@ html,
 body {
   background: var(--color-base);
   color: var(--color-text-primary);
-  font-family: var(--font-sans, 'DM Sans', 'Inter', sans-serif);
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
 }
 
 body {
@@ -78,12 +78,12 @@ pre {
 }
 
 @keyframes flashUp {
-  0% { background: rgba(38,166,154,0.18); }
+  0% { background: rgba(74,222,128,0.18); }
   100% { background: transparent; }
 }
 
 @keyframes flashDown {
-  0% { background: rgba(239,83,80,0.18); }
+  0% { background: rgba(248,113,113,0.18); }
   100% { background: transparent; }
 }
 

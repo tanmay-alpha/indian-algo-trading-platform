@@ -2,7 +2,7 @@
 
 import { useTerminalStore } from '@/store/terminal-store'
 
-const VERSION = 'v0.1'
+const VERSION = 'v0.2'
 
 export function StatusBar() {
   const wsStatus = useTerminalStore((state) => state.wsStatus)
@@ -19,14 +19,14 @@ export function StatusBar() {
       : 'bg-warn'
   const label =
     reconnectInSeconds != null && status === 'degraded'
-      ? `reconnecting in ${reconnectInSeconds}s`
+      ? `demo feed, retry ${reconnectInSeconds}s`
       : status === 'connected'
       ? 'connected'
       : status === 'connecting'
-      ? 'connecting'
+      ? 'warming'
       : status === 'offline'
       ? 'offline'
-      : 'degraded'
+      : 'demo feed'
 
   return (
     <footer className="flex h-8 shrink-0 items-center overflow-x-auto whitespace-nowrap border-t border-border bg-panel font-mono text-[10px] text-text-muted">
@@ -37,7 +37,7 @@ export function StatusBar() {
         </span>
         <span>Feed: {tickCount.toLocaleString('en-IN')} ticks</span>
         <span>Broker: paper</span>
-        <span>Engine: C++ ready</span>
+        <span>Engine: ready</span>
       </div>
 
       <div className="ml-auto flex min-w-max items-center gap-4 px-4">

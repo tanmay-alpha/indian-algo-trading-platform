@@ -9,8 +9,8 @@ export default function LandingPage() {
     <main className="min-h-screen bg-base font-sans text-text-primary">
       <Nav />
       <Hero />
-      <FeatureGrid />
       <TechStack />
+      <FeatureGrid />
       <Footer />
     </main>
   )

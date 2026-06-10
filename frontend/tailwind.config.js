@@ -30,6 +30,7 @@ module.exports = {
         accent: {
           DEFAULT: 'var(--color-accent)',
           dim: 'var(--color-accent-dim)',
+          soft: 'var(--color-accent-soft)',
         },
         up: {
           DEFAULT: 'var(--color-up)',
@@ -44,7 +45,10 @@ module.exports = {
           muted: 'var(--color-text-muted)',
           hint: 'var(--color-text-hint)',
         },
-        warn: 'var(--color-warn)',
+        warn: {
+          DEFAULT: 'var(--color-warn)',
+          dim: 'var(--color-warn-dim)',
+        },
 
         // Compatibility aliases used by older components.
         primary: 'var(--color-text-primary)',
@@ -57,7 +61,7 @@ module.exports = {
         'dn-dim': 'var(--color-dn-dim)',
         down: 'var(--color-dn)',
         'down-dim': 'var(--color-dn-dim)',
-        'warn-dim': 'rgba(245,158,11,0.12)',
+        'warn-dim': 'var(--color-warn-dim)',
         bg: 'var(--color-base)',
         'bg-2': 'var(--color-panel)',
         'bg-surface': 'var(--color-panel)',
@@ -92,8 +96,8 @@ module.exports = {
       },
       fontFamily: {
         mono: ["var(--font-mono, 'JetBrains Mono')", "'Roboto Mono'", 'monospace'],
-        sans: ["var(--font-sans, 'DM Sans')", "'Inter'", 'sans-serif'],
-        heading: ["var(--font-sans, 'DM Sans')", "'Inter'", 'sans-serif'],
+        sans: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
+        heading: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
       },
       fontSize: {
         '2xs': ['10px', { lineHeight: '14px' }],

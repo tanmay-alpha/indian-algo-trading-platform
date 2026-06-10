@@ -23,9 +23,9 @@ export function OHLCPanel({ candle }: OHLCPanelProps) {
 
   return (
     <section className="border border-border bg-surface p-3">
-      <div className="font-mono text-[10px] uppercase text-text-muted">OHLC · {activeSym}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">OHLC | {activeSym}</div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <OhlcCell label="Open" value={formatINR(ohlc.open)} tone={bullish ? 'up' : 'dn'} />
+        <OhlcCell label="Open" value={formatINR(ohlc.open)} tone="neutral" />
         <OhlcCell label="High" value={formatINR(ohlc.high)} tone="up" />
         <OhlcCell label="Low" value={formatINR(ohlc.low)} tone="dn" />
         <OhlcCell label="Close" value={formatINR(ohlc.close)} tone={bullish ? 'up' : 'dn'} />
@@ -34,11 +34,14 @@ export function OHLCPanel({ candle }: OHLCPanelProps) {
   )
 }
 
-function OhlcCell({ label, value, tone }: { label: string; value: string; tone: 'up' | 'dn' }) {
+function OhlcCell({ label, value, tone }: { label: string; value: string; tone: 'neutral' | 'up' | 'dn' }) {
+  const color = tone === 'up' ? 'text-up' : tone === 'dn' ? 'text-dn' : 'text-text-primary'
+  const border = tone === 'up' ? 'border-l-up' : tone === 'dn' ? 'border-l-dn' : 'border-l-accent'
+
   return (
-    <div className="border border-border bg-base p-2">
-      <div className="font-mono text-[9px] uppercase text-text-muted">{label}</div>
-      <div className={`mt-1 font-mono text-[11px] ${tone === 'up' ? 'text-up' : 'text-dn'}`}>
+    <div className={`border border-l-2 border-border bg-base p-2 ${border}`}>
+      <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-text-muted">{label}</div>
+      <div className={`mt-1 font-mono text-[18px] leading-6 tabular-nums ${color}`}>
         {value}
       </div>
     </div>

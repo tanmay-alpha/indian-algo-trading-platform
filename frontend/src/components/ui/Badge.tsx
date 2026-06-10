@@ -9,10 +9,10 @@ interface BadgeProps {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  paper: 'border border-accent/30 bg-accent-dim text-accent',
+  paper: 'border border-accent/35 bg-accent-dim text-accent',
   up: 'border border-up/30 bg-up-dim text-up',
   dn: 'border border-dn/30 bg-dn-dim text-dn',
-  warn: 'border border-warn/30 bg-amber-500/10 text-warn',
+  warn: 'border border-warn/35 bg-warn-dim text-warn',
   muted: 'border border-border bg-surface text-text-muted',
 }
 

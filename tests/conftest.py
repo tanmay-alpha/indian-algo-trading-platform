@@ -15,6 +15,11 @@ def configure_test_environment(request, monkeypatch):
     
     limiter.enabled = False
     monkeypatch.setattr(settings, "admin_token", "test-admin-token")
+    monkeypatch.setattr(
+        settings,
+        "jwt_secret_key",
+        "x" * 40,
+    )
     
     module_name = request.module.__name__
     if "test_instrument_master_db" in module_name:

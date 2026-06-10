@@ -72,7 +72,12 @@ export function ChartArea({ className }: ChartAreaProps) {
               maximumFractionDigits: 2,
             })}%
           </div>
-          {isLoading && <div className="font-mono text-[10px] text-text-muted">syncing {activeTfLabel}</div>}
+          {isLoading && (
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+              <span>syncing {activeTfLabel}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto">
@@ -86,7 +91,7 @@ export function ChartArea({ className }: ChartAreaProps) {
                 className={[
                   'h-6 rounded border px-2 font-mono text-[10px] transition-colors',
                   active
-                    ? 'border-accent bg-accent-dim text-accent'
+                    ? 'border-accent/40 bg-accent-dim text-accent'
                     : 'border-border bg-base text-text-muted hover:border-border-light hover:text-text-primary',
                 ].join(' ')}
               >
@@ -112,7 +117,7 @@ export function ChartArea({ className }: ChartAreaProps) {
               className={[
                 'h-5 rounded border px-2 font-mono text-[10px] transition-colors',
                 active
-                  ? 'border-accent bg-transparent text-accent'
+                  ? 'border-accent/40 bg-accent-dim text-accent'
                   : 'border-border bg-transparent text-text-muted hover:border-border-light hover:text-text-primary',
               ].join(' ')}
             >

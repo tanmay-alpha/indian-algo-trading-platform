@@ -20,7 +20,7 @@ const features = [
   },
   {
     title: 'Dry-run validation',
-    body: 'Test order logic in paper mode before any real-money workflow. No account mutations.',
+    body: 'Test order parameters before any real-money workflow. All validation runs in paper mode only.',
     Icon: IconShieldCheck,
   },
   {
@@ -30,7 +30,7 @@ const features = [
   },
   {
     title: 'AI market notes',
-    body: 'Ask about candle patterns, indicator readings, and risk context.',
+    body: 'Ask about candle patterns, indicator readings, and risk context. The AI explains; it does not trade.',
     Icon: IconBrain,
   },
   {

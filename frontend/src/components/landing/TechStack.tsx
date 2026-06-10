@@ -1,10 +1,16 @@
 const stack = [
-  { name: 'Next.js 15', color: '#e0e3eb' },
-  { name: 'FastAPI', color: '#26a69a' },
-  { name: 'C++17 Engine', color: '#2962ff' },
-  { name: 'pybind11', color: '#f59e0b' },
-  { name: 'Angel One SmartAPI', color: '#ef5350' },
-  { name: 'WebSocket Feed', color: '#26a69a' },
+  { name: 'Next.js 15', color: '#E8E6DF' },
+  { name: 'FastAPI', color: '#4ADE80' },
+  { name: 'C++17 Engine', color: '#F0C040' },
+  { name: 'pybind11', color: '#F0C040' },
+  { name: 'Angel One SmartAPI', color: '#F87171' },
+  { name: 'WebSocket Feed', color: '#4ADE80' },
+] as const
+
+const metrics = [
+  { value: '7', label: 'indicators' },
+  { value: '5', label: 'strategy templates' },
+  { value: '13', label: 'phases complete' },
 ] as const
 
 export function TechStack() {
@@ -15,6 +21,14 @@ export function TechStack() {
           <div key={item.name} className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="font-mono text-[11px] uppercase tracking-widest text-text-muted">{item.name}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mx-auto mt-6 grid max-w-5xl grid-cols-1 gap-3 px-6 sm:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="border border-border bg-surface p-4">
+            <div className="font-mono text-3xl text-accent">{metric.value}</div>
+            <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">{metric.label}</div>
           </div>
         ))}
       </div>

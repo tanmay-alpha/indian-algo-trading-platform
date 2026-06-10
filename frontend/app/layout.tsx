@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import { DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import { ToastProvider } from '@/components/ui-maet/toast'
 import { ErrorBoundary } from '@/components/effects/error-boundary'
 import './globals.css'
 
-const sans = DM_Sans({
+const sans = Inter({
   subsets: ['latin'],
-  weight: ['400', '500'],
+  weight: ['400', '600', '700'],
   display: 'swap',
   variable: '--font-sans',
 })
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0c0d12',
+  themeColor: '#0B0D13',
   width: 'device-width',
   initialScale: 1,
 }

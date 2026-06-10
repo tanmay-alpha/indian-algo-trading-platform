@@ -19,7 +19,7 @@ interface CandleChartProps {
   activeIndicators: string[]
 }
 
-const priceFormatter = (price: number) => `₹${price.toLocaleString('en-IN')}`
+const priceFormatter = (price: number) => `\u20B9${price.toLocaleString('en-IN')}`
 
 export function CandleChart({ candles, isDemo, activeIndicators }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -108,7 +108,7 @@ export function CandleChart({ candles, isDemo, activeIndicators }: CandleChartPr
       <div ref={containerRef} className="h-full w-full" />
       {isDemo && (
         <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[10px] text-text-muted">
-          demo data - connect broker for live feed
+          Demo mode - static market replay
         </div>
       )}
     </div>

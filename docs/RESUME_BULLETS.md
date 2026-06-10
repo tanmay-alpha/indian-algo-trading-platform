@@ -1,5 +1,25 @@
 # Resume Bullets - MAET Terminal
 
+## Best Bullets By Track
+
+### SDE Track
+
+- Built MAET Terminal, a Next.js/FastAPI paper trading research workstation with WebSocket status flow, same-origin API fallbacks, error boundaries, and Vercel/Render deployment hardening.
+- Modularized frontend state and API clients, added typed design tokens, Zod order validation, loading skeletons, and resilient demo-mode UX for backend cold starts.
+- Implemented a Strategy Lab frontend with template selection, date-range backtests, equity curve visualization, and deterministic fallback data for public demos.
+
+### Data / ML Track
+
+- Developed a research UI for NSE/BSE OHLCV analysis with candlestick charts, EMA/VWAP overlays, offline strategy backtests, and explainable market-note surfaces.
+- Integrated C++17/pybind11 indicator infrastructure with Python fallback paths for technical indicators including EMA, RSI, MACD, ATR, VWAP, and Bollinger Bands.
+- Built demo-safe backtest reporting with total return, drawdown, win-rate, and profit-factor metrics to compare strategy templates without relying on live broker execution.
+
+### Quant / Trading Systems Track
+
+- Designed a paper-mode trading terminal around market-data ingestion, OHLCV candles, indicator overlays, order dry-run validation, portfolio context, and strategy backtesting.
+- Added safety boundaries for broker-facing workflows: paper mode by default, read-only account views, local dry-run validation, and no real-money order path in the public deployment.
+- Created template-based strategy workflows for EMA crossover, RSI mean reversion, VWAP pullback, MACD trend, and Bollinger breakout research.
+
 ## Short Project Title
 
 MAET Terminal - Full-Stack Trading Analytics Workstation
