@@ -265,12 +265,27 @@ broker_status = {
     "last_error": None,
 }
 instrument_master_status = {
-    "loaded": len(instrument_registry.load_instruments()),
+    "loaded": 0,
     "source": "fallback",
     "cached_at": None,
     "cache_fresh": False,
     "fallback_active": True,
 }
+
+
+def _ensure_instrument_master_loaded() -> None:
+    """Lazily load the instrument master on first access (e.g. /health, /ready).
+
+    The first request that touches the instrument count pays the parse cost;
+    subsequent requests hit the in-memory cache. This shaves seconds off the
+    cold-start path that the keep-alive /ping would otherwise block on.
+    """
+    if instrument_master_status["loaded"] > 0:
+        return
+    try:
+        instrument_master_status["loaded"] = len(instrument_registry.load_instruments())
+    except Exception as e:
+        logger.warning("Deferred instrument master load failed: %s", e.__class__.__name__)
 instrument_loader = InstrumentLoader(timeout_seconds=8)
 market_board = MarketBoard(market_watch)
 screener_engine = ScreenerEngine(indicator_engine, candle_store, market_watch)
@@ -579,6 +594,7 @@ def search_instruments(request: Request, q: str = Query(default=""), limit: int 
 
 @app.get("/instruments/master/status")
 def get_instrument_master_status():
+    _ensure_instrument_master_loaded()
     return instrument_master_status.copy()
 
 @app.get("/market-watch")
