@@ -47,7 +47,7 @@ def test_market_watch_route_works():
 def test_post_market_watch_rejects_unknown_symbols():
     response = client.post(
         "/market-watch",
-        headers={"X-Admin-Token": "test-admin-token"},
+        headers={"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"},
         json={"symbols": ["SBIN", "NOT_A_SYMBOL"]},
     )
 
@@ -58,7 +58,7 @@ def test_post_market_watch_rejects_unknown_symbols():
 def test_post_market_watch_accepts_valid_symbols():
     response = client.post(
         "/market-watch",
-        headers={"X-Admin-Token": "test-admin-token"},
+        headers={"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"},
         json={"symbols": ["SBIN", "RELIANCE"]},
     )
 

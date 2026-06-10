@@ -236,7 +236,7 @@ def setup_mfa(current_user: User = Depends(get_current_user), db=Depends(get_db)
 
     return {
         "secret": decrypted_secret,
-        "otpauth_url": pyotp.totp.TOTP(user.mfa_totp_secret).provisioning_uri(
+        "otpauth_url": pyotp.totp.TOTP(decrypted_secret).provisioning_uri(
             name=user.username,
             issuer_name="MAET Terminal",
         ),
@@ -277,6 +277,12 @@ def disable_mfa(payload: MfaVerifyRequest, current_user: User = Depends(get_curr
 
 def _verify_totp(secret: str, code: str) -> bool:
     normalized = str(code or "").strip().replace(" ", "")
+    # Handle both encrypted ("gAAAAA..." prefix) and legacy plaintext.
+    from backend.core.encryption import decrypt_secret
+    try:
+        secret = decrypt_secret(secret)
+    except Exception:
+        pass  # Keep original if already plaintext or decryption fails.
     return pyotp.TOTP(secret).verify(normalized, valid_window=1)
 
 

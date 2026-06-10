@@ -89,12 +89,12 @@ def router_app(session_factory, scheduler, monkeypatch):
     
     # Setup settings admin_token bypass for test
     from backend.core import config as _cfg
-    monkeypatch.setattr(_cfg.settings, "admin_token", "test-admin-token")
+    monkeypatch.setattr(_cfg.settings, "admin_token", "ci-test-admin-token-do-not-use-in-prod")
     
     return TestClient(app, raise_server_exceptions=True)
 
 
-ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
+ADMIN_HEADERS = {"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"}
 
 
 @pytest.mark.asyncio

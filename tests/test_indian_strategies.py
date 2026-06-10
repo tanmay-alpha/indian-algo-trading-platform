@@ -45,7 +45,7 @@ async def client(strategy_app):
     async with AsyncClient(
         transport=transport,
         base_url="http://test",
-        headers={"X-Admin-Token": "test-admin-token"},
+        headers={"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"},
     ) as async_client:
         yield async_client
 

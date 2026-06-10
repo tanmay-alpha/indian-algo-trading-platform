@@ -170,11 +170,12 @@ def test_watchlist_service_rejects_unknown_symbol():
 
 
 # ------------------------------------------------------------------
-# 5. /watchlists routes - reads are public
+# 5. /watchlists routes - reads require authenticated user
 # ------------------------------------------------------------------
 
 def test_list_watchlists_route_is_accessible():
-    response = client.get("/watchlists")
+    # Now requires auth (X-Admin-Token or Bearer)
+    response = client.get("/watchlists", headers={"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"})
     assert response.status_code == 200
     data = response.json()
     assert "watchlists" in data
@@ -182,7 +183,7 @@ def test_list_watchlists_route_is_accessible():
 
 
 def test_get_default_watchlist_items_route():
-    response = client.get("/watchlists/default/items")
+    response = client.get("/watchlists/default/items", headers={"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"})
     assert response.status_code == 200
     data = response.json()
     assert "items" in data

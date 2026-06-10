@@ -93,7 +93,7 @@ def fixture_client(db_engine):
     return TestClient(app)
 
 
-ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
+ADMIN_HEADERS = {"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"}
 
 _VALID_PAYLOAD = {
     "symbol": "SBIN",
@@ -110,7 +110,7 @@ _VALID_PAYLOAD = {
 def isolate_admin_token():
     """Patch admin_token for test isolation."""
     original = settings.admin_token
-    settings.admin_token = "test-admin-token"
+    settings.admin_token = "ci-test-admin-token-do-not-use-in-prod"
     yield
     settings.admin_token = original
 

@@ -604,12 +604,12 @@ def router_app(session_factory, runtime_manager, monkeypatch):
     
     # Setup settings admin_token bypass for test
     from backend.core import config as _cfg
-    monkeypatch.setattr(_cfg.settings, "admin_token", "test-admin-token")
+    monkeypatch.setattr(_cfg.settings, "admin_token", "ci-test-admin-token-do-not-use-in-prod")
     
     return TestClient(app, raise_server_exceptions=True)
 
 
-ADMIN_HEADERS = {"X-Admin-Token": "test-admin-token"}
+ADMIN_HEADERS = {"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"}
 
 
 def test_api_list_configs(router_app, temp_db_session):
@@ -625,7 +625,8 @@ def test_api_list_configs(router_app, temp_db_session):
     )
     temp_db_session.commit()
 
-    resp = router_app.get("/strategies/configs")
+    # Reads now require auth (X-Admin-Token or Bearer).
+    resp = router_app.get("/strategies/configs", headers=ADMIN_HEADERS)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -832,7 +833,7 @@ def test_api_signals_endpoints(router_app, temp_db_session):
     temp_db_session.commit()
 
     # 1. Get strategy-specific signals
-    resp = router_app.get(f"/strategies/configs/{config.id}/signals")
+    resp = router_app.get(f"/strategies/configs/{config.id}/signals", headers=ADMIN_HEADERS)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -840,7 +841,7 @@ def test_api_signals_endpoints(router_app, temp_db_session):
     assert data[0]["side"] == "BUY"
 
     # 2. Get all signals
-    resp = router_app.get("/strategies/signals")
+    resp = router_app.get("/strategies/signals", headers=ADMIN_HEADERS)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1

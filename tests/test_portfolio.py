@@ -147,12 +147,12 @@ def test_portfolio_summary_empty_state():
 @pytest.mark.asyncio
 async def test_portfolio_routes_return_safe_json():
     original_token = settings.admin_token
-    settings.admin_token = "test-admin-token"
+    settings.admin_token = "ci-test-admin-token-do-not-use-in-prod"
     app = FastAPI()
     app.include_router(portfolio_router)
     app.state.portfolio_engine = PortfolioEngine(initial_capital=1000)
     transport = ASGITransport(app=app)
-    headers = {"X-Admin-Token": "test-admin-token"}
+    headers = {"X-Admin-Token": "ci-test-admin-token-do-not-use-in-prod"}
     try:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             summary = await client.get("/portfolio/summary")

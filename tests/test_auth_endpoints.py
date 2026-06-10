@@ -97,8 +97,9 @@ def test_password_hashing_and_verification():
 def test_login_success(app_client, db_session):
     repo = UserRepository()
     hashed = hash_password("correct-pass")
-    user = repo.create_user(db_session, username="bob", password_hash=hashed, role="ADMIN")
-    
+    # Use VIEWER (not ADMIN) since ADMIN now requires MFA setup before login.
+    user = repo.create_user(db_session, username="bob", password_hash=hashed, role="VIEWER")
+
     response = app_client.post("/auth/login", json={"username": "bob", "password": "correct-pass"})
     assert response.status_code == 200
     data = response.json()
@@ -172,7 +173,9 @@ def test_login_requires_mfa_when_enabled(app_client, db_session):
 
 def test_mfa_setup_enable_disable_flow(app_client, db_session):
     repo = UserRepository()
-    repo.create_user(db_session, username="secure_user", password_hash=hash_password("correct-pass"), role="ADMIN")
+    # Use VIEWER so the initial login succeeds; the user can still enable MFA
+    # themselves via /auth/mfa/enable. (ADMIN role now requires pre-configured MFA.)
+    repo.create_user(db_session, username="secure_user", password_hash=hash_password("correct-pass"), role="VIEWER")
     login_resp = app_client.post("/auth/login", json={"username": "secure_user", "password": "correct-pass"})
     token = login_resp.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
