@@ -414,6 +414,8 @@ async def load_instrument_master_best_effort():
 
 async def startup_event():
     """Initializes the backend services on startup."""
+    logger.info("[startup] Starting initialization...")
+
     # Validate critical configuration BEFORE starting any service. Fail-fast on
     # empty JWT secrets, weak admin tokens, or missing production DB.
     from backend.core.config_validation import (
@@ -445,7 +447,16 @@ async def startup_event():
         logger.error("[startup] Refusing to start: %s", e)
         raise RuntimeError(f"Configuration validation failed: {e}") from e
 
-    await orchestrator.startup(app.state)
+    try:
+        logger.info("[startup] Calling orchestrator.startup...")
+        await orchestrator.startup(app.state)
+        logger.info("[startup] All services started successfully")
+    except Exception as e:
+        logger.error("[startup] Orchestrator startup failed: %s (%s)", e, type(e).__name__)
+        # In Render, any unhandled exception crashes the instance. We want to know what failed.
+        import traceback
+        logger.error(traceback.format_exc())
+        raise  # Re-raise to make sure uvicorn sees the error
 
 async def shutdown_event():
     await orchestrator.shutdown()
