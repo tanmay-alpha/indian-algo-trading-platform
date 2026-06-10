@@ -172,6 +172,54 @@ export const setMarketWatch = (symbols: string[]) =>
     body: JSON.stringify({ symbols }),
   })
 
+// ----- Instrument universe -----
+// /instruments returns a paginated envelope: { instruments, page, page_size, total, total_pages }.
+// We use the first page as the local lookup, so the rest of the code only cares
+// about the items array. If we ever need to stream more, we can add offset/limit.
+export interface InstrumentListResponse {
+  instruments: Instrument[]
+  page?: number
+  page_size?: number
+  total?: number
+  total_pages?: number
+}
+
+export async function listInstruments(params: {
+  page?: number
+  pageSize?: number
+} = {}): Promise<InstrumentListResponse> {
+  const search = new URLSearchParams()
+  search.set('page', String(params.page ?? 1))
+  // Backend caps at 200. The instrument universe is ~2–3k, so we iterate
+  // across pages below the cap to build a comprehensive lookup.
+  search.set('page_size', String(params.pageSize ?? 200))
+  return request<InstrumentListResponse>(`${ENDPOINTS.instruments}?${search.toString()}`)
+}
+
+export interface ProtectedSymbolsResponse {
+  protected: string[]
+}
+
+export const fetchProtectedSymbols = () =>
+  request<ProtectedSymbolsResponse>(ENDPOINTS.marketWatchProtected)
+
+// ----- WebSocket subscription updates -----
+// Add or remove individual symbols from the gateway's live subscription set
+// without forcing a full WS reconnect. The backend merges with the existing
+// market-watch set and (if the gateway is connected) re-subscribes upstream.
+export const wsSubscribeAdd = (symbols: string[]) =>
+  request<MarketWatchResponse>(ENDPOINTS.wsSubscribe, {
+    method: 'POST',
+    body: JSON.stringify({ symbols, add: true }),
+  })
+
+export const wsSubscribeRemove = (symbols: string[]) =>
+  request<MarketWatchResponse>(ENDPOINTS.wsSubscribe, {
+    method: 'POST',
+    body: JSON.stringify({ symbols, add: false }),
+  })
+
+
 // ----- Candles -----
 export interface CandleResponse {
   symbol: string

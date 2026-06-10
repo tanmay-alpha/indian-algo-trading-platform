@@ -286,7 +286,7 @@ def _ensure_instrument_master_loaded() -> None:
         instrument_master_status["loaded"] = len(instrument_registry.load_instruments())
     except Exception as e:
         logger.warning("Deferred instrument master load failed: %s", e.__class__.__name__)
-instrument_loader = InstrumentLoader(timeout_seconds=8)
+instrument_loader = InstrumentLoader(timeout_seconds=12)
 market_board = MarketBoard(market_watch)
 screener_engine = ScreenerEngine(indicator_engine, candle_store, market_watch)
 obs_metrics = MetricsStore()
@@ -335,6 +335,16 @@ trade_cooldown = orchestrator.trade_cooldown
 
 class MarketWatchRequest(BaseModel):
     symbols: list[str]
+
+
+class WsSubscribeRequest(BaseModel):
+    """Body for /ws/subscribe. The frontend calls this whenever the user adds or
+    removes a symbol from their watchlist, so the broker gateway's live
+    subscription set matches the UI without a full reconnect."""
+
+    symbols: list[str]
+    add: bool = True
+
 
 app.state.broadcaster = broadcaster
 app.state.gateway = gateway
@@ -658,24 +668,122 @@ async def delete_market_watch_symbol(symbol: str):
 @app.get("/indices")
 def get_indices():
     indices = []
-    for symbol in ["NIFTY", "BANKNIFTY", "SENSEX"]:
+    # Use latest market_watch tick data when available so the index strip
+    # actually shows movement once ticks start flowing.
+    mw_latest = market_watch.latest_ticks or {}
+    for symbol in ["NIFTY", "BANKNIFTY", "MIDCPNIFTY", "SENSEX"]:
         instrument = get_instrument(symbol) or {
             "symbol": symbol,
             "name": symbol,
             "exchange": "NSE" if symbol != "SENSEX" else "BSE",
             "token": None,
         }
+        tick = mw_latest.get(symbol) or {}
+        ltp = tick.get("ltp")
+        previous_ltp = tick.get("previous_ltp")
+        change = None
+        change_pct = None
+        if ltp is not None and previous_ltp:
+            try:
+                change = round(float(ltp) - float(previous_ltp), 2)
+                change_pct = round((change / float(previous_ltp)) * 100.0, 2)
+            except (TypeError, ValueError):
+                change = None
+                change_pct = None
         indices.append({
             "symbol": symbol,
             "name": instrument.get("name"),
             "exchange": instrument.get("exchange"),
             "token": None,  # SECURITY: redacted
-            "ltp": None,
-            "change": None,
-            "change_pct": None,
-            "status": "unavailable",
+            "ltp": ltp,
+            "change": change,
+            "change_pct": change_pct,
+            "last_update": tick.get("received_at"),
+            "status": "live" if ltp is not None else "unavailable",
         })
     return {"indices": indices}
+
+
+@app.get("/instruments")
+@limiter.limit("30/minute")
+def list_instruments(
+    request: Request,
+    exchange: str = Query(default="NSE"),
+    limit: int = Query(default=500, ge=1, le=5000),
+    offset: int = Query(default=0, ge=0),
+    include_virtual: bool = Query(default=True),
+):
+    """Return the full instrument universe (with optional filter + paging).
+
+    Designed for the watchlist search dropdown — the frontend debounces typing
+    into the search field and queries /instruments/search for the fuzzy match;
+    /instruments is for the cold-open "browse all" path.
+    """
+    _ensure_instrument_master_loaded()
+    items = instrument_registry.load_instruments(force_reload=False) or []
+    if include_virtual:
+        from backend.gateway.instrument_registry import _VIRTUAL_INDEX_INSTRUMENTS  # type: ignore
+        items = list(items) + list(_VIRTUAL_INDEX_INSTRUMENTS.values())
+    # Stable sort by symbol for deterministic pagination.
+    items.sort(key=lambda x: str(x.get("symbol") or ""))
+    total = len(items)
+    page = items[offset : offset + limit]
+    return sanitize_response({
+        "exchange": exchange,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "results": page,
+    })
+
+
+@app.post("/ws/subscribe", dependencies=[Depends(require_admin_token)])
+async def ws_subscribe(payload: WsSubscribeRequest):
+    """Update the gateway's live subscription set without dropping the WS.
+
+    The frontend can use this to add a single symbol when the user drops it on
+    the watchlist (add=True) or remove one (add=False). Returns the merged
+    market-watch snapshot so the client can re-render in one round-trip.
+    """
+    if not payload.symbols:
+        raise HTTPException(status_code=400, detail="symbols must not be empty")
+    valid, invalid = instrument_registry.validate_symbols(payload.symbols)
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Unknown symbols rejected", "invalid_symbols": invalid},
+        )
+
+    current = set(market_watch.symbols)
+    if payload.add:
+        next_set = current.union(valid)
+    else:
+        next_set = current.difference(valid)
+    new_symbols, _ = market_watch.set_symbols(sorted(next_set))
+
+    if gateway and gateway.connection_state in ("CONNECTING", "CONNECTED", "RECONNECTING"):
+        try:
+            await gateway.update_subscriptions(new_symbols)
+        except Exception as exc:
+            logger.warning("gateway.update_subscriptions failed: %s", exc.__class__.__name__)
+
+    return sanitize_response({
+        "status": "success",
+        "action": "add" if payload.add else "remove",
+        "symbols": new_symbols,
+        "items": market_watch.snapshot(),
+    })
+
+
+@app.get("/market-watch/protected")
+def get_protected_market_watch_symbols():
+    """The protected index symbols (NIFTY/BANKNIFTY/MIDCPNIFTY/SENSEX) cannot be
+    removed by the user. This endpoint exposes the list so the frontend can
+    disable the remove button on those rows in the watchlist UI."""
+    return sanitize_response({
+        "protected": list(market_watch.protected_symbols),
+    })
+
 
 @app.get("/terminal/status")
 def terminal_status():

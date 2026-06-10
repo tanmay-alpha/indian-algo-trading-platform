@@ -4,11 +4,38 @@ from typing import Optional
 from backend.gateway.instrument_registry import get_instrument, list_market_watch, validate_symbols
 
 
+# Indices that must always be subscribed. These are the "non-negotiable" feeds
+# the terminal relies on for the index strip, strategy context, and dashboard.
+# They cannot be removed by user-side calls to /market-watch.
+PROTECTED_INDEX_SYMBOLS = ("NIFTY", "BANKNIFTY", "MIDCPNIFTY", "SENSEX")
+
+
 class MarketWatch:
     def __init__(self, default_symbols: Optional[list[str]] = None, stale_after_seconds: int = 10):
         self.stale_after_seconds = stale_after_seconds
-        self._symbols = self._default_symbols(default_symbols)
+        self._symbols = self._with_protected(self._default_symbols(default_symbols))
         self._latest_by_symbol: dict[str, dict] = {}
+
+    @staticmethod
+    def _is_protected(symbol: str) -> bool:
+        return str(symbol or "").strip().upper() in PROTECTED_INDEX_SYMBOLS
+
+    @classmethod
+    def _with_protected(cls, symbols: list[str]) -> list[str]:
+        """Ensure the protected index symbols are always present, deduped, and first."""
+        seen: set[str] = set()
+        merged: list[str] = []
+        # protected first (stable order)
+        for sym in PROTECTED_INDEX_SYMBOLS:
+            if sym not in seen:
+                seen.add(sym)
+                merged.append(sym)
+        for sym in symbols:
+            norm = str(sym).strip().upper()
+            if norm and norm not in seen:
+                seen.add(norm)
+                merged.append(norm)
+        return merged
 
     @property
     def latest_ticks(self) -> dict[str, dict]:
@@ -18,12 +45,22 @@ class MarketWatch:
     def symbols(self) -> list[str]:
         return list(self._symbols)
 
+    @property
+    def protected_symbols(self) -> list[str]:
+        return [s for s in self._symbols if self._is_protected(s)]
+
     def set_symbols(self, symbols: list[str]) -> tuple[list[str], list[str]]:
+        """Set the symbol set, but re-attach the protected index symbols even if the
+        caller tried to drop them. Returns the effective (valid) set and any invalid
+        symbols the caller asked for.
+        """
         valid, invalid = validate_symbols(symbols)
-        if invalid:
+        # Re-attach protected symbols that the caller may have omitted.
+        merged = self._with_protected(valid)
+        if not merged:
             return valid, invalid
-        self._symbols = valid
-        return valid, invalid
+        self._symbols = merged
+        return merged, invalid
 
     def update_tick(self, event: dict) -> None:
         symbol = event.get("symbol")

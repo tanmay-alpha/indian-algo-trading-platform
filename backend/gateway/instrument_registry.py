@@ -253,6 +253,13 @@ def get_instrument(symbol: str, exchange: str = "NSE") -> Optional[dict]:
 
     normalized = normalize_symbol(symbol)
     exchange_filter = normalize_symbol(exchange)
+
+    # Virtual index instruments (NIFTY/BANKNIFTY/MIDCPNIFTY/SENSEX) are not in
+    # the equity master but are valid subscriptions. Match by exchange.
+    virtual = get_virtual_index(normalized)
+    if virtual and normalize_symbol(virtual.get("exchange")) == exchange_filter:
+        return virtual.copy()
+
     candidates = {normalized}
     if normalized.endswith("-EQ"):
         candidates.add(normalized[:-3])
@@ -410,9 +417,31 @@ def validate_symbols(symbols: list[str], exchange: str = "NSE") -> tuple[list[st
         instrument = get_instrument(normalized, exchange=exchange)
         if instrument:
             valid.append(instrument["symbol"])
+        elif _is_virtual_index(normalized):
+            # Index feeds (NIFTY/BANKNIFTY/MIDCPNIFTY/SENSEX) are not in the
+            # equity master, but the gateway can still subscribe to them.
+            valid.append(normalized)
         else:
             invalid.append(normalized)
     return valid, invalid
+
+
+# Virtual index instruments — not in the Angel One equity master, but the
+# gateway supports token-based subscription for them.
+_VIRTUAL_INDEX_INSTRUMENTS: dict[str, dict] = {
+    "NIFTY":     {"symbol": "NIFTY",     "name": "NIFTY 50",          "exchange": "NSE", "token": "26000", "instrument_type": "INDEX", "sector": "Index"},
+    "BANKNIFTY": {"symbol": "BANKNIFTY", "name": "NIFTY Bank",        "exchange": "NSE", "token": "26009", "instrument_type": "INDEX", "sector": "Index"},
+    "MIDCPNIFTY":{"symbol": "MIDCPNIFTY","name": "NIFTY Midcap Select","exchange": "NSE", "token": "26074", "instrument_type": "INDEX", "sector": "Index"},
+    "SENSEX":    {"symbol": "SENSEX",    "name": "BSE Sensex",        "exchange": "BSE", "token": "1",     "instrument_type": "INDEX", "sector": "Index"},
+}
+
+
+def _is_virtual_index(symbol: str) -> bool:
+    return str(symbol or "").strip().upper() in _VIRTUAL_INDEX_INSTRUMENTS
+
+
+def get_virtual_index(symbol: str) -> Optional[dict]:
+    return _VIRTUAL_INDEX_INSTRUMENTS.get(str(symbol or "").strip().upper())
 
 
 def resolve_symbols(symbols: list[str], exchange: str = "NSE") -> tuple[dict[str, str], list[str]]:

@@ -25,3 +25,14 @@ services:
         value: "false"
       - key: ALLOWED_ORIGINS
         value: https://indian-algo-trading-platform.vercel.app
+      # JWT signing secret. generateValue=true makes Render inject a fresh
+      # 64-char hex string on each deploy so the secret is never checked in.
+      # Required by config_validation.validate_trading_config (>=32 chars).
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      # Admin token for write endpoints (/market-watch, /ws/subscribe, etc.).
+      # Stored as a Render Secret File in production; here we mirror a dev
+      # value so the same env surface works on Render's free tier. Override
+      # in the Render dashboard before going live.
+      - key: ADMIN_TOKEN
+        value: dev-admin-token-do-not-use-in-production-rotate-32
