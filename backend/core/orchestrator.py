@@ -135,11 +135,24 @@ class SystemOrchestrator:
             default_quantity=1,
         )
 
-        # Initialize Strategy Runtime Manager
-        from backend.core.database import create_engine_safe, get_session_factory, init_db_metadata
-        self._db_engine = create_engine_safe()
-        init_db_metadata(self._db_engine)
-        self.session_factory = get_session_factory(self._db_engine)
+        # Initialize Strategy Runtime Manager (DB created lazily in startup())
+        # Defensive: if database setup fails at import time (e.g. filesystem
+        # permissions on Render), continue without crashing. The startup
+        # method will retry; if it still fails, the /ready endpoint reports
+        # the error and the app serves read-only endpoints.
+        try:
+            from backend.core.database import create_engine_safe, get_session_factory, init_db_metadata
+            self._db_engine = create_engine_safe()
+            init_db_metadata(self._db_engine)
+            self.session_factory = get_session_factory(self._db_engine)
+        except Exception as _db_init_err:
+            logger.warning(
+                "[orchestrator] Database init failed at import time: %s. "
+                "Will retry at startup; /ready will report degraded if still failing.",
+                _db_init_err,
+            )
+            self._db_engine = None
+            self.session_factory = None
 
         from backend.strategy.runtime import StrategyRuntimeManager
         self.strategy_runtime_manager = StrategyRuntimeManager(
@@ -556,7 +569,23 @@ class SystemOrchestrator:
     async def startup(self, fastapi_app_state: Any):
         """Initializes all backend components on server startup."""
         loop = asyncio.get_running_loop()
-        
+
+        # ---- Database Initialization (if not done at import time) ----
+        # Retry database setup in case import-time failed (e.g. Render filesystem)
+        if self._db_engine is None or self.session_factory is None:
+            try:
+                from backend.core.database import create_engine_safe, get_session_factory, init_db_metadata
+                self._db_engine = create_engine_safe()
+                init_db_metadata(self._db_engine)
+                self.session_factory = get_session_factory(self._db_engine)
+                logger.info("[orchestrator] Database initialized successfully at startup")
+            except Exception as _startup_db_err:
+                logger.warning(
+                    "[orchestrator] Database init failed at startup: %s. "
+                    "App will run in degraded mode (no order persistence).",
+                    _startup_db_err,
+                )
+
         # Start Broadcaster Service
         self.broadcaster.start(loop)
         if self.sampler_task is None or self.sampler_task.done():
