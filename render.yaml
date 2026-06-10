@@ -3,8 +3,12 @@ services:
     name: maet-backend
     runtime: python
     plan: free
-    rootDir: backend
-    buildCommand: "pip install --upgrade pip && pip install -r ../requirements.txt"
+    # Render runs the build and start commands with this directory as cwd.
+    # We keep rootDir at the repo root so the standard "backend.api_server:app"
+    # module path works without any PYTHONPATH gymnastics. The build/install
+    # path below points into backend/ where the package actually lives.
+    rootDir: .
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
     startCommand: "uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
     healthCheckPath: /ping
     autoDeploy: true
@@ -13,6 +17,11 @@ services:
         value: "1"
       - key: PYTHONDONTWRITEBYTECODE
         value: "1"
+      # PYTHONPATH explicit so the `backend` package is importable from
+      # any cwd (rootDir is "." but the start command might still resolve
+      # things differently from build to start time).
+      - key: PYTHONPATH
+        value: "."
       # Use DEMO instead of PRODUCTION to avoid the PostgreSQL requirement
       # in the validator. The free tier doesn't have a managed Postgres,
       # so we run in DEMO mode which allows SQLite. This is also semantically
