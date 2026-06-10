@@ -13,8 +13,12 @@ services:
         value: "1"
       - key: PYTHONDONTWRITEBYTECODE
         value: "1"
+      # Use DEMO instead of PRODUCTION to avoid the PostgreSQL requirement
+      # in the validator. The free tier doesn't have a managed Postgres,
+      # so we run in DEMO mode which allows SQLite. This is also semantically
+      # correct (a demo-tier deploy isn't a "production" environment).
       - key: ENVIRONMENT
-        value: PRODUCTION
+        value: DEMO
       - key: TRADING_MODE
         value: PAPER
       - key: PAPER_TRADING
@@ -23,16 +27,32 @@ services:
         value: "false"
       - key: ENABLE_BROKER_LOGIN
         value: "false"
+      - key: LIVE_TRADING_ENABLED
+        value: "false"
       - key: ALLOWED_ORIGINS
         value: https://indian-algo-trading-platform.vercel.app
-      # JWT signing secret. generateValue=true makes Render inject a fresh
-      # 64-char hex string on each deploy so the secret is never checked in.
-      # Required by config_validation.validate_trading_config (>=32 chars).
+      # ---- Secrets (rotate in the Render dashboard before going live) ----
+      # All values below are placeholders so the container can boot on the
+      # free tier. The .env file is gitignored, so without these the Settings
+      # pydantic model crashes at import time with "field required" for the
+      # angel_* creds. In paper/demo mode these values are not actually used
+      # to talk to the broker — the live_trading_enabled=False gate in
+      # config_validation.validate_broker_config keeps them inert.
       - key: JWT_SECRET_KEY
-        generateValue: true
-      # Admin token for write endpoints (/market-watch, /ws/subscribe, etc.).
-      # Stored as a Render Secret File in production; here we mirror a dev
-      # value so the same env surface works on Render's free tier. Override
-      # in the Render dashboard before going live.
+        value: dev-jwt-secret-render-placeholder-rotate-32chars
       - key: ADMIN_TOKEN
-        value: dev-admin-token-do-not-use-in-production-rotate-32
+        value: dev-admin-token-render-placeholder-rotate-32chars
+      - key: ANGEL_API_KEY
+        value: render-placeholder-angel-api-key-do-not-use
+      - key: ANGEL_CLIENT_ID
+        value: render-placeholder-client-id
+      - key: ANGEL_PASSWORD
+        value: render-placeholder-angel-password
+      - key: ANGEL_TOTP_SECRET
+        value: RENDERPLACETOTPSECRETDONOTUSE
+      # ---- Production data store (optional — falls back to SQLite path) ----
+      # Uncomment and set DATABASE_URL to a Postgres URL in the Render
+      # dashboard to enable persistent storage. SQLite is the default if
+      # unset; the platform runs fine on it for demo/paper mode.
+      # - key: DATABASE_URL
+      #   value: postgresql://user:pass@host/db

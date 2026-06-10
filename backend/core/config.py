@@ -6,10 +6,19 @@ from pydantic_settings import BaseSettings, DotEnvSettingsSource, PydanticBaseSe
 
 
 class Settings(BaseSettings):
-    angel_api_key: str
-    angel_client_code: str = Field(validation_alias=AliasChoices("ANGEL_CLIENT_CODE", "ANGEL_CLIENT_ID"))
-    angel_password: str
-    angel_totp_secret: str
+    # Angel One broker credentials. Required ONLY when live_trading_enabled=True
+    # (enforced by backend.core.config_validation.validate_broker_config).
+    # In paper/demo/deploy-without-broker modes these default to empty strings
+    # so the Settings() instantiation on import does not crash in environments
+    # where the broker isn't wired up (e.g. Render free tier in paper mode).
+    # The live-trading path validates the actual values downstream.
+    angel_api_key: str = ""
+    angel_client_code: str = Field(
+        default="",
+        validation_alias=AliasChoices("ANGEL_CLIENT_CODE", "ANGEL_CLIENT_ID"),
+    )
+    angel_password: str = ""
+    angel_totp_secret: str = ""
     symbols: list[str] = [
         "SBIN",
         "RELIANCE",
