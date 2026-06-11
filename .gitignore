@@ -23,6 +23,11 @@ frontend/node_modules/
 dist/
 build/
 coverage/
+# Dashboard mockup screenshots (large binary blobs, not for git)
+lumint-*.png
+terminal-precision-gold.png
+watchlist-final.png
+
 .vercel/
 .vscode/
 *.tsbuildinfo
