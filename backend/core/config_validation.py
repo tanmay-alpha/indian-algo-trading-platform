@@ -148,6 +148,11 @@ def validate_security_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     """
     Validate security-related configuration values.
 
+    Lenient in demo/paper/local mode (warns instead of raising) so Render's
+    free-tier placeholder ADMIN_TOKEN doesn't crash the boot. Production and
+    any environment with live_trading_enabled=True still hard-fail on weak
+    admin tokens — the safety net is only relaxed for non-live deploys.
+
     Args:
         settings: Dictionary of configuration values
 
@@ -155,18 +160,35 @@ def validate_security_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         Validated configuration
 
     Raises:
-        ConfigValidationError: If validation fails
+        ConfigValidationError: If validation fails (production mode only)
     """
     errors = []
+    warnings: List[str] = []
 
-    # Validate admin token
+    # Admin token validation - lenient in demo/paper, strict in production
     if settings.get("admin_token"):
         if len(settings["admin_token"]) < 32:
-            errors.append("Admin token should be at least 32 characters long")
+            if _is_demo_paper_deploy(settings):
+                warnings.append(
+                    "ADMIN_TOKEN is shorter than 32 chars; OK in demo/paper "
+                    "mode but rotate before production deploy"
+                )
+            else:
+                errors.append("Admin token should be at least 32 characters long")
 
         # Check for common weak tokens
         if settings["admin_token"].startswith("admin") or settings["admin_token"].startswith("test"):
-            errors.append("Admin token should not start with common patterns like 'admin' or 'test'")
+            if _is_demo_paper_deploy(settings):
+                warnings.append(
+                    "ADMIN_TOKEN uses a common weak prefix ('admin'/'test'); "
+                    "OK in demo but rotate before production deploy"
+                )
+            else:
+                errors.append("Admin token should not start with common patterns like 'admin' or 'test'")
+
+    # Log any warnings collected so far
+    for w in warnings:
+        logger.warning("[security] %s", w)
 
     # Validate CORS origins
     allowed_origins_raw = settings.get("allowed_origins", "")
