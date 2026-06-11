@@ -18,17 +18,26 @@ class ConfigValidationError(Exception):
 
 
 def _is_demo_paper_deploy(settings: Dict[str, Any]) -> bool:
-    """True when we're in a demo/paper deploy that doesn't need a real JWT secret.
+    """True when we're in a deploy that doesn't need a real JWT secret.
 
     On Render's free tier we ship placeholder values for ``JWT_SECRET_KEY`` and
     ``ADMIN_TOKEN`` so the container can boot. Live-trading paths are off, so
     the placeholder secrets are never used to authorize anything dangerous —
     they exist only so the Settings() pydantic model instantiates cleanly and
     the validator doesn't fail-fast on import.
+
+    Returns True when ANY of:
+      * environment is one of DEMO / DEVELOPMENT / LOCAL
+      * environment is empty/unset (treated as default-LOCAL, the safest tier)
+      * live_trading_enabled is False (which is the only mode that runs in
+        paper/demo on the free tier; the strict check only matters when
+        live_trading_enabled=True)
     """
     env = str(settings.get("environment", "")).upper()
     live_enabled = bool(settings.get("live_trading_enabled", False))
-    return env in ("DEMO", "DEVELOPMENT", "LOCAL") and not live_enabled
+    if env in ("DEMO", "DEVELOPMENT", "LOCAL", ""):
+        return not live_enabled
+    return False
 
 
 def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,6 +55,18 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     """
     errors = []
     warnings: List[str] = []
+
+    # If environment is empty/unset, default to LOCAL — this is the safest
+    # tier (paper trading only, no broker). Render sometimes fails to inject
+    # ENVIRONMENT from render.yaml, and we don't want that to crash the boot.
+    env_value = settings.get("environment")
+    if not env_value or str(env_value).strip() == "":
+        settings["environment"] = "LOCAL"
+        os.environ["ENVIRONMENT"] = "LOCAL"
+        warnings.append(
+            "ENVIRONMENT was empty; defaulted to LOCAL. Set ENVIRONMENT=DEMO "
+            "(or PRODUCTION) in the Render dashboard for a deliberate tier."
+        )
 
     # Validate JWT configuration
     jwt_secret = settings.get("jwt_secret_key") or ""

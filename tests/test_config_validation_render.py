@@ -120,3 +120,47 @@ class TestStrictModeEnforcement:
         with pytest.raises(validation.ConfigValidationError) as excinfo:
             validation.validate_trading_config(cfg)
         assert "Environment must be" in str(excinfo.value)
+
+
+class TestEmptyEnvironmentFallback:
+    """When ENVIRONMENT is unset/empty, the validator must default to LOCAL
+    (the safest paper-trading tier) instead of crashing. This is the
+    actual scenario Render hit at 2026-06-11 09:01 UTC."""
+
+    def test_empty_environment_defaults_to_local_and_passes(self):
+        """Environment='' is a Render bug we observed; must not crash."""
+        validation = _import_validation()
+        cfg = _base_render_config()
+        cfg["environment"] = ""
+        cfg["jwt_secret_key"] = ""
+
+        result = validation.validate_trading_config(cfg)
+
+        # Empty env should be coerced to LOCAL so downstream code that
+        # checks the environment value sees a real tier.
+        assert result["environment"] == "LOCAL"
+        # And ephemeral JWT secret still gets generated.
+        assert result["jwt_secret_key"]
+        assert len(result["jwt_secret_key"]) >= 32
+
+    def test_whitespace_environment_defaults_to_local(self):
+        """Same as above but with whitespace — also Render-observed."""
+        validation = _import_validation()
+        cfg = _base_render_config()
+        cfg["environment"] = "   "
+        cfg["jwt_secret_key"] = ""
+
+        result = validation.validate_trading_config(cfg)
+        assert result["environment"] == "LOCAL"
+        assert result["jwt_secret_key"]
+
+    def test_environment_key_missing_completely(self):
+        """What if the environment key is absent from the dict entirely."""
+        validation = _import_validation()
+        cfg = _base_render_config()
+        del cfg["environment"]
+        cfg["jwt_secret_key"] = ""
+
+        result = validation.validate_trading_config(cfg)
+        assert result["environment"] == "LOCAL"
+        assert result["jwt_secret_key"]
