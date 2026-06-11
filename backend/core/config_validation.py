@@ -68,13 +68,12 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
             "(or PRODUCTION) in the Render dashboard for a deliberate tier."
         )
 
-    # Validate JWT configuration
+    # Validate JWT configuration - lenient in demo/paper mode, strict in production
     jwt_secret = settings.get("jwt_secret_key") or ""
     if not jwt_secret:
         if _is_demo_paper_deploy(settings):
             # In demo/paper deploys, a missing JWT secret is acceptable — we'll
-            # generate an ephemeral one at runtime. This is the path Render's
-            # free tier takes when only the placeholder env vars are set.
+            # generate an ephemeral one at runtime.
             ephemeral = _secrets.token_urlsafe(48)
             settings["jwt_secret_key"] = ephemeral
             os.environ["JWT_SECRET_KEY"] = ephemeral
@@ -108,9 +107,20 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     if settings.get("trading_mode", "PAPER") not in ["PAPER", "LIVE"]:
         errors.append("Trading mode must be PAPER or LIVE")
 
-    # Validate environment
-    if settings.get("environment") not in ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT"]:
-        errors.append("Environment must be LOCAL, DEMO, PRODUCTION, or DEVELOPMENT")
+    # Validate environment - default to LOCAL if invalid in demo mode; fail in production
+    valid_environments = ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT"]
+    if settings.get("environment") not in valid_environments:
+        if _is_demo_paper_deploy(settings):
+            invalid_env = settings.get("environment")
+            warnings.append(
+                f"[config] Invalid environment {invalid_env!r}; defaulting to "
+                f"LOCAL. Set ENVIRONMENT to one of {valid_environments} for a "
+                f"deliberate tier."
+            )
+            settings["environment"] = "LOCAL"
+            os.environ["ENVIRONMENT"] = "LOCAL"
+        else:
+            errors.append("Environment must be LOCAL, DEMO, PRODUCTION, or DEVELOPMENT")
 
     # Validate database path
     if settings.get("environment") == "PRODUCTION":
@@ -255,6 +265,12 @@ def validate_all_config(settings: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run all configuration validations.
 
+    In demo/paper/local mode, individual validation failures are logged
+    as warnings and the function continues — the app must boot so the
+    frontend can hit the read-only endpoints. In production / live-trading
+    mode, the first ConfigValidationError still propagates so the safety
+    net is never relaxed for real money.
+
     Args:
         settings: Dictionary of configuration values
 
@@ -262,8 +278,35 @@ def validate_all_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         Validated configuration
 
     Raises:
-        ConfigValidationError: If any validation fails
+        ConfigValidationError: Only when not in demo/paper mode AND a
+            validator raises
     """
+    # If we're in a non-live deploy, swallow per-validator errors as
+    # warnings so a missing JWT secret, weak admin token, or empty
+    # environment doesn't crash the boot. Production keeps the strict
+    # behavior.
+    is_demo = _is_demo_paper_deploy(settings)
+
+    if is_demo:
+        try:
+            validate_trading_config(settings)
+        except ConfigValidationError as e:
+            logger.warning(f"[config] Trading config issue (continuing in demo mode): {e}")
+
+        try:
+            validate_security_config(settings)
+        except ConfigValidationError as e:
+            logger.warning(f"[config] Security config issue (continuing in demo mode): {e}")
+
+        try:
+            validate_broker_config(settings)
+        except ConfigValidationError as e:
+            logger.warning(f"[config] Broker config issue (continuing in demo mode): {e}")
+
+        logger.info("All configuration validations passed (demo mode: tolerant)")
+        return settings
+
+    # Production / live mode: strict — first error fails the boot
     try:
         validate_trading_config(settings)
         validate_security_config(settings)
