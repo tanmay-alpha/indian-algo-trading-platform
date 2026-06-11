@@ -4,6 +4,8 @@ This module provides validation logic for critical configuration values.
 """
 
 import logging
+import os
+import secrets as _secrets
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
@@ -13,6 +15,20 @@ logger = logging.getLogger(__name__)
 class ConfigValidationError(Exception):
     """Raised when configuration validation fails."""
     pass
+
+
+def _is_demo_paper_deploy(settings: Dict[str, Any]) -> bool:
+    """True when we're in a demo/paper deploy that doesn't need a real JWT secret.
+
+    On Render's free tier we ship placeholder values for ``JWT_SECRET_KEY`` and
+    ``ADMIN_TOKEN`` so the container can boot. Live-trading paths are off, so
+    the placeholder secrets are never used to authorize anything dangerous —
+    they exist only so the Settings() pydantic model instantiates cleanly and
+    the validator doesn't fail-fast on import.
+    """
+    env = str(settings.get("environment", "")).upper()
+    live_enabled = bool(settings.get("live_trading_enabled", False))
+    return env in ("DEMO", "DEVELOPMENT", "LOCAL") and not live_enabled
 
 
 def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -29,13 +45,33 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         ConfigValidationError: If validation fails
     """
     errors = []
+    warnings: List[str] = []
 
     # Validate JWT configuration
     jwt_secret = settings.get("jwt_secret_key") or ""
     if not jwt_secret:
-        errors.append("JWT secret key is required (set JWT_SECRET_KEY env var)")
+        if _is_demo_paper_deploy(settings):
+            # In demo/paper deploys, a missing JWT secret is acceptable — we'll
+            # generate an ephemeral one at runtime. This is the path Render's
+            # free tier takes when only the placeholder env vars are set.
+            ephemeral = _secrets.token_urlsafe(48)
+            settings["jwt_secret_key"] = ephemeral
+            os.environ["JWT_SECRET_KEY"] = ephemeral
+            warnings.append(
+                "JWT_SECRET_KEY was empty in a demo/paper deploy; generated an "
+                "ephemeral secret for this process. Set a real one in the "
+                "Render dashboard for any deployment that issues tokens."
+            )
+        else:
+            errors.append("JWT secret key is required (set JWT_SECRET_KEY env var)")
     elif len(jwt_secret) < 32:
-        errors.append("JWT secret key must be at least 32 characters long")
+        if _is_demo_paper_deploy(settings):
+            warnings.append(
+                "JWT_SECRET_KEY is shorter than 32 chars; the validator accepts "
+                "this in demo/paper mode but you should rotate to a stronger key."
+            )
+        else:
+            errors.append("JWT secret key must be at least 32 characters long")
 
     if settings.get("jwt_access_token_expire_minutes", 0) <= 0:
         errors.append("JWT access token expire time must be positive")
@@ -75,6 +111,10 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
                 test_file.unlink()
         except Exception as e:
             errors.append(f"Database path validation failed: {e}")
+
+    if warnings:
+        for w in warnings:
+            logger.warning("[config] %s", w)
 
     if errors:
         raise ConfigValidationError("\n".join(errors))

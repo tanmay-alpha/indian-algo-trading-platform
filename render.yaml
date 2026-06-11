@@ -1,7 +1,11 @@
 services:
   - type: web
     name: maet-backend
-    runtime: python
+    # Modern Render schema: "env" replaces the deprecated "runtime" field.
+    # The old `runtime: python` key still works but is no longer the
+    # recommended path; using `env` ensures env vars from this file are
+    # injected into the process at boot.
+    env: python
     plan: free
     # Render runs the build and start commands with this directory as cwd.
     # We keep rootDir at the repo root so the standard "backend.api_server:app"
