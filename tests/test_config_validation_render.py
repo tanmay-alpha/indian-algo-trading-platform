@@ -96,6 +96,7 @@ class TestStrictModeEnforcement:
         validation = _import_validation()
         cfg = _base_render_config()
         cfg["environment"] = "PRODUCTION"
+        cfg["database_url"] = "postgresql://user:pass@host:5432/prod"
         cfg["jwt_secret_key"] = ""
 
         with pytest.raises(validation.ConfigValidationError) as excinfo:
