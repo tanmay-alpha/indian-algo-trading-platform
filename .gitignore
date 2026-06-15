@@ -26,7 +26,14 @@ coverage/
 # Dashboard mockup screenshots (large binary blobs, not for git)
 lumint-*.png
 terminal-precision-gold.png
+terminal-*.png
 watchlist-final.png
+
+# Stale prompt scratch files left in repo root by past sessions
+prompt_*.md
+
+# Claude Code local workspace state (memory + project settings)
+.claude/
 
 .vercel/
 .vscode/
