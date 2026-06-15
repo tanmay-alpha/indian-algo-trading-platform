@@ -21,7 +21,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { getOHLCV, searchSymbol } from '@/services/angelone';
 import { useTerminalStore } from '@/hooks/useTerminalStore';
-import type { OHLCV, SearchResult } from '@/types/market';
+import type { OHLCV, InstrumentSearchResult } from '@/types/market';
 
 type Interval = '1m' | '5m' | '15m' | '1h' | '1D';
 const INTERVALS: Interval[] = ['1m', '5m', '15m', '1h', '1D'];
@@ -172,7 +172,7 @@ export function ChartPanel({ className }: Props) {
   );
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<InstrumentSearchResult[]>([]);
   const [ohlcvData, setOhlcvData] = useState<OHLCV[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +203,7 @@ export function ChartPanel({ className }: Props) {
     const handle = window.setTimeout(async () => {
       try {
         const res = await searchSymbol(q);
-        setSearchResults(res.results ?? []);
+        setSearchResults(res);
       } catch {
         setSearchResults([]);
       }
@@ -625,7 +625,7 @@ export function ChartPanel({ className }: Props) {
             fontWeight: 500,
           }}
         >
-          {symbol ? `${symbol} · NSE ▼` : 'Select symbol ▼'}
+          {symbol ? `${symbol.replace(/-EQ$/, '')} · NSE ▼` : 'Select symbol ▼'}
         </button>
 
         {/* CENTER — interval pills */}

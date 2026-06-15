@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getQuote } from '@/services/angelone';
+import { getOHLCV } from '@/services/angelone';
 import type { Quote } from '@/types/market';
 
 const POLL_INTERVAL_MS = 3000;
@@ -65,7 +65,12 @@ export function useQuotes(symbols: string[]): UseQuotesResult {
       inFlight = true;
       const mySeq = fetchSeqRef.current;
       try {
-        const results = await Promise.allSettled(list.map((sym) => getQuote(sym)));
+        // No /api/quote endpoint on the backend — derive a Quote from the
+        // latest daily candle as a best-effort LTP. The WS hook (when
+        // connected) overrides this on every tick.
+        const results = await Promise.allSettled(
+          list.map((sym) => getOHLCV(sym, '1D', 2))
+        );
         if (cancelled || mySeq !== fetchSeqRef.current) return;
 
         setQuotes((prev) => {
@@ -73,7 +78,27 @@ export function useQuotes(symbols: string[]): UseQuotesResult {
           let firstError: string | null = null;
           results.forEach((r, i) => {
             if (r.status === 'fulfilled') {
-              next[list[i]] = r.value;
+              const candles = r.value;
+              const last = candles.length > 0 ? candles[candles.length - 1] : null;
+              const prev1 = candles.length > 1 ? candles[candles.length - 2] : null;
+              if (last) {
+                const ltp = last.close;
+                const prevClose = prev1?.close ?? last.open;
+                const change = ltp - prevClose;
+                const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+                next[list[i]] = {
+                  symbol: list[i],
+                  ltp,
+                  open: last.open,
+                  high: last.high,
+                  low: last.low,
+                  close: last.close,
+                  change,
+                  changePct,
+                  volume: last.volume,
+                  timestamp: new Date(last.time * 1000).toISOString(),
+                };
+              }
             } else if (!firstError) {
               firstError =
                 r.reason instanceof Error ? r.reason.message : String(r.reason);

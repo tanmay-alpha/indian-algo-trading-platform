@@ -7,16 +7,20 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import type { Quote } from '@/types/market';
 
 type WatchlistItem = {
+  // Internal symbol is the backend format (e.g. "RELIANCE-EQ") so it
+  // matches what /candles/{symbol} and the WS feed expect. `display` is
+  // what the user sees in the row.
   symbol: string;
+  display: string;
   company: string;
 };
 
 const DEFAULT_ITEMS: WatchlistItem[] = [
-  { symbol: 'RELIANCE', company: 'Reliance Industries' },
-  { symbol: 'SBIN', company: 'State Bank of India' },
-  { symbol: 'HDFCBANK', company: 'HDFC Bank' },
-  { symbol: 'INFY', company: 'Infosys' },
-  { symbol: 'TCS', company: 'Tata Consultancy Services' },
+  { symbol: 'RELIANCE-EQ', display: 'RELIANCE', company: 'Reliance Industries' },
+  { symbol: 'SBIN-EQ', display: 'SBIN', company: 'State Bank of India' },
+  { symbol: 'HDFCBANK-EQ', display: 'HDFCBANK', company: 'HDFC Bank' },
+  { symbol: 'INFY-EQ', display: 'INFY', company: 'Infosys' },
+  { symbol: 'TCS-EQ', display: 'TCS', company: 'Tata Consultancy Services' },
 ];
 
 const FLASH_DURATION_MS = 400;
@@ -98,7 +102,7 @@ export function WatchlistPanel({ className }: Props) {
 
   const filtered = DEFAULT_ITEMS.filter(
     (item) =>
-      item.symbol.toLowerCase().includes(query.toLowerCase()) ||
+      item.display.toLowerCase().includes(query.toLowerCase()) ||
       item.company.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -186,7 +190,7 @@ export function WatchlistPanel({ className }: Props) {
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold text-white">
-                    {item.symbol}
+                    {item.display}
                   </div>
                   <div className="truncate text-[11px] text-[#5F6B7A]">
                     {item.company}
