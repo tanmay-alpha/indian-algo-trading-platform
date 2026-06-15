@@ -1,317 +1,164 @@
-'use client'
+'use client';
 
-import { useEffect, useRef } from 'react'
-import { WS_URL } from '@/lib/constants'
-import { useTerminalStore } from '@/store/terminal-store'
-import type { TickPayload, WsConnectionStatus } from '@/lib/types'
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BASE } from '@/services/angelone';
+import type { Quote } from '@/types/market';
 
-export type FrontendWsStatus = 'connected' | 'connecting' | 'degraded' | 'offline'
+const RECONNECT_DELAY_MS = 3000;
+const MAX_RETRIES = 5;
 
-const CONNECT_TIMEOUT_MS = 4000
-const RECONNECT_DELAYS_MS = [2000, 4000, 8000, 16_000, 30_000]
-// After this many failed attempts, stop auto-reconnecting and surface a
-// "manual reconnect" affordance. Without a cap, the hook will hammer the
-// backend every 30s forever.
-const MAX_RECONNECT_ATTEMPTS = 8
-const MAX_MESSAGE_SIZE_BYTES = 1024 * 10 // 10KB max message size
+export type UseWebSocketResult = {
+  quotes: Record<string, Quote>;
+  connected: boolean;
+  subscribe: (symbol: string) => void;
+  unsubscribe: (symbol: string) => void;
+};
 
-export function useWebSocket() {
-  const wsStatus = useTerminalStore((state) => state.wsStatus)
-  const demo = useTerminalStore((state) => state.wsDemoMode)
-  const reconnectInSeconds = useTerminalStore((state) => state.wsReconnectInSeconds)
-  const attemptRef = useRef(0)
-  const messageCountRef = useRef(0)
+function toWsUrl(base: string, path: string): string {
+  return base.replace(/^http/i, 'ws') + path;
+}
+
+export function useWebSocket(): UseWebSocketResult {
+  const [quotes, setQuotes] = useState<Record<string, Quote>>({});
+  const [connected, setConnected] = useState(false);
+
+  const socketRef = useRef<WebSocket | null>(null);
+  const retriesRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  const shouldReconnectRef = useRef(true);
+  const fallbackPollersRef = useRef<Map<string, number>>(new Map());
+
+  const url = toWsUrl(BASE, '/ws/market');
+
+  const send = useCallback((payload: unknown) => {
+    const sock = socketRef.current;
+    if (sock && sock.readyState === WebSocket.OPEN) {
+      sock.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  const subscribe = useCallback(
+    (symbol: string) => {
+      send({ action: 'subscribe', symbol });
+    },
+    [send]
+  );
+
+  const unsubscribe = useCallback(
+    (symbol: string) => {
+      send({ action: 'unsubscribe', symbol });
+    },
+    [send]
+  );
 
   useEffect(() => {
-    let socket: WebSocket | null = null
-    let mounted = true
-    let connectTimer: number | null = null
-    let reconnectTimer: number | null = null
-    let countdownTimer: number | null = null
-    let simulationTimer: number | null = null
+    mountedRef.current = true;
+    shouldReconnectRef.current = true;
 
-    const setWsStatus = (status: WsConnectionStatus) => useTerminalStore.getState().setWsStatus(status)
-    const setDemo = (value: boolean) => useTerminalStore.getState().setWsDemoMode(value)
-    const setReconnect = (seconds: number | null) => useTerminalStore.getState().setWsReconnectInSeconds(seconds)
-    const setConnectionError = (message: string | null) => useTerminalStore.getState().setConnectionError(message)
-    const startSimulation = () => {
-      if (simulationTimer) return
-      simulationTimer = window.setInterval(() => {
-        const state = useTerminalStore.getState()
-        state.incTickCount()
-        state.setDayPnl(state.dayPnl + (Math.random() - 0.48) * 18)
-      }, 1200)
-    }
-    const stopSimulation = () => {
-      if (simulationTimer) window.clearInterval(simulationTimer)
-      simulationTimer = null
-    }
-
-    const clearTimers = () => {
-      if (connectTimer) window.clearTimeout(connectTimer)
-      if (reconnectTimer) window.clearTimeout(reconnectTimer)
-      if (countdownTimer) window.clearInterval(countdownTimer)
-      if (simulationTimer) window.clearInterval(simulationTimer)
-      connectTimer = null
-      reconnectTimer = null
-      countdownTimer = null
-      simulationTimer = null
-    }
-
-    const scheduleReconnect = () => {
-      if (!mounted) return
-      const attemptVal = attemptRef.current
-      // Cap reached: stop auto-retrying, surface a manual reconnect button.
-      if (attemptVal >= MAX_RECONNECT_ATTEMPTS) {
-        if (countdownTimer) window.clearInterval(countdownTimer)
-        countdownTimer = null
-        setReconnect(null)
-        setWsStatus('offline')
-        setDemo(true)
-        setConnectionError('reconnect paused — click status to retry')
-        return
-      }
-      const delay = RECONNECT_DELAYS_MS[Math.min(attemptVal, RECONNECT_DELAYS_MS.length - 1)]
-      attemptRef.current += 1
-      let secondsLeft = Math.ceil(delay / 1000)
-
-      setWsStatus('degraded')
-      setDemo(true)
-      setReconnect(secondsLeft)
-      setConnectionError(`reconnecting in ${secondsLeft}s`)
-      startSimulation()
-
-      if (countdownTimer) window.clearInterval(countdownTimer)
-      countdownTimer = window.setInterval(() => {
-        secondsLeft -= 1
-        setReconnect(Math.max(0, secondsLeft))
-      }, 1000)
-
-      if (reconnectTimer) window.clearTimeout(reconnectTimer)
-      reconnectTimer = window.setTimeout(() => {
-        if (countdownTimer) window.clearInterval(countdownTimer)
-        countdownTimer = null
-        setReconnect(null)
-        connect()
-      }, delay)
-    }
-
-    const checkBackendReachable = async () => {
+    const connect = () => {
+      if (!mountedRef.current) return;
       try {
-        const response = await fetch('/api/backend/ping', { cache: 'no-store' })
-        if (!response.ok) return false
-        const payload = (await response.json()) as { reachable?: boolean }
-        return payload.reachable === true
-      } catch {
-        return false
-      }
-    }
+        const sock = new WebSocket(url);
+        socketRef.current = sock;
 
-    const handleMessage = (event: MessageEvent<string>) => {
-      try {
-        // Validate message size
-        const dataSize = new Blob([event.data]).size
-        if (dataSize > MAX_MESSAGE_SIZE_BYTES) {
-          console.warn('WebSocket message too large, discarding')
-          return
-        }
+        sock.onopen = () => {
+          if (!mountedRef.current) return;
+          retriesRef.current = 0;
+          setConnected(true);
+        };
 
-        const message = parseMessage(event.data)
-        if (!message) {
-          console.warn('Failed to parse WebSocket message:', event.data)
-          return
-        }
+        sock.onmessage = (event) => {
+          if (!mountedRef.current) return;
+          try {
+            const data =
+              typeof event.data === 'string'
+                ? (JSON.parse(event.data) as Record<string, unknown>)
+                : null;
+            if (!data) return;
 
-        // Track message count for rate limiting
-        messageCountRef.current++
-        if (messageCountRef.current > 1000) {
-          messageCountRef.current = 0
-          console.log('WebSocket message count reset')
-        }
+            const symbol = data.symbol ? String(data.symbol) : null;
+            if (!symbol) return;
 
-        if (message.type === 'ping') {
-          sendJson(socket, { type: 'pong', ts: Date.now() })
-          return
-        }
+            const ltp = Number(data.ltp ?? data.price ?? NaN);
+            if (!Number.isFinite(ltp)) return;
 
-        if (message.type === 'tick') {
-          const tick = normalizeTick(message.payload ?? message)
-          if (tick) {
-            useTerminalStore.getState().ingestTick(tick)
-          } else {
-            console.warn('Invalid tick data received:', message.payload)
+            const next: Quote = {
+              symbol,
+              ltp,
+              open: Number(data.open ?? ltp),
+              high: Number(data.high ?? ltp),
+              low: Number(data.low ?? ltp),
+              close: Number(data.close ?? ltp),
+              change: Number(data.change ?? 0),
+              changePct: Number(data.changePct ?? data.change_percent ?? 0),
+              volume: Number(data.volume ?? 0),
+              timestamp: String(data.timestamp ?? new Date().toISOString()),
+            };
+
+            setQuotes((prev) => ({ ...prev, [symbol]: next }));
+          } catch {
+            // Malformed frame — drop silently.
           }
-        }
-      } catch (error) {
-        console.error('Error handling WebSocket message:', error)
-        setConnectionError('message processing error')
-      }
-    }
+        };
 
-    async function connect() {
-      if (!mounted) return
-      if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) return
+        sock.onerror = () => {
+          // The close event will handle reconnection.
+        };
 
-      const attemptVal = attemptRef.current
-      setWsStatus(attemptVal > 0 ? 'degraded' : 'connecting')
-      setDemo(true)
-      setConnectionError(null)
+        sock.onclose = () => {
+          if (!mountedRef.current) return;
+          setConnected(false);
+          socketRef.current = null;
 
-      const backendReachable = await checkBackendReachable()
-      if (!mounted) return
-      if (!backendReachable) {
-        setWsStatus('degraded')
-        setDemo(true)
-        setConnectionError('backend warming up')
-        startSimulation()
-        scheduleReconnect()
-        return
-      }
+          if (!shouldReconnectRef.current) return;
 
-      try {
-        socket = new WebSocket(WS_URL)
+          if (retriesRef.current >= MAX_RETRIES) {
+            shouldReconnectRef.current = false;
+            return;
+          }
 
-        connectTimer = window.setTimeout(() => {
-          if (!mounted || socket?.readyState === WebSocket.OPEN) return
-          setWsStatus('degraded')
-          setDemo(true)
-          setConnectionError('backend warming up')
-          startSimulation()
-        }, CONNECT_TIMEOUT_MS)
-
-        socket.onopen = () => {
-          if (!mounted) return
-          if (connectTimer) window.clearTimeout(connectTimer)
-          if (countdownTimer) window.clearInterval(countdownTimer)
-          connectTimer = null
-          countdownTimer = null
-          attemptRef.current = 0
-          setWsStatus('connected')
-          setDemo(false)
-          setReconnect(null)
-          setConnectionError(null)
-          stopSimulation()
-        }
-
-        socket.onmessage = handleMessage
-
-        socket.onerror = () => {
-          if (!mounted) return
-          setWsStatus('degraded')
-          setDemo(true)
-          setConnectionError('websocket transport error')
-          startSimulation()
-        }
-
-        socket.onclose = () => {
-          if (!mounted) return
-          if (connectTimer) window.clearTimeout(connectTimer)
-          connectTimer = null
-          socket = null
-          scheduleReconnect()
-        }
+          retriesRef.current += 1;
+          if (reconnectTimerRef.current !== null) {
+            window.clearTimeout(reconnectTimerRef.current);
+          }
+          reconnectTimerRef.current = window.setTimeout(() => {
+            reconnectTimerRef.current = null;
+            connect();
+          }, RECONNECT_DELAY_MS);
+        };
       } catch {
-        setWsStatus('offline')
-        setDemo(true)
-        setConnectionError('websocket unavailable')
-        startSimulation()
-        scheduleReconnect()
+        setConnected(false);
+        if (retriesRef.current < MAX_RETRIES) {
+          retriesRef.current += 1;
+          reconnectTimerRef.current = window.setTimeout(connect, RECONNECT_DELAY_MS);
+        }
       }
-    }
+    };
 
-    connect()
-
-    // Manual reconnect: any component can dispatch a `maet:ws-reconnect`
-    // window event to reset the attempt counter and try again. Used by the
-    // StatusBar retry button after auto-reconnect has been paused.
-    const onManualReconnect = () => {
-      attemptRef.current = 0
-      if (countdownTimer) window.clearInterval(countdownTimer)
-      countdownTimer = null
-      if (reconnectTimer) window.clearTimeout(reconnectTimer)
-      reconnectTimer = null
-      setReconnect(null)
-      setConnectionError(null)
-      connect()
-    }
-    window.addEventListener('maet:ws-reconnect', onManualReconnect)
+    connect();
 
     return () => {
-      mounted = false
-      clearTimers()
-      window.removeEventListener('maet:ws-reconnect', onManualReconnect)
-      socket?.close()
-      socket = null
-    }
-  }, [])
+      mountedRef.current = false;
+      shouldReconnectRef.current = false;
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      const sock = socketRef.current;
+      socketRef.current = null;
+      if (sock) {
+        try {
+          sock.close();
+        } catch {
+          // ignore
+        }
+      }
+      // Clear any fallback pollers
+      fallbackPollersRef.current.forEach((id) => window.clearInterval(id));
+      fallbackPollersRef.current.clear();
+    };
+  }, [url]);
 
-  return {
-    wsStatus: normalizeStatus(wsStatus),
-    demo,
-    reconnectInSeconds,
-  }
-}
-
-function parseMessage(data: string) {
-  if (data.trim().toLowerCase() === 'ping') return { type: 'ping' }
-  try {
-    const parsed = JSON.parse(data) as { type?: unknown; payload?: unknown; [key: string]: unknown }
-    return { ...parsed, type: String(parsed.type || '').toLowerCase() }
-  } catch {
-    return null
-  }
-}
-
-function sendJson(socket: WebSocket | null, payload: unknown) {
-  if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(payload))
-  }
-}
-
-function normalizeTick(payload: unknown): TickPayload | null {
-  if (!payload || typeof payload !== 'object') return null
-  const data = payload as Record<string, unknown>
-
-  // Validate and extract required fields
-  if (!data || !('symbol' in data)) {
-    console.warn('Tick payload missing symbol field')
-    return null
-  }
-
-  const symbol = String(data.symbol)
-  const ltp = Number(data.ltp ?? data.price)
-
-  // Validate numeric fields
-  if (symbol.length === 0 || symbol.length > 20) {
-    console.warn('Invalid symbol length in tick payload')
-    return null
-  }
-
-  if (!Number.isFinite(ltp) || ltp < 0) {
-    console.warn('Invalid LTP value in tick payload:', data.ltp)
-    return null
-  }
-
-  // Extract optional fields with validation
-  const volume = 'volume' in data && Number.isFinite(Number(data.volume))
-    ? Math.max(0, Number(data.volume))
-    : undefined
-
-  return {
-    symbol,
-    ltp,
-    price: ltp,
-    exchange: 'exchange' in data ? String(data.exchange) : undefined,
-    token: 'token' in data ? String(data.token) : undefined,
-    volume,
-    received_at: new Date().toISOString(),
-    mode: ('mode' in data && String(data.mode) === 'LIVE') ? 'LIVE' : 'PAPER',
-  }
-}
-
-function normalizeStatus(status: WsConnectionStatus): FrontendWsStatus {
-  if (status === 'CONNECTED' || status === 'connected') return 'connected'
-  if (status === 'CONNECTING' || status === 'connecting') return 'connecting'
-  if (status === 'OFFLINE' || status === 'offline') return 'offline'
-  return 'degraded'
+  return { quotes, connected, subscribe, unsubscribe };
 }
