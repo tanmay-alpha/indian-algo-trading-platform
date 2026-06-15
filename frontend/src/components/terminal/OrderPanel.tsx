@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { OHLCPanel } from '@/components/chart/OHLCPanel'
 import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
@@ -36,6 +36,8 @@ export function OrderPanel({ className }: OrderPanelProps) {
   const [qty, setQty] = useState(10)
   const [price, setPrice] = useState<number>(selected.price)
   const [lastMsg, setLastMsg] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitInFlightRef = useRef(false)
 
   useEffect(() => {
     setPrice(selected.price)
@@ -44,9 +46,17 @@ export function OrderPanel({ className }: OrderPanelProps) {
   const estimatedNotional = useMemo(() => qty * price, [price, qty])
 
   async function handleDryRun() {
+    // Re-entrancy guard for fast double-clicks; the disabled button is the
+    // primary defense, the ref guards against state batching latency.
+    if (submitInFlightRef.current) return
+    submitInFlightRef.current = true
+    setIsSubmitting(true)
+
     const parsed = orderTicketSchema.safeParse({ quantity: qty, price })
     if (!parsed.success) {
       setLastMsg(`FAIL - ${parsed.error.issues[0]?.message ?? 'invalid order ticket'}`)
+      submitInFlightRef.current = false
+      setIsSubmitting(false)
       return
     }
 
@@ -61,34 +71,66 @@ export function OrderPanel({ className }: OrderPanelProps) {
       price_override: orderType === 'Market' ? null : parsed.data.price,
     }
 
-    const localOrder = { sym: activeSym, side, qty: parsed.data.quantity, price: parsed.data.price, product, ts: Date.now() }
-    addPaperOrder(localOrder)
-
     if (!adminToken) {
+      // No admin token → local paper check only. Persist the paper order.
+      addPaperOrder({
+        sym: activeSym,
+        side,
+        qty: parsed.data.quantity,
+        price: parsed.data.price,
+        product,
+        ts: Date.now(),
+      })
       setLastMsg(`PASS - local paper check for ${activeSym}`)
+      submitInFlightRef.current = false
+      setIsSubmitting(false)
       return
     }
 
-    const result = await Promise.race([
-      validateManualOrder(request),
-      new Promise<{ ok: false; backendUnavailable: true }>((resolve) => {
-        window.setTimeout(() => resolve({ ok: false, backendUnavailable: true }), 3500)
-      }),
-    ])
+    // AbortController replaces the previous Promise.race timeout: any
+    // result that arrives after the deadline is dropped. Note: the signal
+    // is not yet threaded through to validateManualOrder, so the in-flight
+    // network request is NOT cancelled — see REPORT.md "Known follow-ups" #1.
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000)
+    try {
+      const result = await validateManualOrder(request)
+      if (controller.signal.aborted) return
 
-    if (result.ok) {
-      setLastMsg(`PASS - ${side} ${parsed.data.quantity} ${activeSym} @ ${formatINR(parsed.data.price)}`)
-      const delta = side === 'BUY' ? -estimatedNotional * 0.0005 : estimatedNotional * 0.0005
-      setDayPnl(dayPnl + delta)
-      return
+      if (result.ok) {
+        addPaperOrder({
+          sym: activeSym,
+          side,
+          qty: parsed.data.quantity,
+          price: parsed.data.price,
+          product,
+          ts: Date.now(),
+        })
+        setLastMsg(
+          `PASS - ${side} ${parsed.data.quantity} ${activeSym} @ ${formatINR(parsed.data.price)}`
+        )
+        const delta =
+          side === 'BUY' ? -estimatedNotional * 0.0005 : estimatedNotional * 0.0005
+        setDayPnl(dayPnl + delta)
+        return
+      }
+
+      // Store returns { ok: false, error } for backend validation failures.
+      // We surface the error; do NOT persist a paper order on failure.
+      setLastMsg(`FAIL - ${result.error ?? 'validation failed'}`)
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setLastMsg(`FAIL - validation timed out for ${activeSym}`)
+      } else {
+        setLastMsg(
+          `FAIL - ${err instanceof Error ? err.message : 'validation request failed'}`
+        )
+      }
+    } finally {
+      window.clearTimeout(timeoutId)
+      submitInFlightRef.current = false
+      setIsSubmitting(false)
     }
-
-    if ('adminRequired' in result || 'backendUnavailable' in result) {
-      setLastMsg(`PASS - local paper check for ${activeSym}`)
-      return
-    }
-
-    setLastMsg(`FAIL - ${'error' in result ? result.error : 'validation failed'}`)
   }
 
   const inputClass =
@@ -188,9 +230,11 @@ export function OrderPanel({ className }: OrderPanelProps) {
         <button
           type="button"
           onClick={handleDryRun}
-          className="mt-auto h-9 rounded border border-accent/30 bg-accent-dim font-mono text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-white"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+          className="mt-auto h-9 rounded border border-accent/30 bg-accent-dim font-mono text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-accent-dim disabled:hover:text-accent"
         >
-          Dry run -&gt;
+          {isSubmitting ? 'Validating...' : 'Dry run ->'}
         </button>
 
         {lastMsg && (

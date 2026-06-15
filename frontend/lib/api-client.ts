@@ -230,9 +230,9 @@ export interface CandleResponse {
   warning?: string | null
 }
 
-export async function fetchCandles(symbol: string, timeframe = '5m', fetch = true): Promise<CandleResponse> {
+export async function fetchCandles(symbol: string, timeframe = '5m', useBroker = true): Promise<CandleResponse> {
   const data = await request<unknown>(
-    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&fetch=${fetch}`
+    `${ENDPOINTS.candles}/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&fetch=${useBroker}`
   )
   return normalizeCandleResponse(data, symbol, timeframe)
 }

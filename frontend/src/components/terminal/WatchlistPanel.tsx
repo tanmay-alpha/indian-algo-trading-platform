@@ -36,6 +36,8 @@ import {
 } from '@/lib/api-client'
 import type { Instrument, MarketWatchRow, IndexSnapshot } from '@/lib/types'
 import { useTerminalStore } from '@/store/terminal-store'
+import { useNow } from '@/hooks/useNow'
+import { formatTickAge, isStale } from '@/lib/stale'
 import { cn } from '@/lib/utils'
 
 interface WatchlistPanelProps {
@@ -110,6 +112,7 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
   const activeSym = useTerminalStore((state) => state.activeSym)
   const setActiveSym = useTerminalStore((state) => state.setActiveSym)
   const marketWatchFromStore = useTerminalStore((state) => state.marketWatch)
+  const lastTickBySymbol = useTerminalStore((state) => state.lastTickBySymbol)
   const ingestMarketWatchRows = useTerminalStore(
     (state) => state.ingestMarketWatchRows
   )
@@ -117,6 +120,8 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
   const removeFromWatchlist = useTerminalStore(
     (state) => state.removeFromWatchlist
   )
+
+  const now = useNow(2000) // Coarse interval: only need to update "age every 2s"
 
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -335,7 +340,8 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
       instr?.name ??
       (DEMO_SYMBOLS.find((d) => d.sym === sym)?.name ?? null)
     const isProtected = protectedSymbols.includes(sym)
-    return { sym, ltp, previous, change, changePct, name, isProtected }
+    const lastTickAt = lastTickBySymbol[sym] ?? null
+    return { sym, ltp, previous, change, changePct, name, isProtected, lastTickAt }
   }
 
   return (
@@ -462,12 +468,15 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
             const ltp = r.ltp
             const changePct = r.changePct
             const positive = (changePct ?? 0) >= 0 && ltp != null
+            const rowStale = isStale(r.lastTickAt, now, 10_000)
+            const rowAge = formatTickAge(r.lastTickAt, now)
             return (
               <div
                 key={r.sym}
                 className={cn(
                   'group flex items-stretch border-b border-border transition-colors hover:bg-hover',
-                  active && 'border-l-2 border-l-accent bg-surface pl-[10px]'
+                  active && 'border-l-2 border-l-accent bg-surface pl-[10px]',
+                  rowStale && 'opacity-60'
                 )}
                 data-active={active}
                 data-testid={`watchlist-row-${r.sym}`}
@@ -514,6 +523,21 @@ export function WatchlistPanel({ className }: WatchlistPanelProps) {
                           ? '—'
                           : `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`}
                       </span>
+                      {rowAge ? (
+                        <span
+                          className={cn(
+                            'block font-mono text-[9px]',
+                            rowStale ? 'text-warn' : 'text-text-hint'
+                          )}
+                          aria-label={
+                            rowStale
+                              ? `${r.sym} price data is stale. Last tick ${rowAge}.`
+                              : `${r.sym} last tick ${rowAge}`
+                          }
+                        >
+                          {rowStale ? `stale · ${rowAge}` : rowAge}
+                        </span>
+                      ) : null}
                     </span>
                   </span>
                 </button>

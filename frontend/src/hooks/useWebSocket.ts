@@ -9,6 +9,10 @@ export type FrontendWsStatus = 'connected' | 'connecting' | 'degraded' | 'offlin
 
 const CONNECT_TIMEOUT_MS = 4000
 const RECONNECT_DELAYS_MS = [2000, 4000, 8000, 16_000, 30_000]
+// After this many failed attempts, stop auto-reconnecting and surface a
+// "manual reconnect" affordance. Without a cap, the hook will hammer the
+// backend every 30s forever.
+const MAX_RECONNECT_ATTEMPTS = 8
 const MAX_MESSAGE_SIZE_BYTES = 1024 * 10 // 10KB max message size
 
 export function useWebSocket() {
@@ -57,6 +61,16 @@ export function useWebSocket() {
     const scheduleReconnect = () => {
       if (!mounted) return
       const attemptVal = attemptRef.current
+      // Cap reached: stop auto-retrying, surface a manual reconnect button.
+      if (attemptVal >= MAX_RECONNECT_ATTEMPTS) {
+        if (countdownTimer) window.clearInterval(countdownTimer)
+        countdownTimer = null
+        setReconnect(null)
+        setWsStatus('offline')
+        setDemo(true)
+        setConnectionError('reconnect paused — click status to retry')
+        return
+      }
       const delay = RECONNECT_DELAYS_MS[Math.min(attemptVal, RECONNECT_DELAYS_MS.length - 1)]
       attemptRef.current += 1
       let secondsLeft = Math.ceil(delay / 1000)
@@ -207,9 +221,25 @@ export function useWebSocket() {
 
     connect()
 
+    // Manual reconnect: any component can dispatch a `maet:ws-reconnect`
+    // window event to reset the attempt counter and try again. Used by the
+    // StatusBar retry button after auto-reconnect has been paused.
+    const onManualReconnect = () => {
+      attemptRef.current = 0
+      if (countdownTimer) window.clearInterval(countdownTimer)
+      countdownTimer = null
+      if (reconnectTimer) window.clearTimeout(reconnectTimer)
+      reconnectTimer = null
+      setReconnect(null)
+      setConnectionError(null)
+      connect()
+    }
+    window.addEventListener('maet:ws-reconnect', onManualReconnect)
+
     return () => {
       mounted = false
       clearTimers()
+      window.removeEventListener('maet:ws-reconnect', onManualReconnect)
       socket?.close()
       socket = null
     }

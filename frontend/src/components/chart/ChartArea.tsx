@@ -4,7 +4,9 @@ import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
 import { DEMO_SYMBOLS, formatINR } from '@/lib/demoSymbols'
 import { useCandles } from '@/hooks/useCandles'
+import { useNow } from '@/hooks/useNow'
 import { useTerminalStore } from '@/store/terminal-store'
+import { formatTickAge, isStale } from '@/lib/stale'
 import { cn } from '@/lib/utils'
 
 const CandleChart = dynamic(
@@ -30,7 +32,9 @@ export function ChartArea({ className }: ChartAreaProps) {
   const activeSym = useTerminalStore((state) => state.activeSym)
   const timeframe = useTerminalStore((state) => state.chartTimeframe)
   const setChartTimeframe = useTerminalStore((state) => state.setChartTimeframe)
+  const lastTickAt = useTerminalStore((state) => state.lastTickBySymbol[activeSym] ?? null)
   const { candles, isDemo, isLoading } = useCandles(activeSym, timeframe)
+  const now = useNow(1000)
   const [activeIndicators, setActiveIndicators] = useState<string[]>(['EMA', 'VWAP'])
 
   const selected = DEMO_SYMBOLS.find((item) => item.sym === activeSym) ?? DEMO_SYMBOLS[0]
@@ -43,6 +47,9 @@ export function ChartArea({ className }: ChartAreaProps) {
   const activeTfLabel = useMemo(() => {
     return TIMEFRAMES.find((item) => item.value === timeframe)?.label ?? timeframe
   }, [timeframe])
+
+  const tickAge = formatTickAge(lastTickAt, now)
+  const stale = isStale(lastTickAt, now)
 
   const toggleIndicator = (indicator: string) => {
     setActiveIndicators((current) =>
@@ -72,6 +79,23 @@ export function ChartArea({ className }: ChartAreaProps) {
               maximumFractionDigits: 2,
             })}%
           </div>
+          {stale ? (
+            <div
+              className="flex items-center gap-1 rounded border border-warn/40 bg-warn/10 px-1.5 py-0.5 font-mono text-[10px] text-warn"
+              role="status"
+              aria-label={`Price data is stale. Last tick: ${tickAge ?? 'unknown'}.`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-warn" />
+              <span>stale{tickAge ? ` · ${tickAge}` : ''}</span>
+            </div>
+          ) : tickAge ? (
+            <div
+              className="font-mono text-[10px] text-text-hint"
+              aria-label={`Price as of ${tickAge}`}
+            >
+              as of {tickAge}
+            </div>
+          ) : null}
           {isLoading && (
             <div className="flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
