@@ -98,6 +98,7 @@ class TestStrictModeEnforcement:
         cfg["environment"] = "PRODUCTION"
         cfg["database_url"] = "postgresql://user:pass@host:5432/prod"
         cfg["jwt_secret_key"] = ""
+        cfg["live_trading_enabled"] = True
 
         with pytest.raises(validation.ConfigValidationError) as excinfo:
             validation.validate_trading_config(cfg)
@@ -117,6 +118,7 @@ class TestStrictModeEnforcement:
         validation = _import_validation()
         cfg = _base_render_config()
         cfg["environment"] = "FOO"
+        cfg["live_trading_enabled"] = True
 
         with pytest.raises(validation.ConfigValidationError) as excinfo:
             validation.validate_trading_config(cfg)

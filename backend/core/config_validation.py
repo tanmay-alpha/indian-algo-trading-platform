@@ -18,33 +18,19 @@ class ConfigValidationError(Exception):
 
 
 def _is_demo_paper_deploy(settings: Dict[str, Any]) -> bool:
-    """True when we're in a deploy that doesn't need a real JWT secret.
+    """True when this deploy cannot place live orders.
 
-    On Render's free tier we ship placeholder values for ``JWT_SECRET_KEY`` and
-    ``ADMIN_TOKEN`` so the container can boot. Live-trading paths are off, so
-    the placeholder secrets are never used to authorize anything dangerous —
-    they exist only so the Settings() pydantic model instantiates cleanly and
-    the validator doesn't fail-fast on import.
-
-    "Demo/paper" means BOTH:
-      * the environment is one of the safe paper tiers (DEMO / LOCAL /
-        DEVELOPMENT, or empty/missing — which we coerce to LOCAL), AND
-      * live_trading_enabled is False.
-
-    If the environment string says PRODUCTION (or any non-safe value like
-    STAGING / PRODUCTION-PAPER) we MUST run the strict checks, even when
-    live_trading_enabled=False — the env string is a deliberate operator
-    assertion about deployment tier, and we never relax validation below
-    what the operator asked for. This is what protects the JWT-secret,
-    database, and broker-credential checks from being silently skipped
-    in a deploy that was misconfigured as PRODUCTION-by-accident.
+    The single source of truth is ``live_trading_enabled``: if real money
+    is on the line, every check below is strict. If live trading is
+    disabled, the validator is lenient — we generate an ephemeral JWT
+    secret, accept a weak admin token, and coerce an unrecognized
+    environment to LOCAL. The environment string is informational;
+    a misconfigured ``ENVIRONMENT=STAGING`` in a non-live deploy must
+    not crash the boot, but it also doesn't enable live trading by
+    itself.
     """
-    env = str(settings.get("environment", "")).upper()
-    safe_envs = {"DEMO", "DEVELOPMENT", "LOCAL", "STAGING", "TESTING", "PREVIEW", ""}
     live_enabled = bool(settings.get("live_trading_enabled", False))
-    if env in safe_envs:
-        return not live_enabled
-    return False
+    return not live_enabled
 
 
 def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -115,7 +101,7 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         errors.append("Trading mode must be PAPER or LIVE")
 
     # Validate environment - default to LOCAL if invalid in demo mode; fail in production
-    valid_environments = ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT", "STAGING", "TESTING", "PREVIEW"]
+    valid_environments = ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT"]
     if settings.get("environment") not in valid_environments:
         if _is_demo_paper_deploy(settings):
             invalid_env = settings.get("environment")
@@ -127,7 +113,7 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
             settings["environment"] = "LOCAL"
             os.environ["ENVIRONMENT"] = "LOCAL"
         else:
-            errors.append(f"Environment must be one of {valid_environments}")
+            errors.append("Environment must be LOCAL, DEMO, PRODUCTION, or DEVELOPMENT")
 
     # Validate database path
     if settings.get("environment") == "PRODUCTION":
