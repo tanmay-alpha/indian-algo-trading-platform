@@ -26,17 +26,23 @@ def _is_demo_paper_deploy(settings: Dict[str, Any]) -> bool:
     they exist only so the Settings() pydantic model instantiates cleanly and
     the validator doesn't fail-fast on import.
 
-    Returns True when ANY of:
-      * environment is one of DEMO / DEVELOPMENT / LOCAL
-      * environment is empty/unset (treated as default-LOCAL, the safest tier)
-      * live_trading_enabled is False (which is the only mode that runs in
-        paper/demo on the free tier; the strict check only matters when
-        live_trading_enabled=True)
+    The single source of truth for "is this a safe non-live deploy" is the
+    ``live_trading_enabled`` flag. The ``environment`` string is informational
+    only — Render (or any other platform) can inject arbitrary values for it
+    via dashboard env vars, and the boot must not fail just because someone
+    typed ``STAGING`` or ``PRODUCTION-PAPER`` instead of ``DEMO``.
+
+    Returns True whenever:
+      * live_trading_enabled is False (the safety net is off, regardless of
+        what the environment string says)
+
+    Returns False only when:
+      * live_trading_enabled is True (real money on the line, strict checks
+        apply even if the env string is exotic)
     """
-    env = str(settings.get("environment", "")).upper()
     live_enabled = bool(settings.get("live_trading_enabled", False))
-    if env in ("DEMO", "DEVELOPMENT", "LOCAL", ""):
-        return not live_enabled
+    if not live_enabled:
+        return True
     return False
 
 
