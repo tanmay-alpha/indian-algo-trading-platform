@@ -116,7 +116,7 @@ class TestStrictModeEnforcement:
     def test_unknown_environment_fails(self):
         validation = _import_validation()
         cfg = _base_render_config()
-        cfg["environment"] = "STAGING"
+        cfg["environment"] = "FOO"
 
         with pytest.raises(validation.ConfigValidationError) as excinfo:
             validation.validate_trading_config(cfg)

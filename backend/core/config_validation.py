@@ -40,7 +40,7 @@ def _is_demo_paper_deploy(settings: Dict[str, Any]) -> bool:
     in a deploy that was misconfigured as PRODUCTION-by-accident.
     """
     env = str(settings.get("environment", "")).upper()
-    safe_envs = {"DEMO", "DEVELOPMENT", "LOCAL", ""}
+    safe_envs = {"DEMO", "DEVELOPMENT", "LOCAL", "STAGING", "TESTING", "PREVIEW", ""}
     live_enabled = bool(settings.get("live_trading_enabled", False))
     if env in safe_envs:
         return not live_enabled
@@ -115,7 +115,7 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
         errors.append("Trading mode must be PAPER or LIVE")
 
     # Validate environment - default to LOCAL if invalid in demo mode; fail in production
-    valid_environments = ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT"]
+    valid_environments = ["LOCAL", "DEMO", "PRODUCTION", "DEVELOPMENT", "STAGING", "TESTING", "PREVIEW"]
     if settings.get("environment") not in valid_environments:
         if _is_demo_paper_deploy(settings):
             invalid_env = settings.get("environment")
@@ -127,7 +127,7 @@ def validate_trading_config(settings: Dict[str, Any]) -> Dict[str, Any]:
             settings["environment"] = "LOCAL"
             os.environ["ENVIRONMENT"] = "LOCAL"
         else:
-            errors.append("Environment must be LOCAL, DEMO, PRODUCTION, or DEVELOPMENT")
+            errors.append(f"Environment must be one of {valid_environments}")
 
     # Validate database path
     if settings.get("environment") == "PRODUCTION":
