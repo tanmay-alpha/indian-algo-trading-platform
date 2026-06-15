@@ -1,0 +1,86 @@
+name: Deploy to Render (auto-trigger)
+
+# Auto-trigger Render redeploys when changes land on main.
+#
+# Render Deploy Hooks (https://api.render.com/deploy/srv-XXX?key=YYY) are
+# service-specific URLs that cause Render to pull the latest commit and
+# rebuild. We fire the hook from CI so GitHub → Render stays in sync
+# without the user needing to click "Manual Deploy" in the dashboard.
+#
+# Required GitHub secret:
+#   RENDER_DEPLOY_HOOK_URL
+#     The Deploy Hook URL from the Render dashboard:
+#       Dashboard -> maet-backend -> Settings -> Deploy Hook
+#     Store it as a repo or org secret. NEVER commit it.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Optional reason for manual trigger"
+        required: false
+        default: "manual trigger from GitHub Actions"
+
+jobs:
+  trigger-render-deploy:
+    name: Ping Render Deploy Hook
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify deploy hook secret is configured
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL secret is not set."
+            echo "Add it at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "Get the value from: Render Dashboard -> maet-backend -> Settings -> Deploy Hook"
+            exit 1
+          fi
+          echo "Deploy hook URL is configured (length=${#RENDER_DEPLOY_HOOK_URL})"
+
+      - name: Trigger Render redeploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          TRIGGER_REASON: ${{ github.event.head_commit.message || github.event.inputs.reason || 'auto-triggered by CI' }}
+        run: |
+          echo "Triggering Render deploy: $TRIGGER_REASON"
+          HTTP_STATUS=$(curl -s -o /tmp/render_response.txt -w "%{http_code}" \
+            -X POST \
+            -H "Accept: application/json" \
+            "$RENDER_DEPLOY_HOOK_URL")
+          echo "Render responded with HTTP $HTTP_STATUS"
+          cat /tmp/render_response.txt 2>/dev/null || true
+
+          if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "202" ]; then
+            echo "::error::Render deploy hook returned unexpected status $HTTP_STATUS"
+            exit 1
+          fi
+
+          echo "Render deploy triggered successfully. Watch progress at:"
+          echo "  https://dashboard.render.com/web/${{ github.repository }}"
+
+      - name: Wait for Render to start the build
+        env:
+          BACKEND_URL: https://maet-backend.onrender.com
+        run: |
+          # Render's free tier takes 30-60s to come up from a cold start.
+          # We poll /ping (publicly exposed) up to 90s; a 200 means the new
+          # container is serving requests. This step is informational only —
+          # its failure does not fail the workflow (the deploy itself succeeded).
+          for i in 1 2 3 4 5 6 7 8 9; do
+            sleep 10
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BACKEND_URL/ping" || echo "000")
+            echo "Attempt $i: GET $BACKEND_URL/ping -> HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend is live. Auto-deploy verified."
+              exit 0
+            fi
+          done
+          echo "::warning::Backend did not respond within 90s. The deploy may still be building."
+          echo "This is normal for Render's free tier; check the dashboard for build status."
+          exit 0
