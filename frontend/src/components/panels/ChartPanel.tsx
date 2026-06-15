@@ -20,6 +20,7 @@ import {
 } from 'lightweight-charts';
 import { Search, X } from 'lucide-react';
 import { getOHLCV, searchSymbol } from '@/services/angelone';
+import { useTerminalStore } from '@/hooks/useTerminalStore';
 import type { OHLCV, SearchResult } from '@/types/market';
 
 type Interval = '1m' | '5m' | '15m' | '1h' | '1D';
@@ -180,6 +181,7 @@ export function ChartPanel({ className }: Props) {
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const rsiContainerRef = useRef<HTMLDivElement>(null);
+  const setCurrentSymbol = useTerminalStore((s) => s.setCurrentSymbol);
 
   const chartRef = useRef<IChartApi | null>(null);
   const rsiChartRef = useRef<IChartApi | null>(null);
@@ -578,11 +580,12 @@ export function ChartPanel({ className }: Props) {
   const pickSymbol = useCallback(
     (s: string) => {
       setSymbol(s);
+      setCurrentSymbol(s);
       setShowSearch(false);
       setSearchQuery('');
       setSearchResults([]);
     },
-    []
+    [setCurrentSymbol]
   );
 
   const change = useMemo(() => {
