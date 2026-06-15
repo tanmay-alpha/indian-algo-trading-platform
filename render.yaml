@@ -13,7 +13,10 @@ services:
     # path below points into backend/ where the package actually lives.
     rootDir: .
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info"
+    # ${PORT:-10000} provides a defensive fallback in case Render's $PORT env
+    # var is ever unset or stripped during a shell pass. Render's docs state
+    # that the default PORT is 10000, so this matches the platform default.
+    startCommand: "uvicorn backend.api_server:app --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --log-level info"
     healthCheckPath: /ping
     autoDeploy: true
     envVars:
