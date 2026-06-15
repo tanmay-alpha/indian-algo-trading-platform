@@ -28,7 +28,7 @@ jobs:
   trigger-render-deploy:
     name: Ping Render Deploy Hook
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
 
     steps:
       - name: Verify deploy hook secret is configured
@@ -68,19 +68,21 @@ jobs:
         env:
           BACKEND_URL: https://maet-backend.onrender.com
         run: |
-          # Render's free tier takes 30-60s to come up from a cold start.
-          # We poll /ping (publicly exposed) up to 90s; a 200 means the new
-          # container is serving requests. This step is informational only —
-          # its failure does not fail the workflow (the deploy itself succeeded).
-          for i in 1 2 3 4 5 6 7 8 9; do
-            sleep 10
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 5 "$BACKEND_URL/ping" || echo "000")
-            echo "Attempt $i: GET $BACKEND_URL/ping -> HTTP $STATUS"
+          # Render's free tier can take several minutes for a cold start or a
+          # build from scratch. We poll /ping for up to the job timeout
+          # (~10 min) so we don't cancel mid-build. We treat HTTP 200 as the
+          # success condition; HTTP 000/502/503/etc. simply mean "not ready
+          # yet" and we keep retrying until the job timeout kicks in.
+          attempt=0
+          while true; do
+            attempt=$((attempt + 1))
+            sleep 15
+            STATUS=$(curl -sS -L --connect-timeout 10 --max-time 20 \
+              -o /dev/null -w "%{http_code}" \
+              "$BACKEND_URL/ping" 2>/dev/null || echo "000")
+            echo "Attempt ${attempt}: GET $BACKEND_URL/ping -> HTTP ${STATUS}"
             if [ "$STATUS" = "200" ]; then
               echo "Backend is live. Auto-deploy verified."
               exit 0
             fi
           done
-          echo "::warning::Backend did not respond within 90s. The deploy may still be building."
-          echo "This is normal for Render's free tier; check the dashboard for build status."
-          exit 0
