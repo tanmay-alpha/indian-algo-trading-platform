@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useQuotes } from '@/hooks/useQuotes';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import type { Quote } from '@/types/market';
 
 type WatchlistItem = {
@@ -45,7 +46,20 @@ const PRICE_FLASH_KEYFRAMES = `@keyframes priceFlash { 0%, 100% { background: tr
 export function WatchlistPanel({ className }: Props) {
   const [query, setQuery] = useState('');
   const symbols = DEFAULT_ITEMS.map((i) => i.symbol);
-  const { quotes, loading, error } = useQuotes(symbols);
+
+  // REST fallback for initial state and fallback
+  const { quotes: restQuotes, loading, error } = useQuotes(symbols);
+  // Live ticks from WebSocket (these override REST when present)
+  const { quotes: wsQuotes, connected } = useWebSocket(symbols);
+
+  // Merge: REST provides initial state, WS updates override on tick
+  const mergedQuotes = useMemo(() => {
+    const out: Record<string, Quote> = { ...restQuotes };
+    for (const symbol in wsQuotes) {
+      out[symbol] = wsQuotes[symbol];
+    }
+    return out;
+  }, [restQuotes, wsQuotes]);
 
   // Per-symbol flash state: when a row's LTP changes, briefly apply the
   // .price-flash class so the user can see live updates.
@@ -56,7 +70,7 @@ export function WatchlistPanel({ className }: Props) {
     const updated: Record<string, boolean> = {};
     let anyChange = false;
     for (const sym of symbols) {
-      const q = quotes[sym];
+      const q = mergedQuotes[sym];
       const newLtp = q?.ltp;
       const prevLtp = lastLtpRef.current[sym];
       if (newLtp !== undefined && prevLtp !== undefined && newLtp !== prevLtp) {
@@ -80,7 +94,7 @@ export function WatchlistPanel({ className }: Props) {
     return () => {
       timeoutIds.forEach((id) => window.clearTimeout(id));
     };
-  }, [quotes, symbols]);
+  }, [mergedQuotes, symbols]);
 
   const filtered = DEFAULT_ITEMS.filter(
     (item) =>
@@ -138,6 +152,12 @@ export function WatchlistPanel({ className }: Props) {
         </div>
       )}
 
+      {connected && (
+        <div className="px-3 py-1 font-mono text-[9px] uppercase tracking-wider text-[#10B981]">
+          Live
+        </div>
+      )}
+
       <ul className="min-h-0 flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <li className="px-4 py-6 text-center text-xs text-[#5F6B7A]">
@@ -145,7 +165,7 @@ export function WatchlistPanel({ className }: Props) {
           </li>
         ) : (
           filtered.map((item) => {
-            const quote = quotes[item.symbol];
+            const quote = mergedQuotes[item.symbol];
             const isFlashing = flashing[item.symbol] === true;
             const pct = quote?.changePct;
             const pctClass =
