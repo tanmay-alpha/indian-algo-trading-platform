@@ -537,7 +537,7 @@ def live_check():
 
 @app.get("/ping")
 async def ping():
-    return {"status": "ok", "ts": time.time()}
+    return {"status": "ok"}
 
 @app.get("/ready")
 def ready_check():
