@@ -11,8 +11,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
     "@tabler/icons-react": "^3.44.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.40.0",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^0.460.0",
     "next": "^16.2.6",

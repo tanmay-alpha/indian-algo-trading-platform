@@ -1,7 +1,23 @@
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
 @import '../styles/tokens.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --maet-bg: #050812;
+  --maet-surface: #0A1020;
+  --maet-surface-2: #0F1929;
+  --maet-border: rgba(0, 212, 255, 0.12);
+  --maet-cyan: #00D4FF;
+  --maet-amber: #F59E0B;
+  --maet-green: #10B981;
+  --maet-red: #EF4444;
+  --maet-text: #E8EAED;
+  --maet-muted: #5F6B7A;
+}
 
 * {
   box-sizing: border-box;
@@ -11,9 +27,10 @@
 
 html,
 body {
-  background: var(--color-base);
-  color: var(--color-text-primary);
-  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  background: var(--maet-bg);
+  color: var(--maet-text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -34,7 +51,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--maet-cyan);
   outline-offset: 2px;
 }
 
@@ -44,239 +61,559 @@ textarea:focus-visible {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-panel);
+  background: var(--maet-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-light);
+  background: var(--maet-border);
   border-radius: 2px;
 }
 
-.num {
-  font-family: var(--font-mono, 'JetBrains Mono', 'Roboto Mono', monospace);
-  font-variant-numeric: tabular-nums;
-}
-
-.font-mono,
-.mono,
-code,
-pre {
-  font-family: var(--font-mono, 'JetBrains Mono', 'Roboto Mono', monospace);
-  font-variant-numeric: tabular-nums;
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-.price-up {
-  color: var(--color-up);
-}
-
-.price-down {
-  color: var(--color-dn);
-}
-
-@keyframes flashUp {
-  0% { background: rgba(74,222,128,0.18); }
-  100% { background: transparent; }
-}
-
-@keyframes flashDown {
-  0% { background: rgba(248,113,113,0.18); }
-  100% { background: transparent; }
-}
-
-.flash-up {
-  animation: flashUp 0.5s ease-out;
-}
-
-.flash-down {
-  animation: flashDown 0.5s ease-out;
-}
-
-/* -----------------------------------------------------------
-   Precision Gold Terminal — depth & motion utilities
-   ----------------------------------------------------------- */
-
-/* 3D card lift: floating surface with subtle inset highlight */
-.card {
-  background: rgba(22, 27, 39, 0.8);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.5),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
-  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
-}
-
-.card:hover {
-  border-color: rgba(240, 192, 64, 0.18);
-}
-
-/* Gold glow — hover only, for CTAs and active items */
-.glow {
-  transition: box-shadow 200ms ease;
-}
-
-.glow:hover {
-  box-shadow: 0 0 20px rgba(240, 192, 64, 0.25);
-}
-
-/* Glass panels: stronger blur for overlays + screener cards */
-.glass-panel {
-  background: rgba(22, 27, 39, 0.7);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-/* Subtle 40px grid for terminal workspace only */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* Live data dot pulse */
-@keyframes goldPulse {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-
-.gold-pulse-dot {
-  animation: goldPulse 2s ease-in-out infinite;
-}
-
-/* Panel entry */
-@keyframes slideUp {
-  0%   { transform: translateY(8px); opacity: 0; }
-  100% { transform: translateY(0);   opacity: 1; }
-}
-
-.slide-up {
-  animation: slideUp 0.25s ease both;
-}
-
-/* Tabular numerics + JetBrains Mono for all data fields.
-   Use .num, .font-mono, or the new .font-data / .data utility. */
-.data,
-.font-data {
+.maet-mono {
   font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
-}
-
-/* Gold gradient helper for hero cards / stat blocks */
-.gold-gradient {
-  background: linear-gradient(135deg, rgba(240, 192, 64, 0.12) 0%, rgba(240, 192, 64, 0.02) 100%);
 }
 
 /* -----------------------------------------------------------
-   Mobile / Desktop breakpoint utilities
-   - Default rules apply on mobile (<768px).
-   - @media (min-width: 768px) targets tablet and up.
+   MAET Landing Page
    ----------------------------------------------------------- */
 
-:root {
-  --bottom-nav-h: 80px;
-  --top-header-h: 56px;
-  --safety-strip-h: 0px;
+.maet-page {
+  min-height: 100dvh;
+  background: var(--maet-bg);
+  color: var(--maet-text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  padding-top: 56px; /* navbar height */
 }
 
-@media (max-width: 767px) {
-  .mobile-hidden {
-    display: none !important;
+/* ---------- NAVBAR ---------- */
+.maet-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 56px;
+  background: rgba(5, 8, 18, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+}
+
+.maet-nav-inner {
+  height: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.maet-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--maet-cyan);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.maet-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.maet-badge-paper {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--maet-amber);
+  color: #000;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+
+.maet-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--maet-text);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.maet-github:hover {
+  color: var(--maet-cyan);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+/* ---------- TICKER TAPE ---------- */
+.maet-ticker {
+  width: 100%;
+  height: 32px;
+  background: rgba(0, 212, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.maet-ticker-track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: nowrap;
+  width: max-content;
+  animation: maet-scroll 30s linear infinite;
+}
+
+@keyframes maet-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-33.33%); }
+}
+
+.maet-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  border-right: 1px solid rgba(0, 212, 255, 0.08);
+}
+
+.maet-ticker-symbol {
+  color: var(--maet-text);
+  letter-spacing: 0.4px;
+}
+
+.maet-ticker-up {
+  color: var(--maet-green);
+}
+
+.maet-ticker-down {
+  color: var(--maet-red);
+}
+
+/* ---------- BENTO GRID ---------- */
+.maet-bento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.bento-card {
+  background: linear-gradient(135deg, rgba(15, 25, 41, 0.9), rgba(10, 16, 32, 0.7));
+  border: 1px solid var(--maet-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bento-card:hover {
+  transform: translateY(-4px) perspective(800px) rotateX(1.5deg);
+  box-shadow: 0 16px 48px rgba(0, 212, 255, 0.1),
+    0 0 0 1px rgba(0, 212, 255, 0.2);
+}
+
+/* ---------- HERO ---------- */
+.bento-hero {
+  grid-column: span 2;
+  grid-row: span 2;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.maet-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--maet-cyan);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.maet-eyebrow-sm {
+  font-size: 10px;
+}
+
+.maet-h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 52px;
+  line-height: 1.05;
+  color: var(--maet-text);
+  letter-spacing: -1px;
+}
+
+.maet-subtext {
+  font-size: 14px;
+  color: var(--maet-muted);
+  line-height: 1.5;
+  max-width: 480px;
+}
+
+.maet-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 32px;
+  background: var(--maet-cyan);
+  color: var(--maet-bg);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  margin-top: 4px;
+}
+
+.maet-cta:hover {
+  background: #33DFFF;
+  transform: scale(1.02);
+}
+
+.maet-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.maet-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--maet-cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* ---------- MARKET PULSE ---------- */
+.bento-pulse {
+  grid-column: span 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.maet-big-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.maet-pulse-line {
+  font-size: 13px;
+  color: var(--maet-muted);
+}
+
+.maet-up {
+  color: var(--maet-green);
+}
+
+.maet-down {
+  color: var(--maet-red);
+}
+
+.maet-divider {
+  height: 1px;
+  background: rgba(0, 212, 255, 0.08);
+  margin: 8px 0 4px;
+}
+
+.maet-pulse-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.maet-pulse-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  align-items: center;
+}
+
+.maet-pulse-name {
+  color: var(--maet-muted);
+}
+
+.maet-pulse-value {
+  color: var(--maet-text);
+  text-align: right;
+}
+
+.maet-card-foot {
+  font-size: 10px;
+  color: var(--maet-muted);
+  margin-top: auto;
+  padding-top: 10px;
+  letter-spacing: 0.4px;
+}
+
+/* ---------- STRATEGY ENGINE ---------- */
+.bento-strategy {
+  grid-column: span 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.maet-strat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.maet-strat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.maet-strat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--maet-cyan);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.maet-strat-name {
+  flex: 1;
+  color: var(--maet-text);
+}
+
+.maet-strat-ready {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--maet-green);
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 3px;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* ---------- BACKTESTING ---------- */
+.bento-backtest {
+  grid-column: span 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.maet-stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.maet-stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px;
+  color: #fff;
+  line-height: 1;
+}
+
+.maet-stat-label {
+  font-size: 12px;
+  color: var(--maet-muted);
+}
+
+.maet-metric-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.maet-metric-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--maet-muted);
+  padding: 4px 0;
+  border-top: 1px solid rgba(0, 212, 255, 0.06);
+}
+
+/* ---------- CAPABILITIES ---------- */
+.bento-cap {
+  grid-column: span 2;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.maet-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.maet-cap-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  border-radius: 10px;
+  color: var(--maet-text);
+  font-size: 13px;
+}
+
+.maet-cap-icon {
+  font-size: 18px;
+}
+
+/* ---------- BROKER ---------- */
+.bento-broker {
+  grid-column: span 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.maet-broker-tick {
+  font-size: 32px;
+  color: var(--maet-green);
+  line-height: 1;
+  margin: 12px 0 4px;
+}
+
+.maet-broker-name {
+  font-size: 14px;
+  color: var(--maet-text);
+  font-weight: 600;
+}
+
+.maet-broker-sub {
+  font-size: 12px;
+  color: var(--maet-muted);
+}
+
+.maet-broker-warn {
+  font-size: 11px;
+  color: var(--maet-amber);
+  margin-top: 10px;
+  padding: 4px 8px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.06);
+}
+
+/* ---------- FOOTER ---------- */
+.maet-footer {
+  padding: 32px 24px 48px;
+  text-align: center;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.maet-footer-line {
+  font-size: 12px;
+  color: var(--maet-muted);
+  margin-bottom: 10px;
+}
+
+.maet-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.maet-footer-link {
+  font-size: 12px;
+  color: var(--maet-cyan);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.maet-footer-link:hover {
+  color: #33DFFF;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1024px) {
+  .maet-bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  /* Keep mobile bottom nav above all content */
-  .mobile-bottom-nav-fixed {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
+  .bento-hero {
+    grid-column: span 2;
+    grid-row: auto;
   }
-  /* Make sure main content reserves space for bottom nav */
-  .mobile-content-with-nav {
-    padding-bottom: calc(var(--bottom-nav-h, 80px) + env(safe-area-inset-bottom, 0px));
-  }
-  /* Prevent iOS bounce from hiding the bottom nav */
-  .mobile-app {
-    height: 100dvh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Add iOS safe-area padding for the top header */
-  .mobile-top-header-fixed {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  /* Smaller chart heights for mobile */
-  .mobile-chart-height {
-    height: calc(100dvh - 200px);
-  }
-  /* Adjust mobile app container */
-  .maet-page-bg {
-    height: 100dvh;
-    padding-bottom: var(--bottom-nav-h);
-  }
-  /* Ensure tab content scrolls within available space */
-  .mobile-tab-content {
-    height: calc(100dvh - var(--top-header-h) - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px));
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  .bento-cap {
+    grid-column: span 2;
   }
 }
 
-@media (max-width: 767px) {
-  body, html {
-    overflow-x: hidden;
+@media (max-width: 640px) {
+  .maet-bento {
+    grid-template-columns: 1fr;
+    padding: 16px;
   }
-  /* Tighter touch targets for mobile */
-  button, [role="button"] {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+  .bento-hero,
+  .bento-pulse,
+  .bento-strategy,
+  .bento-backtest,
+  .bento-cap,
+  .bento-broker {
+    grid-column: span 1;
+    grid-row: auto;
   }
-}
-
-@media (min-width: 768px) {
-  .desktop-hidden {
-    display: none !important;
+  .bento-hero {
+    padding: 28px;
   }
-}
-
-/* -----------------------------------------------------------
-   Swipe gesture transitions for mobile tabs
-   ----------------------------------------------------------- */
-.mobile-screen {
-  will-change: transform, opacity;
-  transition: transform 220ms ease-out, opacity 220ms ease-out;
-}
-
-.mobile-screen-swipe-left {
-  transform: translateX(-20%);
-  opacity: 0.4;
-}
-
-.mobile-screen-swipe-right {
-  transform: translateX(20%);
-  opacity: 0.4;
-}
-
-/* -----------------------------------------------------------
-   Ensure no horizontal scroll on mobile
-   ----------------------------------------------------------- */
-@media (max-width: 767px) {
-  body, html {
-    overflow-x: hidden;
+  .maet-h1 {
+    font-size: 38px;
   }
-  /* Tighter touch targets for mobile */
-  button, [role="button"] {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+  .maet-cap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
