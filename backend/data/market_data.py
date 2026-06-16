@@ -233,13 +233,18 @@ def get_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
 
 
 def get_quotes_bulk(symbols: list, exchange: str = "NSE") -> dict:
-    """Bulk fetch quotes in parallel. Returns ``{symbol: quote}``."""
+    """Bulk fetch quotes in parallel. Returns ``{symbol: quote}``.
+
+    Uses a 15s deadline per call; we never let one slow Yahoo request
+    take down the whole bulk (e.g. when Yahoo throttles and the call
+    hangs for 60s, we'd 504 the whole API).
+    """
     out: dict = {}
     with ThreadPoolExecutor(max_workers=BULK_PARALLELISM) as ex:
         futures = {ex.submit(get_quote, s, exchange): s for s in symbols}
-        for f in as_completed(futures, timeout=30):
+        for f in as_completed(futures, timeout=15):
             try:
-                q = f.result(timeout=10)
+                q = f.result(timeout=5)
                 if q:
                     out[futures[f]] = q
             except Exception as e:
@@ -306,14 +311,18 @@ def get_scanner(
 ) -> list:
     """Market scanner: all NSE stocks with filters.
 
-    Capped at the first 100 symbols to keep Yahoo rate limits happy. The
+    Capped at the first 50 symbols to keep Yahoo rate limits happy. The
     full NIFTY 50 + top 200 universe = 244 stocks; we chunk these into
-    100-symbol batches internally if needed (Prompt 3 wires the batch
+    50-symbol batches internally if needed (Prompt 3 wires the batch
     loop once we have UI pagination).
     """
     universe = get_all_nse_symbols()
     symbols = [s[0] for s in universe]
-    quotes = get_quotes_bulk(symbols[:100])  # protect against rate limit
+    try:
+        quotes = get_quotes_bulk(symbols[:50])  # protect against rate limit
+    except Exception as e:
+        logger.warning(f"[scanner] bulk quote timeout/failure: {e}")
+        quotes = {}
 
     out = []
     for sym, name, sec in universe:
