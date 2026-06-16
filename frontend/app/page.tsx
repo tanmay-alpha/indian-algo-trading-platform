@@ -16,27 +16,27 @@ import { LiveTicker } from "@/components/LiveTicker";
 
 /* ----------------------------- DATA ----------------------------- */
 
-const TICKER: { sym: string; price: string; pct: number }[] = [
-  { sym: "NIFTY", price: "23,847", pct: 0.29 },
-  { sym: "BANKNIFTY", price: "51,432", pct: 1.12 },
-  { sym: "RELIANCE", price: "2,914", pct: 1.24 },
-  { sym: "TCS", price: "3,824", pct: -0.43 },
-  { sym: "INFY", price: "1,567", pct: 2.11 },
-  { sym: "HDFCBANK", price: "1,623", pct: -0.33 },
-  { sym: "ICICIBANK", price: "1,108", pct: 0.85 },
-  { sym: "SBIN", price: "824", pct: 0.68 },
-  { sym: "BHARTIARTL", price: "1,212", pct: 1.45 },
-  { sym: "ITC", price: "467", pct: 0.22 },
-  { sym: "LT", price: "3,612", pct: 0.91 },
-  { sym: "HINDUNILVR", price: "2,478", pct: -0.41 },
-  { sym: "AXISBANK", price: "1,156", pct: 0.55 },
-  { sym: "KOTAKBANK", price: "1,789", pct: 0.73 },
-  { sym: "ASIANPAINT", price: "2,941", pct: -0.18 },
-  { sym: "MARUTI", price: "12,345", pct: 1.87 },
-  { sym: "SUNPHARMA", price: "1,712", pct: 1.23 },
-  { sym: "TITAN", price: "3,521", pct: 0.66 },
-  { sym: "ULTRACEMCO", price: "10,567", pct: -0.85 },
-  { sym: "BAJFINANCE", price: "7,234", pct: 1.34 },
+const TICKER: { sym: string; price: string; pct: number; clickable: boolean }[] = [
+  { sym: "NIFTY", price: "23,847", pct: 0.29, clickable: false },
+  { sym: "BANKNIFTY", price: "51,432", pct: 1.12, clickable: false },
+  { sym: "RELIANCE", price: "2,914", pct: 1.24, clickable: true },
+  { sym: "TCS", price: "3,824", pct: -0.43, clickable: true },
+  { sym: "INFY", price: "1,567", pct: 2.11, clickable: true },
+  { sym: "HDFCBANK", price: "1,623", pct: -0.33, clickable: true },
+  { sym: "ICICIBANK", price: "1,108", pct: 0.85, clickable: true },
+  { sym: "SBIN", price: "824", pct: 0.68, clickable: true },
+  { sym: "BHARTIARTL", price: "1,212", pct: 1.45, clickable: true },
+  { sym: "ITC", price: "467", pct: 0.22, clickable: true },
+  { sym: "LT", price: "3,612", pct: 0.91, clickable: true },
+  { sym: "HINDUNILVR", price: "2,478", pct: -0.41, clickable: true },
+  { sym: "AXISBANK", price: "1,156", pct: 0.55, clickable: true },
+  { sym: "KOTAKBANK", price: "1,789", pct: 0.73, clickable: true },
+  { sym: "ASIANPAINT", price: "2,941", pct: -0.18, clickable: true },
+  { sym: "MARUTI", price: "12,345", pct: 1.87, clickable: true },
+  { sym: "SUNPHARMA", price: "1,712", pct: 1.23, clickable: true },
+  { sym: "TITAN", price: "3,521", pct: 0.66, clickable: true },
+  { sym: "ULTRACEMCO", price: "10,567", pct: -0.85, clickable: true },
+  { sym: "BAJFINANCE", price: "7,234", pct: 1.34, clickable: true },
 ];
 
 const MARKET_TILES = [
@@ -312,17 +312,22 @@ function TickerBar() {
   // duplicate the list so the loop is seamless
   const loop = [...TICKER, ...TICKER];
   return (
-    <div className="tvp-ticker" aria-hidden="true">
+    <div className="tvp-ticker" aria-label="Live ticker of NSE stocks">
       <div className="tvp-ticker-track">
         {loop.map((t, i) => (
-          <span key={i} className="tvp-ticker-item">
+          <Link
+            key={i}
+            href={t.clickable ? `/stocks/${encodeURIComponent(t.sym)}` : '#'}
+            className="tvp-ticker-item"
+            style={{ textDecoration: 'none', cursor: t.clickable ? 'pointer' : 'default' }}
+          >
             <span className="tvp-ticker-symbol">{t.sym}</span>
             <span className="tvp-ticker-price">₹{t.price}</span>
             <span className={t.pct >= 0 ? "tvp-ticker-up" : "tvp-ticker-down"}>
               {t.pct >= 0 ? "▲" : "▼"}
               {Math.abs(t.pct).toFixed(2)}%
             </span>
-          </span>
+          </Link>
         ))}
       </div>
     </div>

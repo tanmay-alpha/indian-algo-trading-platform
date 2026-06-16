@@ -1132,6 +1132,87 @@ async def api_fundamentals(request: Request, symbol: str, exchange: str = "NSE")
     return get_fundamentals(symbol.upper(), exchange.upper())
 
 
+# ---------------------------------------------------------------------------
+# Stock detail endpoints (Prompt 5)
+# /api/stocks/{symbol}/info | peers | news | financials
+# ---------------------------------------------------------------------------
+@app.get("/api/stocks/{symbol}/info")
+@limiter.limit("30/minute")
+async def api_stock_info(request: Request, symbol: str, exchange: str = "NSE"):
+    """Full stock info: quote + fundamentals + computed 52w deltas."""
+    from backend.data.fundamentals import get_fundamentals
+    from backend.data.market_data import get_quote
+
+    sym = symbol.upper()
+    fund = get_fundamentals(sym, exchange.upper())
+    quote = get_quote(sym, exchange.upper()) or {}
+    merged = {**fund, **quote}
+
+    # Compute % distance from 52-week high/low for the header
+    ltp = merged.get("ltp")
+    if merged.get("52wHigh") and ltp:
+        try:
+            merged["pctFrom52wHigh"] = round(
+                (ltp / merged["52wHigh"] - 1) * 100, 2
+            )
+        except Exception:
+            pass
+    if merged.get("52wLow") and ltp:
+        try:
+            merged["pctFrom52wLow"] = round(
+                (ltp / merged["52wLow"] - 1) * 100, 2
+            )
+        except Exception:
+            pass
+
+    return merged
+
+
+@app.get("/api/stocks/{symbol}/peers")
+@limiter.limit("30/minute")
+async def api_stock_peers(
+    request: Request,
+    symbol: str,
+    exchange: str = "NSE",
+    limit: int = 6,
+):
+    """Sector peers ranked by market cap."""
+    from backend.data.peers import get_peers
+
+    sym = symbol.upper()
+    peers = get_peers(sym, exchange.upper(), min(max(limit, 1), 12))
+    return {"symbol": sym, "peers": peers}
+
+
+@app.get("/api/stocks/{symbol}/news")
+@limiter.limit("30/minute")
+async def api_stock_news(
+    request: Request,
+    symbol: str,
+    name: str = None,
+    limit: int = 10,
+):
+    """News articles for a stock from Google News + Yahoo Finance fallback."""
+    from backend.data.news import get_news
+
+    sym = symbol.upper()
+    articles = get_news(sym, name, min(max(limit, 1), 20))
+    return {"symbol": sym, "articles": articles}
+
+
+@app.get("/api/stocks/{symbol}/financials")
+@limiter.limit("20/minute")
+async def api_stock_financials(
+    request: Request,
+    symbol: str,
+    exchange: str = "NSE",
+):
+    """Quarterly + annual P&L, balance sheet, cash flow statements."""
+    from backend.data.financials import get_financials
+
+    return get_financials(symbol.upper(), exchange.upper())
+
+
 @app.get("/api/market/status")
 async def api_market_status():
     """Market open/closed status (IST, Mon-Fri 09:15-15:30)."""

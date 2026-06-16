@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://maet-backend.onrender.com';
@@ -94,7 +95,12 @@ export function LiveTicker() {
     >
       <div className="ticker-track flex items-center h-full gap-8 whitespace-nowrap font-mono text-[12px]">
         {displayStocks.map((s, i) => (
-          <div key={`${s.symbol}-${i}`} className="flex items-center gap-2">
+          <Link
+            key={`${s.symbol}-${i}`}
+            href={`/stocks/${encodeURIComponent(s.symbol)}`}
+            className="flex items-center gap-2 hover:opacity-80"
+            style={{ textDecoration: 'none' }}
+          >
             <span style={{ color: 'var(--text-0)' }} className="font-medium">
               {s.symbol}
             </span>
@@ -113,7 +119,7 @@ export function LiveTicker() {
               {s.changePct >= 0 ? '+' : ''}
               {(s.changePct ?? 0).toFixed(2)}%
             </span>
-          </div>
+          </Link>
         ))}
       </div>
       <style jsx>{`
