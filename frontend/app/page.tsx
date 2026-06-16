@@ -170,7 +170,7 @@ function CandleGroup({ candles }: { candles: Candle[] }) {
     }
   });
 
-  const spacing = 0.55;
+  const spacing = 0.4;
   const startX = -((candles.length - 1) * spacing) / 2;
   const green = new THREE.Color("#26A69A");
   const red = new THREE.Color("#EF5350");
@@ -179,31 +179,31 @@ function CandleGroup({ candles }: { candles: Candle[] }) {
     <group ref={ref}>
       {candles.map((c, i) => {
         const x = startX + i * spacing;
-        const yMid = (c.open + c.close) / 2;
-        const bodyH = Math.max(0.05, Math.abs(c.close - c.open));
-        const wickH = c.high - c.low;
-        const wickY = (c.high + c.low) / 2;
+        const yMid = (c.open + c.close) / 2 - 100; // center on base 100
+        const bodyH = Math.max(0.4, Math.abs(c.close - c.open) * 1.5);
+        const wickH = Math.max(1, (c.high - c.low) * 1.5);
+        const wickY = ((c.high + c.low) / 2 - 100) * 1.5;
         const color = c.up ? green : red;
         return (
           <group key={i} position={[x, 0, 0]}>
             {/* wick */}
-            <mesh position={[0, wickY - 1.5, 0]}>
+            <mesh position={[0, wickY, 0]}>
               <boxGeometry args={[0.04, wickH, 0.04]} />
               <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={0.1}
+                emissiveIntensity={0.4}
                 metalness={0.3}
                 roughness={0.6}
               />
             </mesh>
             {/* body */}
-            <mesh position={[0, yMid - 1.5, 0]}>
-              <boxGeometry args={[0.32, bodyH, 0.32]} />
+            <mesh position={[0, yMid * 1.5, 0]}>
+              <boxGeometry args={[0.28, bodyH, 0.28]} />
               <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={0.1}
+                emissiveIntensity={0.4}
                 metalness={0.3}
                 roughness={0.6}
               />
@@ -211,6 +211,11 @@ function CandleGroup({ candles }: { candles: Candle[] }) {
           </group>
         );
       })}
+      {/* floor plane */}
+      <mesh position={[0, -4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[60, 60]} />
+        <meshStandardMaterial color="#0E1219" metalness={0.1} roughness={0.95} />
+      </mesh>
     </group>
   );
 }
@@ -219,31 +224,28 @@ function Chart3D() {
   const candles = useMemo(() => buildCandles(50, 42), []);
   return (
     <Canvas
-      camera={{ position: [0, 6, 8], fov: 38 }}
+      camera={{ position: [0, 3, 9], fov: 45 }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 1.5]}
     >
       <color attach="background" args={["#0B0E14"]} />
-      <ambientLight intensity={0.25} />
+      <ambientLight intensity={0.6} />
       <pointLight
-        position={[6, 8, 6]}
-        intensity={1.4}
+        position={[5, 6, 5]}
+        intensity={2.0}
         color="#FFB300"
         distance={30}
       />
       <pointLight
-        position={[-6, 3, -4]}
-        intensity={0.6}
+        position={[-5, 2, -3]}
+        intensity={0.8}
         color="#2962FF"
         distance={20}
       />
-      <group rotation={[Math.PI * 0.18, 0, 0]} position={[0, 0, 0]}>
+      <directionalLight position={[3, 8, 3]} intensity={0.6} />
+      <group rotation={[0.35, 0, 0]} position={[0, 0, 0]}>
         <CandleGroup candles={candles} />
       </group>
-      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[40, 40]} />
-        <meshStandardMaterial color="#0E1219" metalness={0.1} roughness={0.95} />
-      </mesh>
     </Canvas>
   );
 }
