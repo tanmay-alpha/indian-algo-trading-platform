@@ -176,26 +176,24 @@ function CandleGroup({ candles }: { candles: Candle[] }) {
   const green = new THREE.Color("#26A69A");
   const red = new THREE.Color("#EF5350");
 
-  // Map y values into a comfortable visual range centered on 0
-  // yMid in [-2.5, 2.5], bodyH around 0.2-0.6
   return (
     <group ref={ref}>
       {candles.map((c, i) => {
         const x = startX + i * spacing;
-        // normalize to 0..1 then scale to -2..2
-        const range = 4;
-        const norm = (v: number) => ((v - c.low) / (c.high - c.low + 0.0001)) * range - range / 2;
-        const bodyTop = norm(Math.max(c.open, c.close));
-        const bodyBot = norm(Math.min(c.open, c.close));
-        const wickTop = norm(c.high);
-        const wickBot = norm(c.low);
+        // Each candle: scale its own (open,close,high,low) into a 0..1 range,
+        // then map to 0..1.4 units tall. bodyH then wickH are candle-specific.
+        const rng = c.high - c.low + 0.0001;
+        const bodyTop = 0.7 * (Math.max(c.open, c.close) - c.low) / rng;
+        const bodyBot = 0.7 * (Math.min(c.open, c.close) - c.low) / rng;
+        const wickTop = 0.7 * (c.high - c.low) / rng;
+        const wickBot = 0.0;
         const bodyMid = (bodyTop + bodyBot) / 2;
-        const bodyH = Math.max(0.15, bodyTop - bodyBot);
+        const bodyH = Math.max(0.05, bodyTop - bodyBot);
         const wickMid = (wickTop + wickBot) / 2;
-        const wickH = Math.max(0.2, wickTop - wickBot);
+        const wickH = Math.max(0.05, wickTop - wickBot);
         const color = c.up ? green : red;
         return (
-          <group key={i} position={[x, 0, 0]}>
+          <group key={i} position={[x, -0.7, 0]}>
             {/* wick */}
             <mesh position={[0, wickMid, 0]}>
               <boxGeometry args={[0.04, wickH, 0.04]} />
@@ -222,7 +220,7 @@ function CandleGroup({ candles }: { candles: Candle[] }) {
         );
       })}
       {/* floor plane */}
-      <mesh position={[0, -2.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial color="#0E1219" metalness={0.1} roughness={0.95} />
       </mesh>
@@ -234,12 +232,12 @@ function Chart3D() {
   const candles = useMemo(() => buildCandles(50, 42), []);
   return (
     <Canvas
-      camera={{ position: [0, 2, 9], fov: 45 }}
+      camera={{ position: [0, 4, 14], fov: 50 }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 1.5]}
     >
       <color attach="background" args={["#0B0E14"]} />
-      <ambientLight intensity={0.7} />
+      <ambientLight intensity={0.9} />
       <pointLight
         position={[5, 6, 5]}
         intensity={2.0}
@@ -252,8 +250,8 @@ function Chart3D() {
         color="#2962FF"
         distance={20}
       />
-      <directionalLight position={[3, 8, 3]} intensity={0.6} />
-      <group rotation={[0.15, 0, 0]} position={[0, 0, 0]}>
+      <directionalLight position={[3, 8, 3]} intensity={0.8} />
+      <group rotation={[0.35, 0, 0]} position={[0, 0, 0]}>
         <CandleGroup candles={candles} />
       </group>
     </Canvas>
@@ -351,14 +349,6 @@ function Hero() {
           <Link href="/terminal" className="tvp-cta-primary">
             Open Terminal →
           </Link>
-          <a
-            href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
-            target="_blank"
-            rel="noreferrer"
-            className="tvp-cta-secondary"
-          >
-            View on GitHub
-          </a>
         </div>
       </div>
       <div className="tvp-hero-right">
