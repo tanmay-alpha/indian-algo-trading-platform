@@ -31,6 +31,9 @@ INTERVAL_MAP = {
 
 def get_ticker(symbol: str, exchange: str = "NSE") -> str:
     """Convert a NSE/BSE symbol to Yahoo's suffixed ticker."""
+    # For indices (which have their own special Yahoo tickers), pass as-is
+    if symbol.startswith("^"):
+        return symbol
     suffix = ".NS" if exchange == "NSE" else ".BO"
     return f"{symbol}{suffix}"
 

@@ -930,7 +930,16 @@ _MARKET_DATA_IST = _pytz.timezone("Asia/Kolkata")
 async def api_get_quote(symbol: str, exchange: str = "NSE"):
     """Get live quote for a symbol. Yahoo (delayed) or Angel (live) depending
     on market hours and credentials."""
-    q = get_quote(symbol.upper(), exchange.upper())
+    from backend.data.market_data import _INDEX_TICKER_MAP, _fetch_index_quote
+    sym_upper = symbol.upper()
+    # Indices like NIFTY/SENSEX need Yahoo's caret-prefixed tickers.
+    if sym_upper in _INDEX_TICKER_MAP:
+        q = _fetch_index_quote(_INDEX_TICKER_MAP[sym_upper])
+        if q:
+            # Rewrite the symbol back to the user-facing name (NIFTY not ^NSEI)
+            q["symbol"] = sym_upper
+    else:
+        q = get_quote(sym_upper, exchange.upper())
     if not q:
         raise HTTPException(
             status_code=503,

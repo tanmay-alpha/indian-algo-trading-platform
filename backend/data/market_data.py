@@ -286,6 +286,25 @@ def get_market_overview() -> list:
     return out
 
 
+# Yahoo Finance index tickers (regular NSE/BSE stock suffixes don't work
+# for indices — Yahoo uses caret-prefixed tickers instead).
+_INDEX_TICKER_MAP = {
+    "NIFTY": "^NSEI",
+    "BANKNIFTY": "^NSEBANK",
+    "SENSEX": "^BSESN",
+}
+
+
+def _fetch_index_quote(yahoo_sym: str) -> dict | None:
+    """Fetch a quote for a Yahoo index ticker (^NSEI etc).
+
+    Wraps yahoo_client.fetch_quote with the caret-prefixed ticker; Yahoo's
+    own data returns it as a normalized quote.
+    """
+    from backend.data.yahoo_client import fetch_quote
+    return fetch_quote(yahoo_sym, "NSE")
+
+
 def get_indices() -> list:
     """NIFTY, BANKNIFTY, SENSEX."""
     indices = [
@@ -295,7 +314,13 @@ def get_indices() -> list:
     ]
     out = []
     for sym, name, exch in indices:
-        q = get_quote(sym, exch)
+        # Indices use ^ prefix on Yahoo — bypass the regular stock-suffix logic.
+        yahoo_sym = _INDEX_TICKER_MAP.get(sym, sym)
+        q = (
+            _fetch_index_quote(yahoo_sym)
+            if yahoo_sym.startswith("^")
+            else get_quote(sym, exch)
+        )
         if q:
             out.append({
                 "symbol": sym,
