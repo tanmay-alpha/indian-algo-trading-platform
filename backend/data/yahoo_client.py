@@ -107,12 +107,23 @@ def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
         if not ltp or ltp == 0:
             logger.warning(f"[yahoo] Info rate-limited for {ticker}, falling back to last candle")
             # Get 2d of daily candles so we have previous close too
+            # Use yf.download (chart endpoint) — less rate-limited than info
             try:
-                daily = t.history(period="5d", interval="1d", progress=False)
+                daily = yf.download(
+                    ticker,
+                    period="5d",
+                    interval="1d",
+                    progress=False,
+                    auto_adjust=False,
+                )
             except Exception as hist_err:
                 logger.error(f"[yahoo] history fallback failed for {ticker}: {hist_err}")
                 daily = None
             if daily is not None and not daily.empty and len(daily) > 0:
+                # yf.download returns multi-level columns for single ticker
+                # in some versions — flatten
+                if hasattr(daily.columns, "levels"):
+                    daily.columns = daily.columns.get_level_values(0)
                 last_candle = daily.iloc[-1]
                 ltp = float(last_candle["Close"])
                 # prev_close = close of the candle before
