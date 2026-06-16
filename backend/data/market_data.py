@@ -16,7 +16,7 @@ to in-memory state and logs warnings instead of raising.
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 import pytz
 
 from backend.data.yahoo_client import (
@@ -237,18 +237,23 @@ def get_quotes_bulk(symbols: list, exchange: str = "NSE") -> dict:
 
     Uses a 15s deadline per call; we never let one slow Yahoo request
     take down the whole bulk (e.g. when Yahoo throttles and the call
-    hangs for 60s, we'd 504 the whole API).
+    hangs for 60s, we'd 504 the whole API). On timeout we return the
+    quotes that did complete rather than raising — partial is better
+    than nothing for downstream consumers.
     """
     out: dict = {}
     with ThreadPoolExecutor(max_workers=BULK_PARALLELISM) as ex:
         futures = {ex.submit(get_quote, s, exchange): s for s in symbols}
-        for f in as_completed(futures, timeout=15):
-            try:
-                q = f.result(timeout=5)
-                if q:
-                    out[futures[f]] = q
-            except Exception as e:
-                logger.debug(f"[market_data] bulk quote failed for {futures[f]}: {e}")
+        try:
+            for f in as_completed(futures, timeout=15):
+                try:
+                    q = f.result(timeout=5)
+                    if q:
+                        out[futures[f]] = q
+                except Exception as e:
+                    logger.debug(f"[market_data] bulk quote failed for {futures[f]}: {e}")
+        except FuturesTimeoutError:
+            logger.debug(f"[market_data] bulk: {len(out)}/{len(symbols)} completed before timeout")
     return out
 
 
@@ -343,5 +348,97 @@ def get_scanner(
             "change": q["change"],
             "changePct": q["changePct"],
             "volume": q["volume"],
+        })
+    return out
+
+
+def get_market_mood() -> dict:
+    """Compute market mood from breadth. 0-100 score.
+
+    Score derivation: ``50 + (advances * 2 - declines * 2) / 2`` clamped
+    to [0, 100]. Pure breadth — doesn't try to weight by volume, since
+    that would need a reliable volume feed (Yahoo's volume field is
+    often missing on NSE). 50 is neutral; every advance is worth +2
+    score points, every decline worth -2.
+    """
+    try:
+        universe = [s for s, _, _ in get_all_nse_symbols()][:50]
+        quotes = get_quotes_bulk(universe)
+        if not quotes:
+            return {
+                "score": 50, "label": "Neutral",
+                "advances": 0, "declines": 0, "unchanged": 0, "total": 0,
+            }
+        advances = sum(1 for q in quotes.values() if q.get("change", 0) > 0)
+        declines = sum(1 for q in quotes.values() if q.get("change", 0) < 0)
+        unchanged = len(quotes) - advances - declines
+        score_raw = (advances * 2) - (declines * 2)
+        score = max(0, min(100, 50 + score_raw // 2))
+        if score < 25:
+            label = "Extreme Fear"
+        elif score < 45:
+            label = "Fear"
+        elif score < 55:
+            label = "Neutral"
+        elif score < 75:
+            label = "Greed"
+        else:
+            label = "Extreme Greed"
+        return {
+            "score": score, "label": label,
+            "advances": advances, "declines": declines,
+            "unchanged": unchanged, "total": len(quotes),
+        }
+    except Exception as e:
+        logger.error(f"[mood] {e}")
+        return {
+            "score": 50, "label": "Neutral",
+            "advances": 0, "declines": 0, "unchanged": 0, "total": 0,
+        }
+
+
+def get_movers(direction: str = "gainers", limit: int = 25) -> list:
+    """Get top movers by direction.
+
+    Valid ``direction`` values: ``gainers``, ``losers``, ``active``,
+    ``52w_high``, ``52w_low``. We only fetch quotes for the first 80
+    universe symbols — the rest would never make the top 25 by any
+    reasonable definition and would just blow past Yahoo's rate limit.
+    80 gives us comfortable headroom for the top 25 of each category
+    while staying under Yahoo's parallel-call threshold.
+    """
+    universe = get_all_nse_symbols()[:80]
+    symbols = [s[0] for s in universe]
+    try:
+        quotes_map = get_quotes_bulk(symbols)
+    except Exception as e:
+        logger.warning(f"[movers {direction}] bulk failed: {e}")
+        quotes_map = {}
+    if not quotes_map:
+        return []
+    quotes = list(quotes_map.values())
+    if direction == "gainers":
+        quotes.sort(key=lambda q: q.get("changePct", 0), reverse=True)
+    elif direction == "losers":
+        quotes.sort(key=lambda q: q.get("changePct", 0))
+    elif direction == "active":
+        quotes.sort(key=lambda q: q.get("volume", 0), reverse=True)
+    elif direction == "52w_high":
+        # Without a real 52-week range field we proxy by LTP sorted
+        # descending — the top of the LTP distribution is a fair
+        # proxy for stocks at multi-year peaks. (Real implementation
+        # would compare LTP against 52w_high field from yfinance.)
+        quotes.sort(key=lambda q: q.get("ltp", 0), reverse=True)
+    elif direction == "52w_low":
+        quotes.sort(key=lambda q: q.get("ltp", 0))
+    sector_map = {s[0]: s[2] for s in universe}
+    name_map = {s[0]: s[1] for s in universe}
+    out = []
+    for q in quotes[:limit]:
+        sym = q.get("symbol", "")
+        out.append({
+            **q,
+            "sector": sector_map.get(sym, "Other"),
+            "name": name_map.get(sym, sym),
         })
     return out

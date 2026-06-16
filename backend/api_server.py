@@ -912,6 +912,8 @@ from backend.data.market_data import (
     get_market_overview,
     get_indices as md_get_indices,
     get_scanner,
+    get_market_mood,
+    get_movers,
     _is_market_hours,
 )
 from backend.data.symbol_universe import (
@@ -1005,6 +1007,43 @@ async def api_market_indices():
         msg = safe_error_message(e)
         logger.warning(f"[api] market/indices failed: {msg}")
         return {"indices": []}
+
+
+@app.get("/api/market/mood")
+async def api_market_mood():
+    """Fear/Greed breadth score (0-100) for the NIFTY 50 universe."""
+    try:
+        return {"mood": get_market_mood()}
+    except Exception as e:
+        msg = safe_error_message(e)
+        logger.warning(f"[api] market/mood failed: {msg}")
+        return {
+            "mood": {
+                "score": 50, "label": "Neutral",
+                "advances": 0, "declines": 0, "unchanged": 0, "total": 0,
+            }
+        }
+
+
+@app.get("/api/market/movers")
+async def api_market_movers(
+    direction: str = "gainers",
+    limit: int = 25,
+):
+    """Top movers: gainers / losers / active / 52w_high / 52w_low."""
+    valid = ("gainers", "losers", "active", "52w_high", "52w_low")
+    if direction not in valid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid direction: {direction}. Must be one of {list(valid)}",
+        )
+    limit = min(max(limit, 1), 50)
+    try:
+        return {"direction": direction, "stocks": get_movers(direction, limit)}
+    except Exception as e:
+        msg = safe_error_message(e)
+        logger.warning(f"[api] market/movers failed: {msg}")
+        return {"direction": direction, "stocks": []}
 
 
 @app.get("/api/market/status")

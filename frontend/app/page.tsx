@@ -12,6 +12,7 @@ import {
   Bell,
   Lock,
 } from "lucide-react";
+import { LiveTicker } from "@/components/LiveTicker";
 
 /* ----------------------------- DATA ----------------------------- */
 
@@ -288,7 +289,7 @@ function Navbar() {
           <span className="tvp-brand-name">MAET</span>
         </Link>
         <nav className="tvp-nav-links" aria-label="Primary">
-          <a className="tvp-nav-link" href="/terminal">Markets</a>
+          <Link className="tvp-nav-link" href="/markets">Markets</Link>
           <a className="tvp-nav-link" href="/terminal">Screener</a>
           <a className="tvp-nav-link" href="/terminal">Strategies</a>
           <a className="tvp-nav-link" href="/terminal">Backtest</a>
@@ -538,7 +539,7 @@ export default function LandingPage() {
   return (
     <main className="tvp-page">
       <Navbar />
-      <TickerBar />
+      <LiveTicker />
       <Hero />
       <MarketStrip />
       <FeatureGrid />
