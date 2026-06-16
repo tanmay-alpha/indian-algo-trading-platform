@@ -991,7 +991,8 @@ async def api_market_overview():
     try:
         return {"stocks": get_market_overview()}
     except Exception as e:
-        logger.warning(f"[api] market/overview failed: {e}")
+        msg = safe_error_message(e)
+        logger.warning(f"[api] market/overview failed: {msg}")
         return {"stocks": []}
 
 
@@ -1001,7 +1002,8 @@ async def api_market_indices():
     try:
         return {"indices": md_get_indices()}
     except Exception as e:
-        logger.warning(f"[api] market/indices failed: {e}")
+        msg = safe_error_message(e)
+        logger.warning(f"[api] market/indices failed: {msg}")
         return {"indices": []}
 
 
@@ -1038,8 +1040,9 @@ async def api_scanner(
     except Exception as e:
         # Yahoo throttling can still 500 even with our 50-cap. Never let
         # the scanner endpoint return 500 — that's worse than empty.
-        logger.warning(f"[api] scanner failed: {e}")
-        return {"stocks": [], "warning": f"scanner unavailable: {e}"}
+        msg = safe_error_message(e)
+        logger.warning(f"[api] scanner failed: {msg}")
+        return {"stocks": [], "warning": "scanner temporarily unavailable"}
 
 
 @app.get("/api/symbols")

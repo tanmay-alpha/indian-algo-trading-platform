@@ -22,8 +22,18 @@ logger = logging.getLogger(__name__)
 
 
 def safe_error_message(error: Exception) -> str:
+    """Return a sanitized error message safe to log or surface to clients.
+
+    We strip anything that could leak credentials, internal URLs, or
+    connection strings. The list below is intentionally broad — when in
+    doubt, return just the exception class name.
+    """
     message = str(error) or error.__class__.__name__
-    sensitive_terms = ("api_key", "password", "secret", "jwt", "refresh", "feed", "token")
+    sensitive_terms = (
+        "api_key", "apikey", "password", "secret", "jwt", "refresh",
+        "feed", "token", "authorization", "bearer", "client_id",
+        "cookie", "redis://", "mongodb://", "postgresql://",
+    )
     if any(term in message.lower() for term in sensitive_terms):
         return error.__class__.__name__
     return message
