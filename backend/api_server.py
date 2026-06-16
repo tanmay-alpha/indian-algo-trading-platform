@@ -1020,7 +1020,7 @@ async def api_market_indices():
 
 @app.get("/api/market/mood")
 @limiter.limit("10/minute")
-async def api_market_mood():
+async def api_market_mood(request: Request):
     """Fear/Greed breadth score (0-100) for the NIFTY 50 universe."""
     try:
         return {"mood": get_market_mood()}
@@ -1038,6 +1038,7 @@ async def api_market_mood():
 @app.get("/api/market/movers")
 @limiter.limit("10/minute")
 async def api_market_movers(
+    request: Request,
     direction: str = "gainers",
     limit: int = 25,
 ):
@@ -1076,7 +1077,7 @@ async def api_screener_filters():
 
 @app.post("/api/screener/run")
 @limiter.limit("10/minute")
-async def api_screener_run(body: dict):
+async def api_screener_run(request: Request, body: dict):
     """Run screener with filter spec.
 
     Body: ``{filters: {...}, limit: 50, sort_by: 'marketCap', sort_dir: 'desc'}``
@@ -1106,7 +1107,7 @@ async def api_screener_presets():
 
 @app.get("/api/screener/preset/{preset_id}")
 @limiter.limit("10/minute")
-async def api_screener_preset(preset_id: str, limit: int = 25):
+async def api_screener_preset(request: Request, preset_id: str, limit: int = 25):
     """Run a specific pre-built screen."""
     limit = min(max(limit, 1), 50)
     try:
@@ -1124,7 +1125,7 @@ async def api_screener_preset(preset_id: str, limit: int = 25):
 
 @app.get("/api/fundamentals/{symbol}")
 @limiter.limit("30/minute")
-async def api_fundamentals(symbol: str, exchange: str = "NSE"):
+async def api_fundamentals(request: Request, symbol: str, exchange: str = "NSE"):
     """Get fundamentals for a single symbol."""
     from backend.data.fundamentals import get_fundamentals
 
