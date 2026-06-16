@@ -72,3 +72,22 @@ services:
       # unset; the platform runs fine on it for demo/paper mode.
       # - key: DATABASE_URL
       #   value: postgresql://user:pass@host/db
+      #
+      # ---- Prompt 2: Dual-source market data (Yahoo + Angel + Supabase cache) ----
+      # Optional: Angel One live data — uncomment and set these to get
+      # real-time ticks (requires Angel One dashboard credentials):
+      # - key: ANGEL_API_KEY
+      #   value: your-angel-api-key
+      # - key: ANGEL_CLIENT_ID
+      #   value: your-angel-client-id
+      # - key: ANGEL_PASSWORD
+      #   value: your-angel-pin
+      # - key: ANGEL_TOTP_SECRET
+      #   value: base32encodedtotpsecret
+      #
+      # Optional: Supabase caching — uncomment and set these to persist
+      # candle history in your own database (run 001_candles.sql first):
+      # - key: SUPABASE_URL
+      #   value: https://your-project.supabase.co
+      # - key: SUPABASE_KEY
+      #   value: your-supabase-public-key

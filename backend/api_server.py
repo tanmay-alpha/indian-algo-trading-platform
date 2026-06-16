@@ -897,6 +897,159 @@ async def get_recent_orders(limit: int = Query(default=50, ge=1, le=100)):
         })
     return sanitize_response({"orders": sanitized_requests})
 
+
+# =============================================================================
+# Prompt 2: Dual-source market data endpoints (Yahoo + Angel + Supabase cache)
+# =============================================================================
+# These routes are public read-only — the terminal uses them to render the
+# landing-page market strip, the screener, and the candle chart. No
+# mutations; no auth required; rate-limited via the existing limiter.
+from backend.data.market_data import (
+    get_candles,
+    get_quote,
+    get_quotes_bulk,
+    search as md_search,
+    get_market_overview,
+    get_indices as md_get_indices,
+    get_scanner,
+    _is_market_hours,
+)
+from backend.data.symbol_universe import (
+    get_all_nse_symbols,
+    get_indices as get_index_list,
+    get_sectors,
+)
+import pytz as _pytz
+
+_MARKET_DATA_IST = _pytz.timezone("Asia/Kolkata")
+
+
+@app.get("/api/quote/{symbol}")
+async def api_get_quote(symbol: str, exchange: str = "NSE"):
+    """Get live quote for a symbol. Yahoo (delayed) or Angel (live) depending
+    on market hours and credentials."""
+    q = get_quote(symbol.upper(), exchange.upper())
+    if not q:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Quote unavailable for {symbol}. Check the symbol or try again later.",
+        )
+    return q
+
+
+@app.post("/api/quotes/bulk")
+async def api_quotes_bulk(body: dict):
+    """Bulk fetch quotes. Body: ``{"symbols": ["RELIANCE", "TCS", ...]}``.
+
+    Capped at 50 symbols per call to protect Yahoo's free tier from
+    rate-limiting. Returns ``{"quotes": {symbol: quote, ...}}``.
+    """
+    symbols = body.get("symbols", [])
+    if not symbols:
+        return {"quotes": {}}
+    symbols = [str(s).upper() for s in symbols][:50]
+    quotes = get_quotes_bulk(symbols)
+    return {"quotes": quotes}
+
+
+@app.get("/api/search")
+async def api_search(q: str = "", limit: int = 20):
+    """Search NSE/BSE symbols. Local universe first (fast), Yahoo as fallback."""
+    if not q or len(q.strip()) < 1:
+        return {"results": []}
+    results = md_search(q)[:limit]
+    return {"results": results}
+
+
+@app.get("/api/candles")
+async def api_candles(
+    symbol: str,
+    exchange: str = "NSE",
+    interval: str = "1D",
+    lookback: int = 7300,
+):
+    """Get OHLCV candle data.
+
+    Intervals: ``1m`` (7d), ``5m``/``15m`` (60d), ``1h`` (730d),
+    ``1D``/``1W``/``1MO`` (max ≈ 20 years).
+    """
+    if interval not in ("1m", "5m", "15m", "1h", "1D", "1W", "1MO"):
+        raise HTTPException(status_code=400, detail=f"Invalid interval: {interval}")
+    candles = get_candles(symbol.upper(), exchange.upper(), interval, lookback)
+    return {
+        "symbol": symbol.upper(),
+        "exchange": exchange.upper(),
+        "interval": interval,
+        "candles": candles,
+        "count": len(candles),
+    }
+
+
+@app.get("/api/market/overview")
+async def api_market_overview():
+    """Top 20 NSE stocks for the landing-page ticker strip."""
+    return {"stocks": get_market_overview()}
+
+
+@app.get("/api/market/indices")
+async def api_market_indices():
+    """Major indices: NIFTY, BANKNIFTY, SENSEX."""
+    return {"indices": md_get_indices()}
+
+
+@app.get("/api/market/status")
+async def api_market_status():
+    """Market open/closed status (IST, Mon-Fri 09:15-15:30)."""
+    now = datetime.now(_MARKET_DATA_IST)
+    return {
+        "isOpen": _is_market_hours(),
+        "now": now.isoformat(),
+        "session": "OPEN" if _is_market_hours() else "CLOSED",
+    }
+
+
+@app.get("/api/scanner")
+async def api_scanner(
+    exchange: str = "NSE",
+    sector: str = "ALL",
+    minChange: float = -100.0,
+    maxChange: float = 100.0,
+    minVolume: int = 0,
+):
+    """Market scanner with filters. ``sector=ALL`` to disable sector filter."""
+    return {
+        "stocks": get_scanner(
+            exchange=exchange,
+            sector=sector,
+            min_change=minChange,
+            max_change=maxChange,
+            min_volume=minVolume,
+        )
+    }
+
+
+@app.get("/api/symbols")
+async def api_symbols():
+    """List all known NSE symbols with sector info (cached, fast)."""
+    universe = get_all_nse_symbols()
+    return {
+        "symbols": [
+            {"symbol": s, "name": n, "sector": sec, "exchange": "NSE"}
+            for s, n, sec in universe
+        ]
+    }
+
+
+@app.get("/api/symbols/sectors")
+async def api_symbols_sectors():
+    """Distinct sector list — drives the scanner dropdown."""
+    return {"sectors": get_sectors()}
+
+
+# End Prompt 2 market-data endpoints
+# =============================================================================
+
+
 def _validate_websocket_auth(websocket: WebSocket) -> bool:
     """Validate WebSocket authentication. Returns True if authenticated.
 

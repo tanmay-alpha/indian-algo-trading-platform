@@ -27,3 +27,7 @@ PyJWT>=2.8.0
 passlib[bcrypt]>=1.7.4
 psycopg2-binary>=2.9.0
 cryptography>=42.0.0  # for TOTP secret encryption at rest
+# Prompt 2: Dual-source market data (Yahoo + Angel One + Supabase cache)
+yfinance>=0.2.40
+supabase>=2.3.4
+pytz>=2023.3
