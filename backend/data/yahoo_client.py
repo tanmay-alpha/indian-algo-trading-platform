@@ -90,7 +90,11 @@ def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
     try:
         # Path 1: Try Ticker.info (can be rate-limited in CI/cloud)
         t = yf.Ticker(ticker)
-        info = t.info or {}
+        try:
+            info = t.info or {}
+        except Exception as info_err:
+            logger.warning(f"[yahoo] t.info raised for {ticker}: {info_err}")
+            info = {}
 
         ltp = (
             info.get("currentPrice")
@@ -103,8 +107,12 @@ def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
         if not ltp or ltp == 0:
             logger.warning(f"[yahoo] Info rate-limited for {ticker}, falling back to last candle")
             # Get 2d of daily candles so we have previous close too
-            daily = t.history(period="5d", interval="1d", progress=False)
-            if not daily.empty and len(daily) > 0:
+            try:
+                daily = t.history(period="5d", interval="1d", progress=False)
+            except Exception as hist_err:
+                logger.error(f"[yahoo] history fallback failed for {ticker}: {hist_err}")
+                daily = None
+            if daily is not None and not daily.empty and len(daily) > 0:
                 last_candle = daily.iloc[-1]
                 ltp = float(last_candle["Close"])
                 # prev_close = close of the candle before
@@ -121,6 +129,9 @@ def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
                     info["dayLow"] = float(last_candle["Low"])
                 if not info.get("volume"):
                     info["volume"] = int(last_candle["Volume"])
+            else:
+                logger.error(f"[yahoo] No data from history for {ticker}")
+                return None
 
         # Compute change / changePct defensively
         change = float(ltp - prev_close) if (ltp and prev_close) else 0.0
