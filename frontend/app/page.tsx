@@ -1,61 +1,316 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Github } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import {
+  Radio,
+  Database,
+  ShieldCheck,
+  Cpu,
+  Bell,
+  Lock,
+} from "lucide-react";
 
-type TickerItem = {
-  symbol: string;
-  delta: number;
-  pct: number;
+/* ----------------------------- DATA ----------------------------- */
+
+const TICKER: { sym: string; price: string; pct: number }[] = [
+  { sym: "NIFTY", price: "23,847", pct: 0.29 },
+  { sym: "BANKNIFTY", price: "51,432", pct: 1.12 },
+  { sym: "RELIANCE", price: "2,914", pct: 1.24 },
+  { sym: "TCS", price: "3,824", pct: -0.43 },
+  { sym: "INFY", price: "1,567", pct: 2.11 },
+  { sym: "HDFCBANK", price: "1,623", pct: -0.33 },
+  { sym: "ICICIBANK", price: "1,108", pct: 0.85 },
+  { sym: "SBIN", price: "824", pct: 0.68 },
+  { sym: "BHARTIARTL", price: "1,212", pct: 1.45 },
+  { sym: "ITC", price: "467", pct: 0.22 },
+  { sym: "LT", price: "3,612", pct: 0.91 },
+  { sym: "HINDUNILVR", price: "2,478", pct: -0.41 },
+  { sym: "AXISBANK", price: "1,156", pct: 0.55 },
+  { sym: "KOTAKBANK", price: "1,789", pct: 0.73 },
+  { sym: "ASIANPAINT", price: "2,941", pct: -0.18 },
+  { sym: "MARUTI", price: "12,345", pct: 1.87 },
+  { sym: "SUNPHARMA", price: "1,712", pct: 1.23 },
+  { sym: "TITAN", price: "3,521", pct: 0.66 },
+  { sym: "ULTRACEMCO", price: "10,567", pct: -0.85 },
+  { sym: "BAJFINANCE", price: "7,234", pct: 1.34 },
+];
+
+const MARKET_TILES = [
+  { label: "NIFTY 50", value: "23,847.20", delta: "+68.20", pct: "+0.29%", up: true },
+  { label: "SENSEX", value: "79,118.45", delta: "+312.15", pct: "+0.40%", up: true },
+  { label: "BANKNIFTY", value: "51,432.10", delta: "+570.45", pct: "+1.12%", up: true },
+  { label: "USD/INR", value: "84.32", delta: "-0.12", pct: "-0.14%", up: false },
+  { label: "GOLD", value: "74,580", delta: "+320", pct: "+0.43%", up: true },
+  { label: "CRUDE", value: "78.45", delta: "-0.85", pct: "-1.07%", up: false },
+];
+
+const FEATURES = [
+  {
+    num: "01",
+    icon: Radio,
+    title: "Live tick stream",
+    desc: "Angel One SmartAPI WebSocket. Sub-second quotes, no polling.",
+  },
+  {
+    num: "02",
+    icon: Database,
+    title: "20 years of history",
+    desc: "Yahoo Finance backfill. 1M to ALL-time candles for every NSE stock.",
+  },
+  {
+    num: "03",
+    icon: ShieldCheck,
+    title: "Paper execution",
+    desc: "Real fills on live ticks. Live gate stays closed until you say so.",
+  },
+  {
+    num: "04",
+    icon: Cpu,
+    title: "5 strategies",
+    desc: "EMA, RSI, VWAP, MACD, BB. C++17 indicators, sub-ms compute.",
+  },
+  {
+    num: "05",
+    icon: Bell,
+    title: "BSE bell",
+    desc: "Audio cues at open, close, halt. The floor comes alive.",
+  },
+  {
+    num: "06",
+    icon: Lock,
+    title: "Read-only broker",
+    desc: "Connect Angel One to see real positions, never place real orders.",
+  },
+];
+
+const WATCHLIST = [
+  { sym: "RELIANCE", price: "2,914.20", pct: "+1.24%", up: true },
+  { sym: "SBIN", price: "824.50", pct: "+0.68%", up: true },
+  { sym: "HDFCBANK", price: "1,623.00", pct: "-0.33%", up: false },
+  { sym: "INFY", price: "1,567.85", pct: "+2.11%", up: true },
+  { sym: "TCS", price: "3,824.10", pct: "-0.43%", up: false },
+];
+
+/* ----------------------------- ICONS ----------------------------- */
+
+function BSEBell({ size = 28, color = "var(--gold)" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.5C9.5 3.5 7.5 5.5 7.5 8v5.5C7.5 14.5 6.5 15.5 5.5 16h13C17.5 15.5 16.5 14.5 16.5 13.5V8c0-2.5-2-4.5-4.5-4.5z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <path d="M5 17.5h14" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M9 20.5h6"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 2v1.5"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/* ----------------------------- 3D CHART ----------------------------- */
+
+type Candle = {
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+  up: boolean;
 };
 
-const TICKER_ITEMS: TickerItem[] = [
-  { symbol: "NIFTY 50", delta: 0.68, pct: 0.68 },
-  { symbol: "BANKNIFTY", delta: 1.12, pct: 1.12 },
-  { symbol: "RELIANCE", delta: 1.24, pct: 1.24 },
-  { symbol: "INFY", delta: 2.11, pct: 2.11 },
-  { symbol: "TCS", delta: -0.43, pct: -0.43 },
-  { symbol: "HDFC", delta: -0.33, pct: -0.33 },
-  { symbol: "SBIN", delta: 0.68, pct: 0.68 },
-];
+function buildCandles(n: number, seed: number): Candle[] {
+  // simple deterministic PRNG
+  let s = seed;
+  const rand = () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+  const candles: Candle[] = [];
+  let prev = 100;
+  for (let i = 0; i < n; i++) {
+    const open = prev;
+    const drift = (rand() - 0.45) * 4;
+    const close = Math.max(20, open + drift);
+    const range = 2 + rand() * 6;
+    const high = Math.max(open, close) + rand() * range;
+    const low = Math.min(open, close) - rand() * range;
+    candles.push({ open, close, high, low, up: close >= open });
+    prev = close;
+  }
+  return candles;
+}
 
-const STRATEGIES = [
-  "EMA Crossover",
-  "RSI Mean-Reversion",
-  "VWAP Pullback",
-];
+function CandleGroup({ candles }: { candles: Candle[] }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.05;
+    }
+  });
 
-const CAPABILITIES: { icon: string; label: string }[] = [
-  { icon: "📈", label: "Live Charts" },
-  { icon: "🔍", label: "NSE/BSE Search" },
-  { icon: "📊", label: "Portfolio View" },
-  { icon: "🤖", label: "Signal Engine" },
-  { icon: "🛡️", label: "Risk Safety" },
-  { icon: "💬", label: "AI Notes" },
-];
+  const spacing = 0.55;
+  const startX = -((candles.length - 1) * spacing) / 2;
+  const green = new THREE.Color("#26A69A");
+  const red = new THREE.Color("#EF5350");
 
-const PULSE_ROWS = [
-  { name: "BANKNIFTY", value: "51,432", delta: "+570", up: true },
-  { name: "SENSEX", value: "79,118", delta: "+312", up: true },
-  { name: "RELIANCE", value: "2,914", delta: "+36", up: true },
-];
-
-function TickerTape() {
-  const loop = [...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS];
   return (
-    <div className="maet-ticker" aria-hidden="true">
-      <div className="maet-ticker-track">
-        {loop.map((item, i) => (
-          <span key={i} className="maet-ticker-item">
-            <span className="maet-ticker-symbol">{item.symbol}</span>
-            <span
-              className={
-                item.pct >= 0 ? "maet-ticker-up" : "maet-ticker-down"
-              }
-            >
-              {item.pct >= 0 ? "▲" : "▼"}
-              {Math.abs(item.pct).toFixed(2)}%
+    <group ref={ref}>
+      {candles.map((c, i) => {
+        const x = startX + i * spacing;
+        const yMid = (c.open + c.close) / 2;
+        const bodyH = Math.max(0.05, Math.abs(c.close - c.open));
+        const wickH = c.high - c.low;
+        const wickY = (c.high + c.low) / 2;
+        const color = c.up ? green : red;
+        return (
+          <group key={i} position={[x, 0, 0]}>
+            {/* wick */}
+            <mesh position={[0, wickY - 1.5, 0]}>
+              <boxGeometry args={[0.04, wickH, 0.04]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={color}
+                emissiveIntensity={0.1}
+                metalness={0.3}
+                roughness={0.6}
+              />
+            </mesh>
+            {/* body */}
+            <mesh position={[0, yMid - 1.5, 0]}>
+              <boxGeometry args={[0.32, bodyH, 0.32]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={color}
+                emissiveIntensity={0.1}
+                metalness={0.3}
+                roughness={0.6}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function Chart3D() {
+  const candles = useMemo(() => buildCandles(50, 42), []);
+  return (
+    <Canvas
+      camera={{ position: [0, 6, 8], fov: 38 }}
+      gl={{ antialias: true, alpha: false }}
+      dpr={[1, 1.5]}
+    >
+      <color attach="background" args={["#0B0E14"]} />
+      <ambientLight intensity={0.25} />
+      <pointLight
+        position={[6, 8, 6]}
+        intensity={1.4}
+        color="#FFB300"
+        distance={30}
+      />
+      <pointLight
+        position={[-6, 3, -4]}
+        intensity={0.6}
+        color="#2962FF"
+        distance={20}
+      />
+      <group rotation={[Math.PI * 0.18, 0, 0]} position={[0, 0, 0]}>
+        <CandleGroup candles={candles} />
+      </group>
+      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[40, 40]} />
+        <meshStandardMaterial color="#0E1219" metalness={0.1} roughness={0.95} />
+      </mesh>
+    </Canvas>
+  );
+}
+
+/* ----------------------------- PIECES ----------------------------- */
+
+function Navbar() {
+  // IST market open: 09:15 - 15:30 weekdays
+  const [marketOpen, setMarketOpen] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      // Get current UTC time, then convert to IST (UTC+5:30)
+      const now = new Date();
+      const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const istMin = (utcMin + 330) % 1440; // wrap 24h
+      const day = now.getUTCDay(); // 0 Sun, 6 Sat
+      const isWeekday = day >= 1 && day <= 5;
+      // 09:15 = 555, 15:30 = 930
+      setMarketOpen(isWeekday && istMin >= 555 && istMin < 930);
+    };
+    check();
+    const t = setInterval(check, 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <header className="tvp-nav">
+      <div className="tvp-nav-inner">
+        <Link href="/" className="tvp-brand">
+          <BSEBell size={28} color="var(--gold)" />
+          <span className="tvp-brand-name">MAET</span>
+        </Link>
+        <nav className="tvp-nav-links" aria-label="Primary">
+          <a className="tvp-nav-link" href="/terminal">Markets</a>
+          <a className="tvp-nav-link" href="/terminal">Screener</a>
+          <a className="tvp-nav-link" href="/terminal">Strategies</a>
+          <a className="tvp-nav-link" href="/terminal">Backtest</a>
+          <a className="tvp-nav-link" href="/docs">Docs</a>
+        </nav>
+        <div className="tvp-nav-right">
+          {marketOpen && (
+            <span className="tvp-pill tvp-pill-live">
+              <span className="tvp-pulse-dot" />
+              MARKETS OPEN
+            </span>
+          )}
+          <span className="tvp-pill tvp-pill-paper">PAPER MODE</span>
+          <a className="tvp-login" href="/terminal">Login</a>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function TickerBar() {
+  // duplicate the list so the loop is seamless
+  const loop = [...TICKER, ...TICKER];
+  return (
+    <div className="tvp-ticker" aria-hidden="true">
+      <div className="tvp-ticker-track">
+        {loop.map((t, i) => (
+          <span key={i} className="tvp-ticker-item">
+            <span className="tvp-ticker-symbol">{t.sym}</span>
+            <span className="tvp-ticker-price">₹{t.price}</span>
+            <span className={t.pct >= 0 ? "tvp-ticker-up" : "tvp-ticker-down"}>
+              {t.pct >= 0 ? "▲" : "▼"}
+              {Math.abs(t.pct).toFixed(2)}%
             </span>
           </span>
         ))}
@@ -64,220 +319,219 @@ function TickerTape() {
   );
 }
 
-function Navbar() {
+function Hero() {
   return (
-    <header className="maet-nav">
-      <div className="maet-nav-inner">
-        <Link href="/" className="maet-logo">
-          MAET
-        </Link>
-        <div className="maet-nav-right">
-          <span className="maet-badge-paper">PAPER MODE</span>
+    <section className="tvp-hero">
+      <div className="tvp-hero-left">
+        <span className="tvp-eyebrow">
+          BSE / NSE TERMINAL · PAPER TRADING
+        </span>
+        <h1 className="tvp-h1">
+          The trading floor
+          <br />
+          for the algorithmic age.
+        </h1>
+        <p className="tvp-sub">
+          Real Angel One SmartAPI ticks. 20 years of Yahoo Finance history.
+          Paper execution that respects the live gate.
+        </p>
+        <div className="tvp-cta-row">
+          <Link href="/terminal" className="tvp-cta-primary">
+            Open Terminal →
+          </Link>
           <a
             href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
             target="_blank"
             rel="noreferrer"
-            className="maet-github"
-            aria-label="GitHub repository"
+            className="tvp-cta-secondary"
           >
-            <Github size={18} />
+            View on GitHub
           </a>
         </div>
       </div>
-    </header>
+      <div className="tvp-hero-right">
+        <div className="tvp-chart-frame">
+          <Chart3D />
+        </div>
+      </div>
+    </section>
   );
 }
 
-function HeroCard() {
+function MarketStrip() {
   return (
-    <motion.div
-      className="bento-card bento-hero"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
-      <div className="maet-eyebrow">ALGO TRADING TERMINAL</div>
-      <h1 className="maet-h1">
-        Trade smarter.
-        <br />
-        Not harder.
-      </h1>
-      <p className="maet-subtext">
-        Angel One SmartAPI · C++17 indicators · Paper-safe execution
-      </p>
-      <Link href="/terminal" className="maet-cta">
-        Enter Desk →
-      </Link>
-      <div className="maet-stat-row">
-        <span className="maet-stat-badge">7 indicators</span>
-        <span className="maet-stat-badge">5 strategies</span>
-        <span className="maet-stat-badge">13 phases</span>
-      </div>
-    </motion.div>
+    <section className="tvp-market-strip" aria-label="Live market summary">
+      {MARKET_TILES.map((tile) => (
+        <div key={tile.label} className="tvp-market-tile">
+          <span className="tvp-market-label">{tile.label}</span>
+          <span className="tvp-market-value">₹{tile.value}</span>
+          <span
+            className={`tvp-market-delta ${tile.up ? "tvp-ticker-up" : "tvp-ticker-down"}`}
+          >
+            {tile.up ? "▲" : "▼"} {tile.delta} {tile.pct}
+          </span>
+        </div>
+      ))}
+    </section>
   );
 }
 
-function MarketPulseCard() {
+function FeatureGrid() {
   return (
-    <motion.div
-      className="bento-card bento-pulse"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.05 }}
-    >
-      <div className="maet-eyebrow maet-eyebrow-sm">MARKET PULSE</div>
-      <div className="maet-big-num">₹23,847</div>
-      <div className="maet-pulse-line">
-        NIFTY 50 <span className="maet-up">▲68.20 (0.29%)</span>
-      </div>
-      <div className="maet-divider" />
-      <div className="maet-pulse-rows">
-        {PULSE_ROWS.map((row) => (
-          <div key={row.name} className="maet-pulse-row">
-            <span className="maet-pulse-name">{row.name}</span>
-            <span className="maet-pulse-value">{row.value}</span>
-            <span className={row.up ? "maet-up" : "maet-down"}>
-              {row.delta}
+    <section className="tvp-features" aria-label="Features">
+      {FEATURES.map((f) => {
+        const Icon = f.icon;
+        return (
+          <div key={f.num} className="tvp-feature-cell">
+            <span className="tvp-feature-num">{f.num}</span>
+            <span className="tvp-feature-icon">
+              <Icon size={16} strokeWidth={1.5} />
             </span>
+            <h3 className="tvp-feature-title">{f.title}</h3>
+            <p className="tvp-feature-desc">{f.desc}</p>
           </div>
-        ))}
-      </div>
-      <div className="maet-card-foot">Live via Angel One SmartAPI</div>
-    </motion.div>
+        );
+      })}
+    </section>
   );
 }
 
-function StrategyEngineCard() {
+function TerminalPreview() {
+  // CSS-only candles: 6 candles, varied green/red
+  const candles = [
+    { h: 70, wick: 18, up: false },
+    { h: 90, wick: 22, up: true },
+    { h: 60, wick: 14, up: false },
+    { h: 110, wick: 26, up: true },
+    { h: 80, wick: 18, up: true },
+    { h: 130, wick: 30, up: true },
+  ];
+  const volumes = [40, 70, 30, 60, 80, 50];
   return (
-    <motion.div
-      className="bento-card bento-strategy"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
-    >
-      <div className="maet-eyebrow maet-eyebrow-sm">ALGO ENGINE</div>
-      <div className="maet-strat-list">
-        {STRATEGIES.map((s) => (
-          <div key={s} className="maet-strat-row">
-            <span className="maet-strat-dot" />
-            <span className="maet-strat-name">{s}</span>
-            <span className="maet-strat-ready">READY</span>
+    <section className="tvp-terminal-section">
+      <span className="tvp-section-eyebrow">BUILT FOR SPEED</span>
+      <h2 className="tvp-section-title">Every pixel earns its place.</h2>
+      <p className="tvp-section-sub">
+        Bloomberg density. TradingView polish. Zero bloat.
+      </p>
+      <div className="tvp-terminal-frame">
+        <div className="tvp-terminal-topbar">
+          MAET Terminal · PAPER MODE · 13:19:08 IST
+        </div>
+        <div className="tvp-terminal-body">
+          <div className="tvp-terminal-left">
+            <div className="tvp-terminal-candles">
+              {candles.map((c, i) => (
+                <div
+                  key={i}
+                  className="tvp-candle"
+                  style={{
+                    color: c.up ? "var(--green)" : "var(--red)",
+                  }}
+                >
+                  <div
+                    className="tvp-candle-wick"
+                    style={{ height: `${c.wick}px` }}
+                  />
+                  <div
+                    className="tvp-candle-body"
+                    style={{ height: `${c.h}px` }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="tvp-terminal-volumes">
+              {volumes.map((v, i) => (
+                <div
+                  key={i}
+                  className="tvp-volume-bar"
+                  style={{ height: `${v}%` }}
+                />
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-      <div className="maet-card-foot">Paper signals only · Live gate disabled</div>
-    </motion.div>
-  );
-}
-
-function BacktestingCard() {
-  return (
-    <motion.div
-      className="bento-card bento-backtest"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
-    >
-      <div className="maet-eyebrow maet-eyebrow-sm">BACKTESTING</div>
-      <div className="maet-stat-block">
-        <span className="maet-stat-num">94.7%</span>
-        <span className="maet-stat-label">Backtest accuracy</span>
-      </div>
-      <div className="maet-metric-list">
-        <div className="maet-metric-row">
-          <span>Total Trades</span>
-          <span className="maet-mono">1,247</span>
-        </div>
-        <div className="maet-metric-row">
-          <span>Win Rate</span>
-          <span className="maet-mono">68.3%</span>
-        </div>
-        <div className="maet-metric-row">
-          <span>Sharpe</span>
-          <span className="maet-mono">1.94</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function CapabilitiesCard() {
-  return (
-    <motion.div
-      className="bento-card bento-cap"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-    >
-      <div className="maet-eyebrow maet-eyebrow-sm">CAPABILITIES</div>
-      <div className="maet-cap-grid">
-        {CAPABILITIES.map((c) => (
-          <div key={c.label} className="maet-cap-chip">
-            <span className="maet-cap-icon">{c.icon}</span>
-            <span>{c.label}</span>
+          <div className="tvp-terminal-right">
+            <span className="tvp-watchlist-label">WATCHLIST</span>
+            {WATCHLIST.map((row) => (
+              <div key={row.sym} className="tvp-watchlist-row">
+                <span className="tvp-watchlist-symbol">{row.sym}</span>
+                <span className="tvp-watchlist-price">{row.price}</span>
+                <span
+                  className={row.up ? "tvp-ticker-up" : "tvp-ticker-down"}
+                >
+                  {row.pct}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
-    </motion.div>
-  );
-}
-
-function BrokerCard() {
-  return (
-    <motion.div
-      className="bento-card bento-broker"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut", delay: 0.25 }}
-    >
-      <div className="maet-eyebrow maet-eyebrow-sm">BROKER</div>
-      <div className="maet-broker-tick">✓</div>
-      <div className="maet-broker-name">Angel One Connected</div>
-      <div className="maet-broker-sub">Holdings · Positions · Orders</div>
-      <div className="maet-broker-warn">Read-only · No mutations</div>
-    </motion.div>
+    </section>
   );
 }
 
 function Footer() {
   return (
-    <footer className="maet-footer">
-      <div className="maet-footer-line">
-        MAET Terminal · Paper workspace · Not SEBI registered · Not financial
-        advice
+    <footer className="tvp-footer">
+      <div className="tvp-footer-cols">
+        <div className="tvp-footer-col">
+          <div className="tvp-footer-brand">
+            <BSEBell size={24} color="var(--gold)" />
+            <span className="tvp-brand-name">MAET</span>
+          </div>
+          <p className="tvp-footer-meta">
+            Paper workspace · Not SEBI registered
+          </p>
+          <p className="tvp-footer-meta">© 2026 Tanmay · VIT Bhopal</p>
+        </div>
+        <div className="tvp-footer-col">
+          <span className="tvp-footer-head">Product</span>
+          <a className="tvp-footer-link" href="/terminal">Terminal</a>
+          <a className="tvp-footer-link" href="/terminal">Screener</a>
+          <a className="tvp-footer-link" href="/terminal">Strategies</a>
+          <a className="tvp-footer-link" href="/terminal">Backtest</a>
+          <a className="tvp-footer-link" href="/terminal">AI Notes</a>
+        </div>
+        <div className="tvp-footer-col">
+          <span className="tvp-footer-head">Connect</span>
+          <a
+            className="tvp-footer-link"
+            href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+          </a>
+          <a
+            className="tvp-footer-link"
+            href="https://x.com/TanmayEquity"
+            target="_blank"
+            rel="noreferrer"
+          >
+            X @TanmayEquity
+          </a>
+          <a className="tvp-footer-link" href="#">Discord</a>
+          <a className="tvp-footer-link" href="#">Email</a>
+        </div>
       </div>
-      <div className="maet-footer-links">
-        <a href="/docs" className="maet-footer-link">
-          Docs
-        </a>
-        <a
-          href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
-          target="_blank"
-          rel="noreferrer"
-          className="maet-footer-link"
-        >
-          GitHub
-        </a>
+      <div className="tvp-footer-strip">
+        This is not financial advice. Paper trading only. SEBI registration not claimed.
       </div>
     </footer>
   );
 }
 
+/* ----------------------------- PAGE ----------------------------- */
+
 export default function LandingPage() {
   return (
-    <main className="maet-page">
+    <main className="tvp-page">
       <Navbar />
-      <TickerTape />
-
-      <section className="maet-bento">
-        <HeroCard />
-        <MarketPulseCard />
-        <StrategyEngineCard />
-        <BacktestingCard />
-        <CapabilitiesCard />
-        <BrokerCard />
-      </section>
-
+      <TickerBar />
+      <Hero />
+      <MarketStrip />
+      <FeatureGrid />
+      <TerminalPreview />
       <Footer />
     </main>
   );

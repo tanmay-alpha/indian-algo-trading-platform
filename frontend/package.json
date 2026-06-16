@@ -13,10 +13,12 @@
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@tabler/icons-react": "^3.44.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
-    "framer-motion": "^12.40.0",
+    "framer-motion": "^11.18.2",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^0.460.0",
     "next": "^16.2.6",
@@ -24,6 +26,7 @@
     "react-dom": "^19.2.6",
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.5.4",
+    "three": "^0.160.1",
     "zod": "^4.4.3",
     "zustand": "^5.0.1"
   },
