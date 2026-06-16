@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://maet-backend.onrender.com';
 
@@ -19,6 +19,7 @@ interface Mood {
  */
 export function MarketMoodGauge() {
   const [mood, setMood] = useState<Mood | null>(null);
+  const idRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadMood = async () => {
@@ -34,17 +35,15 @@ export function MarketMoodGauge() {
     };
     loadMood();
     const applyInterval = () => {
+      if (idRef.current) clearInterval(idRef.current);
       const delay = document.hidden ? 180000 : 30000;
-      return setInterval(loadMood, delay);
+      idRef.current = setInterval(loadMood, delay);
     };
-    const id = applyInterval();
-    const onVisibility = () => {
-      clearInterval(id);
-      applyInterval();
-    };
+    applyInterval();
+    const onVisibility = () => applyInterval();
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      clearInterval(id);
+      if (idRef.current) clearInterval(idRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);

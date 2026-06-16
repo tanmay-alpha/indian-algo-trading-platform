@@ -1010,6 +1010,7 @@ async def api_market_indices():
 
 
 @app.get("/api/market/mood")
+@limiter.limit("10/minute")
 async def api_market_mood():
     """Fear/Greed breadth score (0-100) for the NIFTY 50 universe."""
     try:
@@ -1026,6 +1027,7 @@ async def api_market_mood():
 
 
 @app.get("/api/market/movers")
+@limiter.limit("10/minute")
 async def api_market_movers(
     direction: str = "gainers",
     limit: int = 25,

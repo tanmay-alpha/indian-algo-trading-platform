@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://maet-backend.onrender.com';
@@ -20,6 +20,7 @@ interface TickerStock {
 export function LiveTicker() {
   const [stocks, setStocks] = useState<TickerStock[]>([]);
   const [loading, setLoading] = useState(true);
+  const idRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchStocks = async () => {
@@ -36,19 +37,15 @@ export function LiveTicker() {
     };
     fetchStocks();
     const applyInterval = () => {
+      if (idRef.current) clearInterval(idRef.current);
       const delay = document.hidden ? 60000 : 15000;
-      return setInterval(fetchStocks, delay);
+      idRef.current = setInterval(fetchStocks, delay);
     };
-    const id = applyInterval();
-    const onVisibility = () => {
-      clearInterval(id);
-      const fresh = applyInterval();
-      // Re-assign to id so cleanup gets the right one
-      Object.assign(id, fresh);
-    };
+    applyInterval();
+    const onVisibility = () => applyInterval();
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      clearInterval(id);
+      if (idRef.current) clearInterval(idRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
