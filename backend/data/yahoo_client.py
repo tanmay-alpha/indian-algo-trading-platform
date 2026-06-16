@@ -82,9 +82,13 @@ def fetch_history(
 
 
 def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
-    """Get current quote (15-min delayed on the free tier)."""
+    """Get current quote (15-min delayed on the free tier).
+
+    If info is rate-limited or broken, falls back to deriving LTP from the
+    last 1D candle (the standard yfinance workaround)."""
     ticker = get_ticker(symbol, exchange)
     try:
+        # Path 1: Try Ticker.info (can be rate-limited in CI/cloud)
         t = yf.Ticker(ticker)
         info = t.info or {}
 
@@ -94,6 +98,29 @@ def fetch_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
             or info.get("previousClose", 0)
         )
         prev_close = info.get("previousClose", 0)
+
+        # If we don't have a usable LTP, derive it from the latest candle
+        if not ltp or ltp == 0:
+            logger.warning(f"[yahoo] Info rate-limited for {ticker}, falling back to last candle")
+            # Get 2d of daily candles so we have previous close too
+            daily = t.history(period="5d", interval="1d", progress=False)
+            if not daily.empty and len(daily) > 0:
+                last_candle = daily.iloc[-1]
+                ltp = float(last_candle["Close"])
+                # prev_close = close of the candle before
+                if len(daily) >= 2:
+                    prev_close = float(daily.iloc[-2]["Close"])
+                elif prev_close == 0:
+                    prev_close = ltp  # Single-day data, no change
+                # Re-derive from candle so we can fill open/high/low too
+                if not info.get("regularMarketOpen"):
+                    info["regularMarketOpen"] = float(last_candle["Open"])
+                if not info.get("dayHigh"):
+                    info["dayHigh"] = float(last_candle["High"])
+                if not info.get("dayLow"):
+                    info["dayLow"] = float(last_candle["Low"])
+                if not info.get("volume"):
+                    info["volume"] = int(last_candle["Volume"])
 
         # Compute change / changePct defensively
         change = float(ltp - prev_close) if (ltp and prev_close) else 0.0
