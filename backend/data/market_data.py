@@ -45,6 +45,12 @@ IST = pytz.timezone("Asia/Kolkata")
 _mem_cache: dict = {}
 _MEM_TTL_SECONDS = 300  # 5 minutes
 
+# Quote cache: 60s TTL — short because LTP is the only thing that moves in
+# real time. If we cached quotes for 5 minutes like candles, the ticker
+# strip would feel stale. 60s is a good balance.
+_quote_cache: dict = {}
+_QUOTE_TTL_SECONDS = 60
+
 # How many symbols to bulk-quote at once. Above 20 Yahoo starts throttling.
 BULK_PARALLELISM = 10
 BULK_BATCH_LIMIT = 50  # hard cap for the API endpoint
@@ -174,14 +180,41 @@ def get_candles(
     return []
 
 
+def _quote_cache_key(symbol: str, exchange: str) -> str:
+    return f"{symbol}:{exchange}"
+
+
+def _get_quote_from_cache(symbol: str, exchange: str) -> Optional[dict]:
+    """Return cached quote if it's < 60s old. None otherwise."""
+    key = _quote_cache_key(symbol, exchange)
+    if key in _quote_cache:
+        ts, data = _quote_cache[key]
+        if (datetime.now() - ts).total_seconds() < _QUOTE_TTL_SECONDS:
+            return data
+    return None
+
+
+def _store_quote_in_cache(symbol: str, exchange: str, quote: dict) -> None:
+    """Stash a fresh quote in the in-memory cache."""
+    _quote_cache[_quote_cache_key(symbol, exchange)] = (datetime.now(), quote)
+
+
 def get_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
     """Get live quote: Angel during market hours, Yahoo fallback.
 
     Angel path requires a symbol token, which is not yet wired here — the
     terminal watchlist resolves tokens per-symbol. Until then we always
     fall through to Yahoo (15-min delayed, but always available).
+
+    Results are memoized for 60s — Yahoo rate-limits the bulk-overview
+    endpoint (20 simultaneous calls ≈ 20 throttled responses).
     """
-    # Yahoo (always-available, delayed)
+    # 0. Cache check
+    cached = _get_quote_from_cache(symbol, exchange)
+    if cached is not None:
+        return cached
+
+    # 1. Yahoo (always-available, delayed)
     quote = yahoo_quote(symbol, exchange)
     if not quote:
         return None
@@ -195,6 +228,7 @@ def get_quote(symbol: str, exchange: str = "NSE") -> Optional[dict]:
         except ZeroDivisionError:
             pass
 
+    _store_quote_in_cache(symbol, exchange, quote)
     return quote
 
 

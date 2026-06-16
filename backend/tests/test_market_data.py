@@ -229,3 +229,33 @@ def test_bulk_batch_limit_sane():
 def test_is_market_hours_returns_bool():
     """Helper should never raise; just return a bool."""
     assert isinstance(_is_market_hours(), bool)
+
+
+# --------------------------------------------------------------------------- #
+# Quote cache: protects Yahoo from bulk-overview thundering herd
+# --------------------------------------------------------------------------- #
+
+def test_quote_cache_avoids_repeat_yahoo_calls(monkeypatch):
+    """If the quote is cached, yfinance is not called again."""
+    from backend.data import market_data
+
+    # Pre-warm the cache
+    market_data._store_quote_in_cache("RELIANCE", "NSE", {
+        "symbol": "RELIANCE", "exchange": "NSE", "ltp": 1300.0,
+        "open": 1290, "high": 1310, "low": 1285, "close": 1290,
+        "change": 10, "changePct": 0.77, "volume": 100,
+        "bid": 1300, "ask": 1301, "source": "yahoo",
+        "timestamp": "2026-06-16T00:00:00",
+    })
+
+    # Patch the upstream — if the cache works, this should never be called
+    called = []
+    def _should_not_run(*args, **kwargs):
+        called.append(True)
+        return None
+    monkeypatch.setattr(market_data, "yahoo_quote", _should_not_run)
+
+    q = market_data.get_quote("RELIANCE", "NSE")
+    assert q is not None
+    assert q["ltp"] == 1300.0
+    assert called == [], "yahoo_quote should not be called when cache hit"
