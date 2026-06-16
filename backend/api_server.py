@@ -1057,6 +1057,80 @@ async def api_market_movers(
         return {"direction": direction, "stocks": []}
 
 
+# --------------------------------------------------------------------------- #
+# Screener endpoints                                                          #
+# --------------------------------------------------------------------------- #
+from backend.data.screener import (  # noqa: E402
+    run_screener,
+    run_preset,
+    get_presets,
+    FILTER_SCHEMA,
+)
+
+
+@app.get("/api/screener/filters")
+async def api_screener_filters():
+    """Returns the filter schema so the frontend can build the UI."""
+    return {"schema": FILTER_SCHEMA}
+
+
+@app.post("/api/screener/run")
+@limiter.limit("10/minute")
+async def api_screener_run(body: dict):
+    """Run screener with filter spec.
+
+    Body: ``{filters: {...}, limit: 50, sort_by: 'marketCap', sort_dir: 'desc'}``
+    """
+    filters = body.get("filters", {}) or {}
+    limit = min(int(body.get("limit", 50)), 100)
+    sort_by = body.get("sort_by", "marketCap")
+    sort_dir = body.get("sort_dir", "desc")
+    try:
+        results = run_screener(filters, limit, sort_by, sort_dir)
+        return {
+            "count": len(results),
+            "stocks": results,
+            "filters": filters,
+        }
+    except Exception as e:
+        msg = safe_error_message(e)
+        logger.warning(f"[api] screener/run failed: {msg}")
+        return {"count": 0, "stocks": [], "filters": filters}
+
+
+@app.get("/api/screener/presets")
+async def api_screener_presets():
+    """Returns list of pre-built screens."""
+    return {"presets": get_presets()}
+
+
+@app.get("/api/screener/preset/{preset_id}")
+@limiter.limit("10/minute")
+async def api_screener_preset(preset_id: str, limit: int = 25):
+    """Run a specific pre-built screen."""
+    limit = min(max(limit, 1), 50)
+    try:
+        results = run_preset(preset_id, limit)
+        return {
+            "preset": preset_id,
+            "count": len(results),
+            "stocks": results,
+        }
+    except Exception as e:
+        msg = safe_error_message(e)
+        logger.warning(f"[api] screener/preset failed: {msg}")
+        return {"preset": preset_id, "count": 0, "stocks": []}
+
+
+@app.get("/api/fundamentals/{symbol}")
+@limiter.limit("30/minute")
+async def api_fundamentals(symbol: str, exchange: str = "NSE"):
+    """Get fundamentals for a single symbol."""
+    from backend.data.fundamentals import get_fundamentals
+
+    return get_fundamentals(symbol.upper(), exchange.upper())
+
+
 @app.get("/api/market/status")
 async def api_market_status():
     """Market open/closed status (IST, Mon-Fri 09:15-15:30)."""

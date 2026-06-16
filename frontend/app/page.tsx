@@ -290,7 +290,7 @@ function Navbar() {
         </Link>
         <nav className="tvp-nav-links" aria-label="Primary">
           <Link className="tvp-nav-link" href="/markets">Markets</Link>
-          <a className="tvp-nav-link" href="/terminal">Screener</a>
+          <Link className="tvp-nav-link" href="/screener">Screener</Link>
           <a className="tvp-nav-link" href="/terminal">Strategies</a>
           <a className="tvp-nav-link" href="/terminal">Backtest</a>
           <a className="tvp-nav-link" href="/docs">Docs</a>
@@ -499,7 +499,7 @@ function Footer() {
         <div className="tvp-footer-col">
           <span className="tvp-footer-head">Product</span>
           <a className="tvp-footer-link" href="/terminal">Terminal</a>
-          <a className="tvp-footer-link" href="/terminal">Screener</a>
+          <a className="tvp-footer-link" href="/screener">Screener</a>
           <a className="tvp-footer-link" href="/terminal">Strategies</a>
           <a className="tvp-footer-link" href="/terminal">Backtest</a>
           <a className="tvp-footer-link" href="/terminal">AI Notes</a>
