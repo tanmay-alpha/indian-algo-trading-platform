@@ -1210,7 +1210,19 @@ async def api_stock_financials(
     """Quarterly + annual P&L, balance sheet, cash flow statements."""
     from backend.data.financials import get_financials
 
-    return get_financials(symbol.upper(), exchange.upper())
+    sym = symbol.upper()
+    try:
+        return get_financials(sym, exchange.upper())
+    except Exception as e:
+        # Defensive: never let a yfinance quirk surface as a 500. Degrade to
+        # the empty shape so the UI can still render a "no data" state.
+        logger.warning(f"[api_stock_financials] {sym} error: {e}")
+        return {
+            "symbol": sym,
+            "exchange": exchange.upper(),
+            "quarterly": {"income": [], "balance": [], "cashflow": []},
+            "annual": {"income": [], "balance": [], "cashflow": []},
+        }
 
 
 @app.get("/api/market/status")

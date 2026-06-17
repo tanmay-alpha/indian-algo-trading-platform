@@ -33,14 +33,41 @@ def get_financials(symbol: str, exchange: str = "NSE") -> dict:
     ticker_str = yahoo_ticker(sym, exchange)
     try:
         t = yf.Ticker(ticker_str)
-        income_q = t.quarterly_income_stmt
-        income_a = t.income_stmt
-        balance_q = t.quarterly_balance_sheet
-        balance_a = t.balance_sheet
-        cashflow_q = t.quarterly_cashflow
-        cashflow_a = t.cashflow
+        # yfinance can raise on rate limits, JSON decode errors, or missing
+        # tickers. Catch per-call so one bad statement doesn't kill the
+        # whole response.
+        try:
+            income_q = t.quarterly_income_stmt
+        except Exception as e:
+            logger.debug(f"[financials {sym}] quarterly_income_stmt: {e}")
+            income_q = None
+        try:
+            income_a = t.income_stmt
+        except Exception as e:
+            logger.debug(f"[financials {sym}] income_stmt: {e}")
+            income_a = None
+        try:
+            balance_q = t.quarterly_balance_sheet
+        except Exception as e:
+            logger.debug(f"[financials {sym}] quarterly_balance_sheet: {e}")
+            balance_q = None
+        try:
+            balance_a = t.balance_sheet
+        except Exception as e:
+            logger.debug(f"[financials {sym}] balance_sheet: {e}")
+            balance_a = None
+        try:
+            cashflow_q = t.quarterly_cashflow
+        except Exception as e:
+            logger.debug(f"[financials {sym}] quarterly_cashflow: {e}")
+            cashflow_q = None
+        try:
+            cashflow_a = t.cashflow
+        except Exception as e:
+            logger.debug(f"[financials {sym}] cashflow: {e}")
+            cashflow_a = None
     except Exception as e:
-        logger.warning(f"[financials {sym}] yfinance error: {e}")
+        logger.warning(f"[financials {sym}] yfinance init error: {e}")
         return _empty(sym)
 
     out = {
@@ -80,10 +107,15 @@ def _df_to_dict(df: Any, periods: int) -> list:
         out: list = []
         for col in cols:
             period = _format_period(col)
-            items = {
-                str(k): float(v) if _is_number(v) else None
-                for k, v in df[col].items()
-            }
+            items: dict = {}
+            try:
+                for k, v in df[col].items():
+                    try:
+                        items[str(k)] = float(v) if _is_number(v) else None
+                    except Exception:
+                        items[str(k)] = None
+            except Exception as e:
+                logger.debug(f"[financials df.items] {e}")
             out.append({"period": period, "lineItems": items})
         return out
     except Exception as e:
@@ -94,12 +126,19 @@ def _df_to_dict(df: Any, periods: int) -> list:
 def _format_period(col) -> str:
     """Format a Period/Timestamp column header as 'Q1 FY25' or 'FY25'."""
     try:
+        # pandas Timestamp / Period — strftime works on both
         if hasattr(col, "strftime"):
-            s = col.strftime("%Y-%m-%d")
+            try:
+                s = col.strftime("%Y-%m-%d")
+            except Exception:
+                s = str(col)[:10]
             # If it's a quarter, label as Qn
             if hasattr(col, "quarter"):
-                return f"Q{col.quarter} {col.year}"
-            return s[:7]
+                try:
+                    return f"Q{col.quarter} {col.year}"
+                except Exception:
+                    pass
+            return s[:10]
         return str(col)[:10]
     except Exception:
         return str(col)[:10]
@@ -107,7 +146,12 @@ def _format_period(col) -> str:
 
 def _is_number(x) -> bool:
     try:
-        float(x)
+        # numpy types may not coerce with float(); catch broader
+        v = float(x)
+        # Reject NaN/inf so JSON serializes as null
+        import math
+        if math.isnan(v) or math.isinf(v):
+            return False
         return True
     except (TypeError, ValueError):
         return False
