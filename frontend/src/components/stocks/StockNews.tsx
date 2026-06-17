@@ -27,12 +27,20 @@ export function StockNews({ symbol }: Props) {
     if (!symbol) return;
     let cancelled = false;
     setItems(null);
-    fetch(`${API}/api/news/${encodeURIComponent(symbol)}`)
+    fetch(`${API}/api/stocks/${encodeURIComponent(symbol)}/news?limit=10`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (cancelled) return;
-        if (d && Array.isArray(d.items)) {
-          setItems(d.items as NewsItem[]);
+        // Backend returns {symbol, articles: [{title, link, source, published, snippet}]}
+        // UI expects {items: [{title, publisher, link, publishedAt, thumbnail?}]}
+        if (d && Array.isArray(d.articles)) {
+          const mapped: NewsItem[] = d.articles.map((a: any) => ({
+            title: a.title,
+            publisher: a.source || 'Google News',
+            link: a.link,
+            publishedAt: a.published || '',
+          }));
+          setItems(mapped);
         } else {
           setItems([]);
         }

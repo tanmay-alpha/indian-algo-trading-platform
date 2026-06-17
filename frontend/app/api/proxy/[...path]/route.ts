@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Server-only backend base URL. Falls back to localhost:8000 for dev.
-const BACKEND = (process.env.BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '');
+// Server-only backend base URL. Falls back to NEXT_PUBLIC_BACKEND_URL, then localhost:8000 for dev.
+const BACKEND = (
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'http://localhost:8000'
+).replace(/\/+$/, '');
 
 // Server-only admin token. NEVER reference this from a client component —
 // it would leak into the browser bundle.
