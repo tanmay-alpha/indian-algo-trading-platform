@@ -28,6 +28,19 @@ lumint-*.png
 terminal-precision-gold.png
 terminal-*.png
 watchlist-final.png
+# Verification screenshots produced by Playwright MCP / Chrome DevTools sessions
+# Only root-level jpeg/png files with these exact names (not in subdirs)
+/verify_*.jpeg
+/verify-*.jpeg
+/verify_*.png
+/prompt*.jpeg
+/maet_*.jpeg
+/landing-*.jpeg
+/markets-*.jpeg
+/screener-*.jpeg
+/current-*.jpeg
+/terminal-*.jpeg
+/playwright-mcp/
 
 # Stale prompt scratch files left in repo root by past sessions
 prompt_*.md

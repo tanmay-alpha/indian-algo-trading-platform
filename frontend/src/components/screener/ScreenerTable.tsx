@@ -176,7 +176,7 @@ export function ScreenerTable({
               >
                 <td className="p-3">
                   <Link
-                    href={`/terminal?symbol=${encodeURIComponent(s.symbol)}`}
+                    href={`/stocks/${encodeURIComponent(s.symbol)}`}
                     className="font-medium hover:underline"
                     style={{ color: 'var(--accent)' }}
                   >
@@ -227,7 +227,7 @@ export function ScreenerTable({
                 </td>
                 <td className="p-3 text-right">
                   <Link
-                    href={`/terminal?symbol=${encodeURIComponent(s.symbol)}`}
+                    href={`/stocks/${encodeURIComponent(s.symbol)}`}
                     className="hover:text-[var(--accent)]"
                     style={{ color: 'var(--text-2)' }}
                   >

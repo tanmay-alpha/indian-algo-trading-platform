@@ -141,7 +141,7 @@ export function MoversTable() {
                 >
                   <td className="p-3">
                     <Link
-                      href={`/terminal?symbol=${s.symbol}`}
+                      href={`/stocks/${encodeURIComponent(s.symbol)}`}
                       className="font-medium hover:underline"
                       style={{ color: 'var(--accent)' }}
                     >

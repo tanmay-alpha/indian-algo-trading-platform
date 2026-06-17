@@ -158,7 +158,7 @@ export default function IndexDetailPage() {
               constituents.map((c) => (
                 <Link
                   key={c.symbol}
-                  href={`/terminal?symbol=${c.symbol}`}
+                  href={`/stocks/${encodeURIComponent(c.symbol)}`}
                   className="block p-3 border rounded transition-colors hover:border-[var(--accent)]"
                   style={{ borderColor: 'var(--border)' }}
                 >
