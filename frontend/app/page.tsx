@@ -1,545 +1,429 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import {
-  Radio,
-  Database,
-  ShieldCheck,
-  Cpu,
-  Bell,
-  Lock,
-} from "lucide-react";
-import { LiveTicker } from "@/components/LiveTicker";
+import { ArrowUpRight, Activity, FlaskConical, Table2, LineChart, Layers, Github, Keyboard } from "lucide-react";
+import { INDICES, WATCHLIST } from "@/lib/mock-data";
+import { useLivePrice } from "@/hooks/use-live-price";
+import { TiltCard } from "@/components/trading/tilt-card";
+import { LiveTape } from "@/components/trading/live-tape";
+import { DepthMeter } from "@/components/trading/depth-meter";
+import { LiveMiniChart } from "@/components/trading/live-mini-chart";
+import { MarketHeatmap } from "@/components/trading/market-heatmap";
+import { BreadthGauge } from "@/components/trading/breadth-gauge";
+import { FlowsWidget } from "@/components/trading/flows-widget";
+import { SectorStrip } from "@/components/trading/sector-strip";
+import { Loadable, ChartSkeleton, RowsSkeleton, Skel } from "@/components/trading/skeleton";
 
-/* ----------------------------- DATA ----------------------------- */
-
-const TICKER: { sym: string; price: string; pct: number; clickable: boolean }[] = [
-  { sym: "NIFTY", price: "23,847", pct: 0.29, clickable: false },
-  { sym: "BANKNIFTY", price: "51,432", pct: 1.12, clickable: false },
-  { sym: "RELIANCE", price: "2,914", pct: 1.24, clickable: true },
-  { sym: "TCS", price: "3,824", pct: -0.43, clickable: true },
-  { sym: "INFY", price: "1,567", pct: 2.11, clickable: true },
-  { sym: "HDFCBANK", price: "1,623", pct: -0.33, clickable: true },
-  { sym: "ICICIBANK", price: "1,108", pct: 0.85, clickable: true },
-  { sym: "SBIN", price: "824", pct: 0.68, clickable: true },
-  { sym: "BHARTIARTL", price: "1,212", pct: 1.45, clickable: true },
-  { sym: "ITC", price: "467", pct: 0.22, clickable: true },
-  { sym: "LT", price: "3,612", pct: 0.91, clickable: true },
-  { sym: "HINDUNILVR", price: "2,478", pct: -0.41, clickable: true },
-  { sym: "AXISBANK", price: "1,156", pct: 0.55, clickable: true },
-  { sym: "KOTAKBANK", price: "1,789", pct: 0.73, clickable: true },
-  { sym: "ASIANPAINT", price: "2,941", pct: -0.18, clickable: true },
-  { sym: "MARUTI", price: "12,345", pct: 1.87, clickable: true },
-  { sym: "SUNPHARMA", price: "1,712", pct: 1.23, clickable: true },
-  { sym: "TITAN", price: "3,521", pct: 0.66, clickable: true },
-  { sym: "ULTRACEMCO", price: "10,567", pct: -0.85, clickable: true },
-  { sym: "BAJFINANCE", price: "7,234", pct: 1.34, clickable: true },
-];
-
-const MARKET_TILES = [
-  { label: "NIFTY 50", value: "23,847.20", delta: "+68.20", pct: "+0.29%", up: true },
-  { label: "SENSEX", value: "79,118.45", delta: "+312.15", pct: "+0.40%", up: true },
-  { label: "BANKNIFTY", value: "51,432.10", delta: "+570.45", pct: "+1.12%", up: true },
-  { label: "USD/INR", value: "84.32", delta: "-0.12", pct: "-0.14%", up: false },
-  { label: "GOLD", value: "74,580", delta: "+320", pct: "+0.43%", up: true },
-  { label: "CRUDE", value: "78.45", delta: "-0.85", pct: "-1.07%", up: false },
-];
-
-const FEATURES = [
-  {
-    num: "01",
-    icon: Radio,
-    title: "Live tick stream",
-    desc: "Angel One SmartAPI WebSocket. Sub-second quotes, no polling.",
-  },
-  {
-    num: "02",
-    icon: Database,
-    title: "20 years of history",
-    desc: "Yahoo Finance backfill. 1M to ALL-time candles for every NSE stock.",
-  },
-  {
-    num: "03",
-    icon: ShieldCheck,
-    title: "Paper execution",
-    desc: "Real fills on live ticks. Live gate stays closed until you say so.",
-  },
-  {
-    num: "04",
-    icon: Cpu,
-    title: "5 strategies",
-    desc: "EMA, RSI, VWAP, MACD, BB. C++17 indicators, sub-ms compute.",
-  },
-  {
-    num: "05",
-    icon: Bell,
-    title: "BSE bell",
-    desc: "Audio cues at open, close, halt. The floor comes alive.",
-  },
-  {
-    num: "06",
-    icon: Lock,
-    title: "Read-only broker",
-    desc: "Connect Angel One to see real positions, never place real orders.",
-  },
-];
-
-const WATCHLIST = [
-  { sym: "RELIANCE", price: "2,914.20", pct: "+1.24%", up: true },
-  { sym: "SBIN", price: "824.50", pct: "+0.68%", up: true },
-  { sym: "HDFCBANK", price: "1,623.00", pct: "-0.33%", up: false },
-  { sym: "INFY", price: "1,567.85", pct: "+2.11%", up: true },
-  { sym: "TCS", price: "3,824.10", pct: "-0.43%", up: false },
-];
-
-/* ----------------------------- ICONS ----------------------------- */
-
-function BSEBell({ size = 28, color = "var(--gold)" }: { size?: number; color?: string }) {
+function LiveTickerCell({ symbol, price }: { symbol: string; price: number }) {
+  const { price: p, dir, tick } = useLivePrice(price, { volatility: 0.0008, interval: 1400 });
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 3.5C9.5 3.5 7.5 5.5 7.5 8v5.5C7.5 14.5 6.5 15.5 5.5 16h13C17.5 15.5 16.5 14.5 16.5 13.5V8c0-2.5-2-4.5-4.5-4.5z"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <path d="M5 17.5h14" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <path
-        d="M9 20.5h6"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 2v1.5"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className="flex items-center gap-2 px-5 text-xs">
+      <span className="font-semibold tracking-wide">{symbol}</span>
+      <span key={tick} className={`font-mono tabular text-foreground rounded-sm px-1 ${dir === "up" ? "flash-bull" : dir === "down" ? "flash-bear" : ""}`}>
+        {p.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+      </span>
+      <span className={`font-mono tabular text-[10px] ${dir === "up" ? "text-bull" : dir === "down" ? "text-bear" : "text-muted-foreground"}`}>
+        {dir === "up" ? "▲" : dir === "down" ? "▼" : "▬"}
+      </span>
+    </div>
   );
 }
 
-/* ----------------------------- 3D CHART ----------------------------- */
-
-type Candle = {
-  open: number;
-  close: number;
-  high: number;
-  low: number;
-  up: boolean;
-};
-
-function buildCandles(n: number, seed: number): Candle[] {
-  // simple deterministic PRNG
-  let s = seed;
-  const rand = () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-  const candles: Candle[] = [];
-  let prev = 100;
-  for (let i = 0; i < n; i++) {
-    const open = prev;
-    const drift = (rand() - 0.45) * 4;
-    const close = Math.max(20, open + drift);
-    const range = 2 + rand() * 6;
-    const high = Math.max(open, close) + rand() * range;
-    const low = Math.min(open, close) - rand() * range;
-    candles.push({ open, close, high, low, up: close >= open });
-    prev = close;
-  }
-  return candles;
-}
-
-function CandleGroup({ candles }: { candles: Candle[] }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((_, delta) => {
-    if (ref.current) {
-      ref.current.rotation.y += delta * 0.05;
-    }
-  });
-
-  const spacing = 0.32;
-  const startX = -((candles.length - 1) * spacing) / 2;
-  const green = new THREE.Color("#26A69A");
-  const red = new THREE.Color("#EF5350");
-
+function IndexCard({ symbol, basePrice, changePct }: { symbol: string; basePrice: number; changePct: number }) {
+  const { price, dir } = useLivePrice(basePrice, { volatility: 0.0006, interval: 1600 });
+  const positive = changePct >= 0;
   return (
-    <group ref={ref}>
-      {candles.map((c, i) => {
-        const x = startX + i * spacing;
-        // Each candle: scale its own (open,close,high,low) into a 0..1 range,
-        // then map to 0..1.4 units tall. bodyH then wickH are candle-specific.
-        const rng = c.high - c.low + 0.0001;
-        const bodyTop = 0.7 * (Math.max(c.open, c.close) - c.low) / rng;
-        const bodyBot = 0.7 * (Math.min(c.open, c.close) - c.low) / rng;
-        const wickTop = 0.7 * (c.high - c.low) / rng;
-        const wickBot = 0.0;
-        const bodyMid = (bodyTop + bodyBot) / 2;
-        const bodyH = Math.max(0.05, bodyTop - bodyBot);
-        const wickMid = (wickTop + wickBot) / 2;
-        const wickH = Math.max(0.05, wickTop - wickBot);
-        const color = c.up ? green : red;
-        return (
-          <group key={i} position={[x, -0.7, 0]}>
-            {/* wick */}
-            <mesh position={[0, wickMid, 0]}>
-              <boxGeometry args={[0.04, wickH, 0.04]} />
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={0.5}
-                metalness={0.3}
-                roughness={0.6}
-              />
-            </mesh>
-            {/* body */}
-            <mesh position={[0, bodyMid, 0]}>
-              <boxGeometry args={[0.22, bodyH, 0.22]} />
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={0.5}
-                metalness={0.3}
-                roughness={0.6}
-              />
-            </mesh>
-          </group>
-        );
-      })}
-      {/* floor plane */}
-      <mesh position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#0E1219" metalness={0.1} roughness={0.95} />
-      </mesh>
-    </group>
-  );
-}
-
-function Chart3D() {
-  const candles = useMemo(() => buildCandles(50, 42), []);
-  return (
-    <Canvas
-      camera={{ position: [0, 4, 14], fov: 50 }}
-      gl={{ antialias: true, alpha: false }}
-      dpr={[1, 1.5]}
-    >
-      <color attach="background" args={["#0B0E14"]} />
-      <ambientLight intensity={0.9} />
-      <pointLight
-        position={[5, 6, 5]}
-        intensity={2.0}
-        color="#FFB300"
-        distance={30}
-      />
-      <pointLight
-        position={[-5, 2, -3]}
-        intensity={0.8}
-        color="#2962FF"
-        distance={20}
-      />
-      <directionalLight position={[3, 8, 3]} intensity={0.8} />
-      <group rotation={[0.35, 0, 0]} position={[0, 0, 0]}>
-        <CandleGroup candles={candles} />
-      </group>
-    </Canvas>
-  );
-}
-
-/* ----------------------------- PIECES ----------------------------- */
-
-function Navbar() {
-  // IST market open: 09:15 - 15:30 weekdays
-  const [marketOpen, setMarketOpen] = useState(false);
-  useEffect(() => {
-    const check = () => {
-      // Get current UTC time, then convert to IST (UTC+5:30)
-      const now = new Date();
-      const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
-      const istMin = (utcMin + 330) % 1440; // wrap 24h
-      const day = now.getUTCDay(); // 0 Sun, 6 Sat
-      const isWeekday = day >= 1 && day <= 5;
-      // 09:15 = 555, 15:30 = 930
-      setMarketOpen(isWeekday && istMin >= 555 && istMin < 930);
-    };
-    check();
-    const t = setInterval(check, 60_000);
-    return () => clearInterval(t);
-  }, []);
-
-  return (
-    <header className="tvp-nav">
-      <div className="tvp-nav-inner">
-        <Link href="/" className="tvp-brand">
-          <BSEBell size={28} color="var(--gold)" />
-          <span className="tvp-brand-name">MAET</span>
-        </Link>
-        <nav className="tvp-nav-links" aria-label="Primary">
-          <Link className="tvp-nav-link" href="/markets">Markets</Link>
-          <Link className="tvp-nav-link" href="/screener">Screener</Link>
-          <a className="tvp-nav-link" href="/terminal">Strategies</a>
-          <a className="tvp-nav-link" href="/terminal">Backtest</a>
-          <a className="tvp-nav-link" href="/docs">Docs</a>
-        </nav>
-        <div className="tvp-nav-right">
-          {marketOpen && (
-            <span className="tvp-pill tvp-pill-live">
-              <span className="tvp-pulse-dot" />
-              MARKETS OPEN
-            </span>
-          )}
-          <span className="tvp-pill tvp-pill-paper">PAPER MODE</span>
-          <a className="tvp-login" href="/terminal">Login</a>
-        </div>
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-panel/60 px-4 py-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{symbol}</span>
+        <span className={`h-1.5 w-1.5 rounded-full ${dir === "up" ? "bg-bull" : dir === "down" ? "bg-bear" : "bg-muted-foreground"} ${dir !== "flat" ? "animate-pulse" : ""}`} />
       </div>
-    </header>
-  );
-}
-
-function TickerBar() {
-  // duplicate the list so the loop is seamless
-  const loop = [...TICKER, ...TICKER];
-  return (
-    <div className="tvp-ticker" aria-label="Live ticker of NSE stocks">
-      <div className="tvp-ticker-track">
-        {loop.map((t, i) => (
-          <Link
-            key={i}
-            href={t.clickable ? `/stocks/${encodeURIComponent(t.sym)}` : '#'}
-            className="tvp-ticker-item"
-            style={{ textDecoration: 'none', cursor: t.clickable ? 'pointer' : 'default' }}
-          >
-            <span className="tvp-ticker-symbol">{t.sym}</span>
-            <span className="tvp-ticker-price">₹{t.price}</span>
-            <span className={t.pct >= 0 ? "tvp-ticker-up" : "tvp-ticker-down"}>
-              {t.pct >= 0 ? "▲" : "▼"}
-              {Math.abs(t.pct).toFixed(2)}%
-            </span>
-          </Link>
-        ))}
+      <div className="mt-1 font-mono tabular text-lg font-semibold">
+        {price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+      </div>
+      <div className={`font-mono tabular text-[11px] ${positive ? "text-bull" : "text-bear"}`}>
+        {positive ? "+" : ""}{changePct.toFixed(2)}%
       </div>
     </div>
   );
 }
 
-function Hero() {
+export default function LandingPage() {
   return (
-    <section className="tvp-hero">
-      <div className="tvp-hero-left">
-        <span className="tvp-eyebrow">
-          BSE / NSE TERMINAL · PAPER TRADING
-        </span>
-        <h1 className="tvp-h1">
-          The trading floor
-          <br />
-          for the algorithmic age.
-        </h1>
-        <p className="tvp-sub">
-          Real Angel One SmartAPI ticks. 20 years of Yahoo Finance history.
-          Paper execution that respects the live gate.
-        </p>
-        <div className="tvp-cta-row">
-          <Link href="/terminal" className="tvp-cta-primary">
-            Open Terminal →
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Nav — single Open Terminal button lives here */}
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-7xl items-center px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-md surface-2">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square">
+                <path d="M3 19 L8 9 L13 14 L21 4" className="text-primary" />
+                <path d="M15 4 L21 4 L21 10" className="text-primary" />
+              </svg>
+            </div>
+            <div className="leading-none">
+              <div className="text-[15px] font-semibold tracking-[0.18em]">MAET</div>
+              <div className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground">Market · Edge · Terminal</div>
+            </div>
           </Link>
-        </div>
-      </div>
-      <div className="tvp-hero-right">
-        <div className="tvp-chart-frame">
-          <Chart3D />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MarketStrip() {
-  return (
-    <section className="tvp-market-strip" aria-label="Live market summary">
-      {MARKET_TILES.map((tile) => (
-        <div key={tile.label} className="tvp-market-tile">
-          <span className="tvp-market-label">{tile.label}</span>
-          <span className="tvp-market-value">₹{tile.value}</span>
-          <span
-            className={`tvp-market-delta ${tile.up ? "tvp-ticker-up" : "tvp-ticker-down"}`}
-          >
-            {tile.up ? "▲" : "▼"} {tile.delta} {tile.pct}
-          </span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function FeatureGrid() {
-  return (
-    <section className="tvp-features" aria-label="Features">
-      {FEATURES.map((f) => {
-        const Icon = f.icon;
-        return (
-          <div key={f.num} className="tvp-feature-cell">
-            <span className="tvp-feature-num">{f.num}</span>
-            <span className="tvp-feature-icon">
-              <Icon size={16} strokeWidth={1.5} />
-            </span>
-            <h3 className="tvp-feature-title">{f.title}</h3>
-            <p className="tvp-feature-desc">{f.desc}</p>
+          <nav className="ml-12 hidden gap-7 text-sm text-muted-foreground md:flex">
+            <a className="hover:text-foreground" href="#scanner">Scanner</a>
+            <a className="hover:text-foreground" href="#heatmap">Heatmap</a>
+            <a className="hover:text-foreground" href="#paper">Paper trading</a>
+            <a className="hover:text-foreground" href="#lab">Strategy lab</a>
+          </nav>
+          <div className="ml-auto flex items-center gap-2">
+            <a
+              href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
+              target="_blank"
+              rel="noreferrer"
+              className="hidden items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground md:flex"
+            >
+              <Github className="h-3.5 w-3.5" /> Source
+            </a>
+            <Link
+              href="/terminal"
+              className="group flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-95"
+            >
+              Open terminal <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
           </div>
-        );
-      })}
-    </section>
-  );
-}
-
-function TerminalPreview() {
-  // CSS-only candles: 6 candles, varied green/red
-  const candles = [
-    { h: 70, wick: 18, up: false },
-    { h: 90, wick: 22, up: true },
-    { h: 60, wick: 14, up: false },
-    { h: 110, wick: 26, up: true },
-    { h: 80, wick: 18, up: true },
-    { h: 130, wick: 30, up: true },
-  ];
-  const volumes = [40, 70, 30, 60, 80, 50];
-  return (
-    <section className="tvp-terminal-section">
-      <span className="tvp-section-eyebrow">BUILT FOR SPEED</span>
-      <h2 className="tvp-section-title">Every pixel earns its place.</h2>
-      <p className="tvp-section-sub">
-        Bloomberg density. TradingView polish. Zero bloat.
-      </p>
-      <div className="tvp-terminal-frame">
-        <div className="tvp-terminal-topbar">
-          MAET Terminal · PAPER MODE · 13:19:08 IST
         </div>
-        <div className="tvp-terminal-body">
-          <div className="tvp-terminal-left">
-            <div className="tvp-terminal-candles">
-              {candles.map((c, i) => (
-                <div
-                  key={i}
-                  className="tvp-candle"
-                  style={{
-                    color: c.up ? "var(--green)" : "var(--red)",
-                  }}
-                >
-                  <div
-                    className="tvp-candle-wick"
-                    style={{ height: `${c.wick}px` }}
-                  />
-                  <div
-                    className="tvp-candle-body"
-                    style={{ height: `${c.h}px` }}
-                  />
+      </header>
+
+      {/* Live ticker */}
+      <div className="border-b border-border bg-panel/80 overflow-hidden">
+        <div className="flex ticker-scroll whitespace-nowrap py-2">
+          {[...WATCHLIST, ...WATCHLIST].map((w, i) => (
+            <LiveTickerCell key={i} symbol={w.symbol} price={w.price} />
+          ))}
+        </div>
+      </div>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 mesh-bg" />
+        <div className="absolute inset-0 grid-overlay" />
+        <div className="absolute inset-0 noise-overlay opacity-50" />
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 pt-20 pb-24 lg:grid-cols-[1.05fr_1fr]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-panel/70 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inset-0 animate-ping rounded-full bg-bull/70" />
+                <span className="relative h-1.5 w-1.5 rounded-full bg-bull" />
+              </span>
+              <span className="font-mono tabular">NSE · BSE · MCX</span>
+              <span className="text-muted-foreground/60">/</span>
+              <span>Research terminal — not a broker</span>
+            </div>
+
+            <h1 className="mt-6 font-serif text-[clamp(2.6rem,7vw,5.5rem)] leading-[1.02] tracking-[-0.02em]">
+              Scan the market.
+              <br />
+              Chart it. <em className="text-primary not-italic font-serif italic">Paper-trade</em>
+              <br />
+              before you risk it.
+            </h1>
+
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground">
+              MAET is a research terminal for Indian equities — a scanner, a tick-grade chart,
+              a paper-trading desk, and a strategy lab. No order routing, no broker integration,
+              no real money. Just the workspace you wish you had while studying the market.
+            </p>
+
+            {/* Quick links — secondary, not duplicate CTAs */}
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <a href="#scanner" className="inline-flex items-center gap-1 hover:text-foreground">
+                <Table2 className="h-3.5 w-3.5 text-primary" /> Browse the scanner
+              </a>
+              <span className="text-border">·</span>
+              <a href="#paper" className="inline-flex items-center gap-1 hover:text-foreground">
+                <Activity className="h-3.5 w-3.5 text-primary" /> Paper trading
+              </a>
+              <span className="text-border">·</span>
+              <a href="#lab" className="inline-flex items-center gap-1 hover:text-foreground">
+                <FlaskConical className="h-3.5 w-3.5 text-primary" /> Strategy lab
+              </a>
+            </div>
+
+            {/* Honest meta strip — no fake metrics */}
+            <div className="mt-12 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border">
+              <div className="bg-panel/80 px-4 py-3">
+                <div className="font-mono tabular text-foreground text-base font-semibold">NSE · BSE</div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">coverage</div>
+              </div>
+              <div className="bg-panel/80 px-4 py-3">
+                <div className="font-mono tabular text-foreground text-base font-semibold">Paper only</div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">no real orders</div>
+              </div>
+              <div className="bg-panel/80 px-4 py-3">
+                <div className="font-mono tabular text-foreground text-base font-semibold">Open source</div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">MIT licensed</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D chart card */}
+          <div className="relative">
+            <TiltCard className="relative" max={10}>
+              <div className="tilt-layer rounded-2xl border border-border bg-panel/95 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)] backdrop-blur-xl" style={{ ["--z" as string]: "0px" }}>
+                <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                  <div className="flex items-baseline gap-2.5">
+                    <div className="font-semibold tracking-tight">RELIANCE</div>
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">NSE · Equity</div>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono tabular font-semibold">2,945.30</span>
+                    <span className="font-mono tabular text-xs text-bull">+1.10%</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="tvp-terminal-volumes">
-              {volumes.map((v, i) => (
-                <div
-                  key={i}
-                  className="tvp-volume-bar"
-                  style={{ height: `${v}%` }}
-                />
-              ))}
+                <div className="flex items-center gap-1 border-b border-border px-3 py-1.5 text-[11px]">
+                  {["1m", "5m", "15m", "1h", "1D"].map((i, idx) => (
+                    <span key={i} className={`rounded px-2 py-0.5 ${idx === 1 ? "bg-accent text-foreground" : "text-muted-foreground"}`}>{i}</span>
+                  ))}
+                  <span className="ml-auto flex items-center gap-1 text-[10px] text-bull">
+                    <span className="relative flex h-1.5 w-1.5"><span className="absolute inset-0 animate-ping rounded-full bg-bull/70" /><span className="relative h-1.5 w-1.5 rounded-full bg-bull" /></span>
+                    Simulated feed
+                  </span>
+                </div>
+                <div className="px-1">
+                  <LiveMiniChart seed={2945} height={260} />
+                </div>
+                <div className="grid grid-cols-4 gap-px border-t border-border bg-border text-xs">
+                  {[
+                    { l: "Open", v: "2,913.15" },
+                    { l: "High", v: "2,958.40", c: "text-bull" },
+                    { l: "Low", v: "2,902.80", c: "text-bear" },
+                    { l: "Vol", v: "4.2M" },
+                  ].map((s) => (
+                    <div key={s.l} className="bg-panel px-3 py-2">
+                      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{s.l}</div>
+                      <div className={`font-mono tabular ${s.c ?? ""}`}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TiltCard>
+
+            {/* floating depth meter */}
+            <div className="absolute -left-6 -bottom-8 hidden w-60 float-y lg:block">
+              <TiltCard max={6}>
+                <DepthMeter />
+              </TiltCard>
             </div>
           </div>
-          <div className="tvp-terminal-right">
-            <span className="tvp-watchlist-label">WATCHLIST</span>
-            {WATCHLIST.map((row) => (
-              <div key={row.sym} className="tvp-watchlist-row">
-                <span className="tvp-watchlist-symbol">{row.sym}</span>
-                <span className="tvp-watchlist-price">{row.price}</span>
-                <span
-                  className={row.up ? "tvp-ticker-up" : "tvp-ticker-down"}
-                >
-                  {row.pct}
-                </span>
+        </div>
+      </section>
+
+      {/* Live indices strip */}
+      <section id="scanner" className="border-y border-border bg-panel/30">
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="mb-5 flex items-end justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-primary">Scanner</div>
+              <h2 className="mt-1 font-serif text-2xl tracking-tight md:text-3xl">Indices &amp; sectors at a glance.</h2>
+            </div>
+            <div className="font-mono tabular text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Simulated · 1s tick
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            {INDICES.map((i) => (
+              <IndexCard key={i.symbol} symbol={i.symbol} basePrice={i.price} changePct={i.changePct} />
+            ))}
+          </div>
+          <div className="mt-6"><SectorStrip /></div>
+        </div>
+      </section>
+
+      {/* Heatmap + breadth + flows */}
+      <section id="heatmap" className="border-b border-border">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="mb-8 grid items-end gap-4 md:grid-cols-[1fr_auto]">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-primary">Heatmap</div>
+              <h2 className="mt-2 font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-5xl">
+                NIFTY 50 — <em className="italic text-muted-foreground/80">by weight &amp; flow.</em>
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Treemap shaded by intraday change. Breadth and flows are simulated for research purposes.
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+            <TiltCard max={4}>
+              <div className="rounded-xl border border-border surface-1 p-3 shimmer-line">
+                <div className="mb-2 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span>NIFTY 50 · weighted</span>
+                  <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-bear/80" /> -3%</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-bull/80" /> +3%</span>
+                  </span>
+                </div>
+                <Loadable delay={700} skeleton={<ChartSkeleton height={360} />}>
+                  <MarketHeatmap height={360} />
+                </Loadable>
+              </div>
+            </TiltCard>
+            <div className="grid gap-4">
+              <Loadable delay={900} skeleton={<div className="rounded-lg border border-border bg-panel p-5 space-y-3"><Skel w={140} h={10} /><Skel w="100%" h={120} /><Skel w="100%" h={6} /><div className="flex justify-between"><Skel w={50} h={10} /><Skel w={50} h={10} /></div></div>}>
+                <BreadthGauge />
+              </Loadable>
+              <Loadable delay={1100} skeleton={<div className="rounded-lg border border-border bg-panel p-5"><Skel w={120} h={10} className="mb-4" /><RowsSkeleton rows={4} /></div>}>
+                <FlowsWidget />
+              </Loadable>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Paper trading workspace */}
+      <section id="paper" className="mx-auto max-w-7xl px-6 py-24">
+        <div className="grid items-start gap-12 lg:grid-cols-[1fr_1.1fr]">
+          <div className="sticky top-24">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-primary">Paper trading</div>
+            <h2 className="mt-2 font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-5xl">
+              Practice the desk. <em className="text-muted-foreground/80 italic">Risk nothing.</em>
+            </h2>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
+              A simulated order book, simulated tape, and a play-money P&amp;L. Place buys and sells against
+              a synthetic feed and watch fills, slippage, and book impact behave the way live ones do.
+              Nothing leaves the browser — there is no broker behind this.
+            </p>
+
+            <ul className="mt-7 space-y-3 text-sm">
+              {[
+                ["Synthetic L2 book", "10-level depth with realistic spread and refresh."],
+                ["Tape replay", "Trade-by-trade tape so you learn to read prints, not just candles."],
+                ["Play-money P&L", "Reset any time. Position size, stop, target — all paper."],
+                ["Keyboard-first", "B / S to ticket, ⌘K to jump symbols, Esc to cancel."],
+              ].map(([t, d]) => (
+                <li key={t} className="flex gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <div>
+                    <div className="font-medium">{t}</div>
+                    <div className="text-muted-foreground">{d}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TiltCard max={5} className="sm:col-span-2">
+              <LiveTape rows={10} />
+            </TiltCard>
+            <TiltCard max={5}><DepthMeter /></TiltCard>
+            <div className="rounded-md border border-border bg-panel/70 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Paper P&amp;L</div>
+                <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">simulated</span>
+              </div>
+              <div className="mt-1 font-mono tabular text-3xl font-semibold text-bull">+₹1,738.50</div>
+              <div className="mt-1 font-mono tabular text-[11px] text-muted-foreground">4 open · 12 today · session resets daily</div>
+              <div className="mt-4 h-20"><LiveMiniChart seed={100} height={80} /></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Strategy lab — replaces "engine" / "deploy" marketing */}
+      <section id="lab" className="border-t border-border bg-panel/30">
+        <div className="mx-auto max-w-7xl px-6 py-24">
+          <div className="mb-12 grid items-end gap-6 md:grid-cols-[1fr_auto]">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-primary">Strategy lab</div>
+              <h2 className="mt-2 font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-5xl">
+                Prototype an idea. <em className="italic">See it on paper.</em>
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              A sandbox to sketch a rule-set, replay it on historical candles, and run it forward against
+              the paper desk. No deployment to brokers — this is a research tool.
+            </p>
+          </div>
+
+          <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+            {[
+              { icon: LineChart, t: "Tick-grade charts", d: "Candles, indicators, drawing tools, multi-timeframe. Built for reading, not for screenshots." },
+              { icon: Table2, t: "Stock screener", d: "Filter NSE/BSE universe by fundamentals, momentum, breadth and your own derived columns." },
+              { icon: FlaskConical, t: "Historical replay", d: "Step through past sessions candle-by-candle and watch your rules trigger as the day unfolds." },
+              { icon: Activity, t: "Paper execution", d: "Promote a rule-set to the paper desk and let it ticket against the simulated feed." },
+              { icon: Layers, t: "Versioned ideas", d: "Every tweak is its own revision. Compare equity curves side-by-side, keep the one that holds up." },
+              { icon: Keyboard, t: "Keyboard-first UX", d: "Roving focus across screener rows, hotkeys in the terminal — TradingView-style ergonomics." },
+            ].map((f) => (
+              <div key={f.t} className="group relative bg-panel p-7 transition hover:bg-panel-elevated">
+                <f.icon className="h-5 w-5 text-primary" />
+                <div className="mt-5 font-medium tracking-tight">{f.t}</div>
+                <div className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.d}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function Footer() {
-  return (
-    <footer className="tvp-footer">
-      <div className="tvp-footer-cols">
-        <div className="tvp-footer-col">
-          <div className="tvp-footer-brand">
-            <BSEBell size={24} color="var(--gold)" />
-            <span className="tvp-brand-name">MAET</span>
-          </div>
-          <p className="tvp-footer-meta">
-            Paper workspace · Not SEBI registered
+      {/* Markets coverage — honest, no CTA */}
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mb-8">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-primary">Coverage</div>
+          <h2 className="mt-2 font-serif text-3xl tracking-tight md:text-4xl">Symbols you can study today.</h2>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Universe loaded from public NSE / BSE listings. Live quotes are simulated in the demo; bring
+            your own data adapter to wire a real feed.
           </p>
-          <p className="tvp-footer-meta">© 2026 Tanmay · VIT Bhopal</p>
         </div>
-        <div className="tvp-footer-col">
-          <span className="tvp-footer-head">Product</span>
-          <a className="tvp-footer-link" href="/terminal">Terminal</a>
-          <a className="tvp-footer-link" href="/screener">Screener</a>
-          <a className="tvp-footer-link" href="/terminal">Strategies</a>
-          <a className="tvp-footer-link" href="/terminal">Backtest</a>
-          <a className="tvp-footer-link" href="/terminal">AI Notes</a>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 lg:grid-cols-6">
+          {["NSE Equity", "BSE Equity", "NSE F&O", "BSE F&O", "Currency", "MCX Commodity"].map((m) => (
+            <div key={m} className="bg-panel px-4 py-6 text-center text-sm tracking-tight">{m}</div>
+          ))}
         </div>
-        <div className="tvp-footer-col">
-          <span className="tvp-footer-head">Connect</span>
-          <a
-            className="tvp-footer-link"
-            href="https://github.com/tanmay-alpha/indian-algo-trading-platform"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-          </a>
-          <a
-            className="tvp-footer-link"
-            href="https://x.com/TanmayEquity"
-            target="_blank"
-            rel="noreferrer"
-          >
-            X @TanmayEquity
-          </a>
-          <a className="tvp-footer-link" href="#">Discord</a>
-          <a className="tvp-footer-link" href="#">Email</a>
-        </div>
-      </div>
-      <div className="tvp-footer-strip">
-        This is not financial advice. Paper trading only. SEBI registration not claimed.
-      </div>
-    </footer>
-  );
-}
+      </section>
 
-/* ----------------------------- PAGE ----------------------------- */
+      {/* Closing band — no extra button, points to the only CTA above */}
+      <section className="border-t border-border">
+        <div className="relative mx-auto max-w-7xl overflow-hidden px-6 py-20">
+          <div className="absolute inset-0 mesh-bg opacity-60" />
+          <div className="relative">
+            <h2 className="font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-5xl">
+              Scan. Read. <em className="italic text-primary">Rehearse.</em>
+            </h2>
+            <p className="mt-4 max-w-xl text-sm text-muted-foreground">
+              The terminal lives one click away — top right of every page. There is only one door in,
+              on purpose.
+            </p>
+          </div>
+        </div>
+      </section>
 
-export default function LandingPage() {
-  return (
-    <main className="tvp-page">
-      <Navbar />
-      <LiveTicker />
-      <Hero />
-      <MarketStrip />
-      <FeatureGrid />
-      <TerminalPreview />
-      <Footer />
-    </main>
+      {/* Footer */}
+      <footer className="border-t border-border bg-panel/50">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 py-10 text-xs text-muted-foreground md:flex-row md:items-center">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded surface-2">
+                <svg viewBox="0 0 24 24" className="h-3 w-3 text-primary" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="square">
+                  <path d="M3 19 L8 9 L13 14 L21 4" />
+                  <path d="M15 4 L21 4 L21 10" />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold tracking-[0.18em] text-foreground">MAET</span>
+              <span className="text-muted-foreground">— © 2026.</span>
+            </div>
+            <span className="max-w-2xl text-muted-foreground/80">
+              Research &amp; education tool. Not a broker, not investment advice, and not a SEBI-registered
+              intermediary. All quotes shown in the demo are simulated.
+            </span>
+          </div>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-foreground">Docs</a>
+            <a href="#" className="hover:text-foreground">API</a>
+            <a href="#" className="hover:text-foreground">Status</a>
+            <a href="#" className="hover:text-foreground">Privacy</a>
+            <a href="https://github.com/tanmay-alpha/indian-algo-trading-platform" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

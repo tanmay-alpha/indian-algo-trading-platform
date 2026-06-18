@@ -19,6 +19,48 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Lovable/shadcn-style tokens (CSS vars defined in :root in globals.css).
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        'panel-elevated': 'var(--panel-elevated)',
+        bull: 'var(--bull)',
+        'bull-candle': 'var(--bull-candle)',
+        bear: 'var(--bear)',
+        'bear-candle': 'var(--bear-candle)',
+        grid: 'var(--grid)',
+        sidebar: {
+          DEFAULT: 'var(--sidebar)',
+          foreground: 'var(--sidebar-foreground)',
+          primary: 'var(--sidebar-primary)',
+          'primary-foreground': 'var(--sidebar-primary-foreground)',
+          accent: 'var(--sidebar-accent)',
+          'accent-foreground': 'var(--sidebar-accent-foreground)',
+          border: 'var(--sidebar-border)',
+          ring: 'var(--sidebar-ring)',
+        },
+
         // Depth-first precision palette (overrides existing aliases).
         void: '#080A10',
         base: 'var(--color-base)',
@@ -31,8 +73,6 @@ module.exports = {
           DEFAULT: '#F0C040',
           bright: '#FFD700',
         },
-        bull: '#4ADE80',
-        bear: '#F87171',
         parchment: '#E8E6DF',
         border: {
           DEFAULT: 'var(--color-border)',
@@ -108,6 +148,7 @@ module.exports = {
       fontFamily: {
         mono: ["var(--font-mono, 'JetBrains Mono')", "'Roboto Mono'", 'monospace'],
         sans: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
+        serif: ['"Instrument Serif"', '"Source Serif Pro"', 'Georgia', 'serif'],
         heading: ["var(--font-sans, 'Inter')", 'system-ui', 'sans-serif'],
         data: ['"JetBrains Mono"', '"Roboto Mono"', 'monospace'],
       },
@@ -164,5 +205,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 }

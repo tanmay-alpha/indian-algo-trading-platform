@@ -1,31 +1,32 @@
-import type { ReactNode } from 'react'
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-type BadgeVariant = 'paper' | 'up' | 'dn' | 'warn' | 'muted'
+import { cn } from "@/lib/utils";
 
-interface BadgeProps {
-  children: ReactNode
-  variant?: BadgeVariant
-  className?: string
+const badgeVariants = cva(
+  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default: "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
+
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-const variants: Record<BadgeVariant, string> = {
-  paper: 'border border-accent/35 bg-accent-dim text-accent',
-  up: 'border border-up/30 bg-up-dim text-up',
-  dn: 'border border-dn/30 bg-dn-dim text-dn',
-  warn: 'border border-warn/35 bg-warn-dim text-warn',
-  muted: 'border border-border bg-surface text-text-muted',
-}
-
-export function Badge({ children, variant = 'paper', className = '' }: BadgeProps) {
-  return (
-    <span
-      className={[
-        'inline-flex items-center rounded px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide',
-        variants[variant],
-        className,
-      ].filter(Boolean).join(' ')}
-    >
-      {children}
-    </span>
-  )
-}
+export { Badge, badgeVariants };
