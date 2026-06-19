@@ -6,13 +6,35 @@ import { OrderPanel } from "@/components/trading/order-panel";
 import { CandlestickChart } from "@/components/trading/candlestick-chart";
 import { generateCandles, WATCHLIST, POSITIONS } from "@/lib/mock-data";
 
-const INTERVALS = ["1m", "5m", "15m", "1h", "1D", "1W"];
+const INTERVALS = ["1m", "5m", "15m", "1h", "1D", "1W"] as const;
+type Interval = (typeof INTERVALS)[number];
+
+// Map selected interval to milliseconds per candle — used by the chart tooltip
+// so axis labels are correct (1D candles show day/hour, 1m shows HH:MM).
+const INTERVAL_MS: Record<Interval, number> = {
+  "1m": 60_000,
+  "5m": 5 * 60_000,
+  "15m": 15 * 60_000,
+  "1h": 60 * 60_000,
+  "1D": 24 * 60 * 60_000,
+  "1W": 7 * 24 * 60 * 60_000,
+};
 
 export default function TerminalPage() {
   const [active, setActive] = useState("RELIANCE");
-  const [interval, setInterval] = useState("5m");
-  const current = WATCHLIST.find((w) => w.symbol === active)!;
-  const candles = useMemo(() => generateCandles(120, current.price - 20), [active, interval]);
+  const [chartInterval, setChartInterval] = useState<Interval>("5m");
+  // Safe lookup: fall back to the first WATCHLIST entry if `active` is somehow
+  // not in the list (e.g. a deep link to a delisted symbol). Avoids the
+  // `find(...)!` non-null crash.
+  const current = WATCHLIST.find((w) => w.symbol === active) ?? WATCHLIST[0];
+  const candles = useMemo(
+    () => generateCandles(120, current.price - 20, INTERVAL_MS[chartInterval]),
+    // `current` is derived from `active`, so listing `active` is enough; the
+    // eslint rule allows us to omit `current` since we re-derive it from
+    // `active` inside the same render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [active, chartInterval],
+  );
 
   return (
     <div className="grid h-[calc(100vh-7rem)] grid-cols-[260px_1fr_260px]">
@@ -34,7 +56,7 @@ export default function TerminalPage() {
 
         <div className="flex items-center gap-1 border-b border-border bg-panel px-3 py-1.5 text-xs">
           {INTERVALS.map((i) => (
-            <button key={i} onClick={() => setInterval(i)} className={`rounded px-2 py-1 ${interval === i ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{i}</button>
+            <button key={i} onClick={() => setChartInterval(i)} className={`rounded px-2 py-1 ${chartInterval === i ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{i}</button>
           ))}
           <div className="mx-2 h-4 w-px bg-border" />
           {["Candles", "Line", "Area"].map((t, idx) => (
@@ -53,7 +75,7 @@ export default function TerminalPage() {
         </div>
 
         <div className="flex-1 overflow-hidden">
-          <CandlestickChart data={candles} height={420} />
+          <CandlestickChart data={candles} height={420} intervalMs={INTERVAL_MS[chartInterval]} />
         </div>
 
         <div className="border-t border-border bg-panel">

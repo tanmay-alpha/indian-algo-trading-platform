@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Activity, FlaskConical, Table2, LineChart, Layers, Github, Keyboard } from "lucide-react";
 import { INDICES, WATCHLIST } from "@/lib/mock-data";
@@ -14,18 +15,62 @@ import { FlowsWidget } from "@/components/trading/flows-widget";
 import { SectorStrip } from "@/components/trading/sector-strip";
 import { Loadable, ChartSkeleton, RowsSkeleton, Skel } from "@/components/trading/skeleton";
 
-function LiveTickerCell({ symbol, price }: { symbol: string; price: number }) {
-  const { price: p, dir, tick } = useLivePrice(price, { volatility: 0.0008, interval: 1400 });
+// Pure presentation — the parent passes already-computed live values, so the
+// two duplicated cells in the marquee scroll are guaranteed to show the
+// same number for the same symbol. (Previously the hook lived inside the
+// cell, so each duplicate had its own setInterval and showed drifting
+// prices.)
+function TickerSymbolRow({
+  symbol,
+  price,
+  dir,
+  tick,
+}: {
+  symbol: string;
+  price: number;
+  dir: "up" | "down" | "flat";
+  tick: number;
+}) {
   return (
     <div className="flex items-center gap-2 px-5 text-xs">
       <span className="font-semibold tracking-wide">{symbol}</span>
       <span key={tick} className={`font-mono tabular text-foreground rounded-sm px-1 ${dir === "up" ? "flash-bull" : dir === "down" ? "flash-bear" : ""}`}>
-        {p.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+        {price.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
       </span>
       <span className={`font-mono tabular text-[10px] ${dir === "up" ? "text-bull" : dir === "down" ? "text-bear" : "text-muted-foreground"}`}>
         {dir === "up" ? "▲" : dir === "down" ? "▼" : "▬"}
       </span>
     </div>
+  );
+}
+
+// Component that owns the per-symbol live hook instances and renders the
+// ticker twice (once per marquee pass) using the same live values.
+function TickerStrip({ symbols }: { symbols: { symbol: string; price: number }[] }) {
+  // Stable identity per symbol so useLivePrice mounts once per symbol.
+  // (Re-rendering with a new array literal each call would still work
+  // because the JSX <TickerSymbolRow> per-symbol list is the same — React
+  // diffs by key, not by prop equality — but we keep an explicit
+  // memoised symbol list for clarity.)
+  const stable = useMemo(() => symbols, [symbols]);
+  return (
+    <>
+      {stable.map((s: { symbol: string; price: number }) => (
+        <TickerSymbolSlot key={s.symbol} symbol={s.symbol} seed={s.price} />
+      ))}
+    </>
+  );
+}
+
+// One hook per symbol. Rendered once per unique symbol; the parent
+// TickerStrip pulls its output twice into the marquee.
+function TickerSymbolSlot({ symbol, seed }: { symbol: string; seed: number }) {
+  const { price, dir, tick } = useLivePrice(seed, { volatility: 0.0008, interval: 1400 });
+  return (
+    <>
+      <TickerSymbolRow symbol={symbol} price={price} dir={dir} tick={tick} />
+      <TickerSymbolRow symbol={symbol} price={price} dir={dir} tick={tick} />
+    </>
   );
 }
 
@@ -94,9 +139,7 @@ export default function LandingPage() {
       {/* Live ticker */}
       <div className="border-b border-border bg-panel/80 overflow-hidden">
         <div className="flex ticker-scroll whitespace-nowrap py-2">
-          {[...WATCHLIST, ...WATCHLIST].map((w, i) => (
-            <LiveTickerCell key={i} symbol={w.symbol} price={w.price} />
-          ))}
+          <TickerStrip symbols={WATCHLIST.map((w) => ({ symbol: w.symbol, price: w.price }))} />
         </div>
       </div>
 

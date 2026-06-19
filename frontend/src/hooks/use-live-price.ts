@@ -27,14 +27,26 @@ export function useLivePrice(seed: number, opts: Opts = {}): LivePrice {
   const [dir, setDir] = useState<"up" | "down" | "flat">("flat");
   const [tick, setTick] = useState(0);
   const [source, setSource] = useState<ConnState>("mock");
+  // Mirror `source` in a ref so the mock-walk interval can read the latest
+  // value without listing `source` as a dep — that dep would tear down and
+  // restart the interval on every WS state transition, with the new walk
+  // sometimes spawning a price that jumps against the previous live tick.
+  const sourceRef = useRef<ConnState>("mock");
   const last = useRef(seed);
   const lastTickAt = useRef<number>(Date.now());
   const [isStale, setStale] = useState(false);
 
-  // Mock random-walk — runs whenever we're not "live".
+  // Mock random-walk — runs continuously but skips ticks when "live" so the
+  // live subscription overwrites the value. Intentionally does NOT depend on
+  // `source`: every WSClient state transition (mock → reconnecting → live →
+  // reconnecting → mock) would otherwise tear down and restart the interval,
+  // and the new walk could spawn a price that jumps against the previous live
+  // tick. The live subscription effect overwrites price via setPrice()
+  // whenever a real tick arrives, so a brief "live" overlay on top of the
+  // mock walk is the desired behavior.
   useEffect(() => {
-    if (source === "live") return;
     const id = window.setInterval(() => {
+      if (sourceRef.current === "live") return;
       const drift = (Math.random() - 0.48) * 2 * volatility * last.current;
       const next = +(last.current + drift).toFixed(2);
       if (next === last.current) return;
@@ -44,13 +56,16 @@ export function useLivePrice(seed: number, opts: Opts = {}): LivePrice {
       setTick((t) => t + 1);
     }, interval);
     return () => window.clearInterval(id);
-  }, [volatility, interval, source]);
+  }, [volatility, interval]);
 
   // Live WS subscription.
   useEffect(() => {
     if (!symbol) return;
     const client = getWSClient();
-    const unsubState = client.onState((s) => setSource(s));
+    const unsubState = client.onState((s) => {
+      sourceRef.current = s;
+      setSource(s);
+    });
     const unsubMsg = client.subscribe(symbol, (msg: TickMsg) => {
       if (msg.type !== "tick" && msg.type !== "snapshot") return;
       const next = msg.ltp;

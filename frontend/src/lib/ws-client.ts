@@ -25,6 +25,9 @@ const PING_INTERVAL_MS = 10_000;
 const HEARTBEAT_TIMEOUT_MS = 15_000;
 const BACKOFF_CAP_MS = 30_000;
 const SUBSCRIBE_BATCH_MS = 50;
+// Cap reconnect attempts so a permanently-unreachable host (bad URL, 401 loop,
+// expired token) doesn't fire setTimeout forever and leak timers.
+const MAX_RECONNECT_ATTEMPTS = 8;
 
 function resolveUrl(): string | null {
   const explicit = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_WS_URL) || "";
@@ -50,6 +53,9 @@ class WSClient {
   private pingTimer: number | null = null;
   private heartbeatTimer: number | null = null;
   private subscribeTimer: number | null = null;
+  // Handle for the pending reconnect setTimeout, so we can cancel it on a
+  // successful onopen or when the client transitions to mock mode.
+  private reconnectTimer: number | null = null;
   private pendingSubs = new Set<string>();
   private pendingUnsubs = new Set<string>();
   private refcount = new Map<string, number>();
@@ -140,6 +146,11 @@ class WSClient {
 
     this.ws.onopen = () => {
       this.attempt = 0;
+      // Clear any pending reconnect timer since we are now live.
+      if (this.reconnectTimer != null) {
+        window.clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
       this.setState("live");
       // Re-subscribe all live symbols on (re)connect.
       const all = Array.from(this.refcount.keys());
@@ -175,12 +186,14 @@ class WSClient {
         return;
       }
       if (ev.code === 4401 || ev.code === 401) {
-        // Token rejected — re-read on next attempt; if still missing, fall to mock.
-        if (!readToken()) {
-          this.mockMode = true;
-          this.setState("mock");
-          return;
-        }
+        // Token rejected. The previous code only fell back to mock if the
+        // token was missing *right now*, which let a stale-but-present token
+        // loop `scheduleReconnect` forever. Any 401 means the credential is
+        // bad — go to mock and let the session layer refresh the token.
+        this.mockMode = true;
+        this.setState("mock");
+        this.attempt = MAX_RECONNECT_ATTEMPTS; // suppress further retries
+        return;
       }
       this.scheduleReconnect();
     };
@@ -191,11 +204,24 @@ class WSClient {
       this.setState("mock");
       return;
     }
+    // Cap retries — if a host is permanently unreachable (bad URL, server
+    // down, persistent 1006), don't leak setTimeout handles forever. Fall
+    // back to mock so the UI keeps working with simulated ticks.
+    if (this.attempt >= MAX_RECONNECT_ATTEMPTS) {
+      this.mockMode = true;
+      this.setState("mock");
+      return;
+    }
     this.setState("reconnecting");
     const base = Math.min(1000 * Math.pow(2, this.attempt), BACKOFF_CAP_MS);
     const jitter = base * (0.8 + Math.random() * 0.4);
     this.attempt += 1;
-    window.setTimeout(() => this.ensureConnection(), jitter);
+    // Clear any prior pending timer before scheduling a new one.
+    if (this.reconnectTimer != null) window.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      this.ensureConnection();
+    }, jitter);
   }
 
   private scheduleFlush() {

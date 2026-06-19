@@ -33,7 +33,7 @@ export const INDICES = [
 
 export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
 
-export function generateCandles(count = 120, start = 2900): Candle[] {
+export function generateCandles(count = 120, start = 2900, intervalMs = 60_000): Candle[] {
   const data: Candle[] = [];
   let last = start;
   for (let i = 0; i < count; i++) {
@@ -42,7 +42,7 @@ export function generateCandles(count = 120, start = 2900): Candle[] {
     const c = +(o + drift).toFixed(2);
     const h = +(Math.max(o, c) + Math.random() * 6).toFixed(2);
     const l = +(Math.min(o, c) - Math.random() * 6).toFixed(2);
-    data.push({ t: Date.now() - (count - i) * 60_000, o, h, l, c, v: Math.floor(Math.random() * 1e6) });
+    data.push({ t: Date.now() - (count - i) * intervalMs, o, h, l, c, v: Math.floor(Math.random() * 1e6) });
     last = c;
   }
   return data;

@@ -3,7 +3,15 @@ import type { Candle } from "@/lib/mock-data";
 
 type Hover = { idx: number; px: number; py: number; price: number };
 
-export function CandlestickChart({ data, height = 420 }: { data: Candle[]; height?: number }) {
+export function CandlestickChart({
+  data,
+  height = 420,
+  intervalMs = 60_000,
+}: {
+  data: Candle[];
+  height?: number;
+  intervalMs?: number;
+}) {
   const { min, max, candleW } = useMemo(() => {
     const min = Math.min(...data.map((d) => d.l));
     const max = Math.max(...data.map((d) => d.h));
@@ -19,17 +27,32 @@ export function CandlestickChart({ data, height = 420 }: { data: Candle[]; heigh
   const wrapRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<Hover | null>(null);
   const [visible, setVisible] = useState(false); // controls fade
+  // Track pending hide-timeouts so re-entering the chart doesn't cancel the
+  // active crosshair via a stale 140ms timer firing after setHover(h) ran.
+  const hideTimerRef = useRef<number | null>(null);
+  const touchHideTimerRef = useRef<number | null>(null);
 
   // Smooth fade-out: keep last hover briefly so position doesn't jump on re-enter
   useEffect(() => {
     if (hover) setVisible(true);
   }, [hover]);
 
+  // Cleanup any pending hide timers on unmount.
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+      if (touchHideTimerRef.current != null) window.clearTimeout(touchHideTimerRef.current);
+    };
+  }, []);
+
   function pointToHover(clientX: number, clientY: number): Hover | null {
     const el = wrapRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
     const innerW = r.width - 56;
+    // Guard against innerW === 0 (initial mount, hidden tab, SSR pass) —
+    // x/0 is NaN/Infinity and would produce idx=NaN → data[NaN].o crashes.
+    if (innerW <= 0 || r.height <= 0) return null;
     const x = Math.max(0, Math.min(innerW, clientX - r.left));
     const yPx = Math.max(0, Math.min(r.height, clientY - r.top));
     const idx = Math.max(0, Math.min(data.length - 1, Math.floor((x / innerW) * data.length)));
@@ -43,8 +66,13 @@ export function CandlestickChart({ data, height = 420 }: { data: Candle[]; heigh
   }
   function onLeave() {
     setVisible(false);
-    // delay clearing so fade-out can play
-    window.setTimeout(() => setHover(null), 140);
+    // Clear any prior pending hide so a stale 140ms timer from a previous
+    // leave doesn't fire after the user has re-entered the chart.
+    if (hideTimerRef.current != null) window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => {
+      hideTimerRef.current = null;
+      setHover(null);
+    }, 140);
   }
   function onTouch(e: TouchEvent<HTMLDivElement>) {
     if (e.touches.length === 0) return;
@@ -55,10 +83,26 @@ export function CandlestickChart({ data, height = 420 }: { data: Candle[]; heigh
   }
   function onTouchEnd() {
     setVisible(false);
-    window.setTimeout(() => setHover(null), 220);
+    if (touchHideTimerRef.current != null) window.clearTimeout(touchHideTimerRef.current);
+    touchHideTimerRef.current = window.setTimeout(() => {
+      touchHideTimerRef.current = null;
+      setHover(null);
+    }, 220);
   }
 
   const c = hover ? data[hover.idx] : null;
+  // Format the tooltip timestamp based on the candle's actual `t` field so
+  // the axis pill reflects the real per-candle spacing (1D shows day,
+  // 1m shows HH:MM, 1W shows date).
+  const tooltipTime = c
+    ? new Date(c.t).toLocaleString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        day: intervalMs >= 24 * 60 * 60_000 ? "2-digit" : undefined,
+        month: intervalMs >= 24 * 60 * 60_000 ? "short" : undefined,
+      })
+    : "";
   const tooltipW = 168;
   const tooltipH = 110;
   const innerW = wrapRef.current ? wrapRef.current.clientWidth - 56 : 0;
@@ -135,7 +179,7 @@ export function CandlestickChart({ data, height = 420 }: { data: Candle[]; heigh
             className="axis-pill tv-tip pointer-events-none absolute"
             style={{ left: Math.max(2, Math.min(innerW - 56, hover.px - 26)), bottom: 4, opacity: visible ? 1 : 0 }}
           >
-            {new Date(Date.now() - (data.length - hover.idx) * 60_000).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}
+            {tooltipTime}
           </div>
 
           {c && (

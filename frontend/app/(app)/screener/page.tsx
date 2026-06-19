@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDown, Search, Settings2, RefreshCw, Maximize2, Plus, Save, Filter, BarChart3, TableIcon } from "lucide-react";
 import { useLivePrice } from "@/hooks/use-live-price";
+import { WATCHLIST } from "@/lib/mock-data";
 
 type Row = {
   symbol: string;
@@ -22,22 +23,63 @@ type Row = {
   rating: "Strong buy" | "Buy" | "Neutral" | "Sell" | "Strong sell";
 };
 
-const ROWS: Row[] = [
-  { symbol: "RELIANCE", name: "Reliance Industries Limited", logo: "R", logoColor: "bg-amber-700", price: 1332.70, chgPct: 0.29, vol: "10.03 M", relVol: 0.54, mktCap: "17.97 T", pe: 22.33, epsDil: 59.69, epsGrowth: 15.97, divYield: 0.41, sector: "Energy minerals", rating: "Strong buy" },
-  { symbol: "HDFCBANK", name: "HDFC Bank Limited", logo: "H", logoColor: "bg-red-600", price: 787.10, chgPct: 0.28, vol: "32.41 M", relVol: 0.95, mktCap: "12.08 T", pe: 15.98, epsDil: 49.27, epsGrowth: 6.65, divYield: 1.40, sector: "Finance", rating: "Strong buy" },
-  { symbol: "BHARTIARTL", name: "Bharti Airtel Limited", logo: "B", logoColor: "bg-rose-600", price: 1875.70, chgPct: 1.23, vol: "7.65 M", relVol: 1.21, mktCap: "11.3 T", pe: 42.67, epsDil: 43.95, epsGrowth: -20.30, divYield: 0.86, sector: "Communications", rating: "Strong buy" },
-  { symbol: "ICICIBANK", name: "ICICI Bank Limited", logo: "I", logoColor: "bg-orange-600", price: 1336.80, chgPct: 0.19, vol: "8.03 M", relVol: 0.43, mktCap: "9.57 T", pe: 17.88, epsDil: 74.78, epsGrowth: 7.35, divYield: 0.82, sector: "Finance", rating: "Strong buy" },
-  { symbol: "SBIN", name: "State Bank of India", logo: "S", logoColor: "bg-blue-700", price: 1026.50, chgPct: 1.10, vol: "8.19 M", relVol: 0.48, mktCap: "9.37 T", pe: 11.28, epsDil: 91.03, epsGrowth: 4.74, divYield: 1.71, sector: "Finance", rating: "Strong buy" },
-  { symbol: "TCS", name: "Tata Consultancy Services Limited", logo: "T", logoColor: "bg-slate-700", price: 2223.00, chgPct: 1.09, vol: "2.87 M", relVol: 0.57, mktCap: "7.96 T", pe: 16.34, epsDil: 136.01, epsGrowth: 1.35, divYield: 2.91, sector: "Technology services", rating: "Buy" },
-  { symbol: "BAJFINANCE", name: "Bajaj Finance Limited", logo: "B", logoColor: "bg-indigo-700", price: 958.40, chgPct: -0.13, vol: "5.68 M", relVol: 0.58, mktCap: "5.97 T", pe: 31.40, epsDil: 30.52, epsGrowth: 13.77, divYield: 0.46, sector: "Finance", rating: "Buy" },
-  { symbol: "LT", name: "Larsen & Toubro Limited", logo: "L", logoColor: "bg-yellow-700", price: 4207.70, chgPct: 0.51, vol: "1.31 M", relVol: 0.61, mktCap: "5.76 T", pe: 36.00, epsDil: 116.88, epsGrowth: 6.94, divYield: 0.91, sector: "Industrial services", rating: "Buy" },
-  { symbol: "LICI", name: "Life Insurance Corp. of India", logo: "L", logoColor: "bg-blue-800", price: 418.15, chgPct: 1.74, vol: "4.16 M", relVol: 1.36, mktCap: "5.2 T", pe: 9.21, epsDil: 45.42, epsGrowth: 18.90, divYield: 1.46, sector: "Finance", rating: "Strong buy" },
-  { symbol: "HINDUNILVR", name: "Hindustan Unilever Limited", logo: "H", logoColor: "bg-blue-600", price: 2197.60, chgPct: -0.10, vol: "1.51 M", relVol: 0.94, mktCap: "5.17 T", pe: 34.34, epsDil: 64.00, epsGrowth: 41.20, divYield: 1.95, sector: "Consumer non-durables", rating: "Buy" },
-  { symbol: "INFY", name: "Infosys Limited", logo: "I", logoColor: "bg-blue-500", price: 1845.10, chgPct: 0.47, vol: "3.40 M", relVol: 0.78, mktCap: "4.92 T", pe: 25.10, epsDil: 73.49, epsGrowth: 8.10, divYield: 2.30, sector: "Technology services", rating: "Buy" },
-  { symbol: "ITC", name: "ITC Limited", logo: "I", logoColor: "bg-yellow-600", price: 472.15, chgPct: 0.22, vol: "8.70 M", relVol: 0.62, mktCap: "5.89 T", pe: 28.45, epsDil: 16.59, epsGrowth: 2.10, divYield: 2.83, sector: "Consumer non-durables", rating: "Neutral" },
-  { symbol: "MARUTI", name: "Maruti Suzuki India Limited", logo: "M", logoColor: "bg-red-700", price: 12845.00, chgPct: 1.12, vol: "0.40 M", relVol: 1.05, mktCap: "4.04 T", pe: 26.18, epsDil: 490.45, epsGrowth: 24.66, divYield: 0.99, sector: "Producer manufacturing", rating: "Strong buy" },
-  { symbol: "AXISBANK", name: "Axis Bank Limited", logo: "A", logoColor: "bg-rose-700", price: 1158.90, chgPct: -0.79, vol: "3.60 M", relVol: 0.71, mktCap: "3.58 T", pe: 13.42, epsDil: 86.30, epsGrowth: 9.15, divYield: 0.10, sector: "Finance", rating: "Buy" },
-];
+// Screener-only metadata. Prices and change % come from WATCHLIST (the single
+// source of truth) so the same symbol can't render two different prices on
+// the terminal vs. the screener.
+const SCREENER_META: Record<
+  string,
+  {
+    name: string;
+    logo: string;
+    logoColor: string;
+    vol: string;
+    relVol: number;
+    mktCap: string;
+    pe: number;
+    epsDil: number;
+    epsGrowth: number;
+    divYield: number;
+    sector: string;
+    rating: Row["rating"];
+  }
+> = {
+  RELIANCE:    { name: "Reliance Industries Limited",     logo: "R", logoColor: "bg-amber-700", vol: "10.03 M", relVol: 0.54, mktCap: "17.97 T", pe: 22.33, epsDil: 59.69,  epsGrowth: 15.97,  divYield: 0.41, sector: "Energy minerals",         rating: "Strong buy" },
+  HDFCBANK:    { name: "HDFC Bank Limited",               logo: "H", logoColor: "bg-red-600",   vol: "32.41 M", relVol: 0.95, mktCap: "12.08 T", pe: 15.98, epsDil: 49.27,  epsGrowth: 6.65,   divYield: 1.40, sector: "Finance",                 rating: "Strong buy" },
+  BHARTIARTL:  { name: "Bharti Airtel Limited",           logo: "B", logoColor: "bg-rose-600",  vol: "7.65 M",  relVol: 1.21, mktCap: "11.3 T",  pe: 42.67, epsDil: 43.95,  epsGrowth: -20.30, divYield: 0.86, sector: "Communications",          rating: "Strong buy" },
+  ICICIBANK:   { name: "ICICI Bank Limited",              logo: "I", logoColor: "bg-orange-600",vol: "8.03 M",  relVol: 0.43, mktCap: "9.57 T",  pe: 17.88, epsDil: 74.78,  epsGrowth: 7.35,   divYield: 0.82, sector: "Finance",                 rating: "Strong buy" },
+  SBIN:        { name: "State Bank of India",             logo: "S", logoColor: "bg-blue-700",  vol: "8.19 M",  relVol: 0.48, mktCap: "9.37 T",  pe: 11.28, epsDil: 91.03,  epsGrowth: 4.74,   divYield: 1.71, sector: "Finance",                 rating: "Strong buy" },
+  TCS:         { name: "Tata Consultancy Services Limited",logo: "T", logoColor: "bg-slate-700", vol: "2.87 M",  relVol: 0.57, mktCap: "7.96 T",  pe: 16.34, epsDil: 136.01, epsGrowth: 1.35,   divYield: 2.91, sector: "Technology services",     rating: "Buy" },
+  BAJFINANCE:  { name: "Bajaj Finance Limited",           logo: "B", logoColor: "bg-indigo-700",vol: "5.68 M",  relVol: 0.58, mktCap: "5.97 T",  pe: 31.40, epsDil: 30.52,  epsGrowth: 13.77,  divYield: 0.46, sector: "Finance",                 rating: "Buy" },
+  LT:          { name: "Larsen & Toubro Limited",         logo: "L", logoColor: "bg-yellow-700",vol: "1.31 M",  relVol: 0.61, mktCap: "5.76 T",  pe: 36.00, epsDil: 116.88, epsGrowth: 6.94,   divYield: 0.91, sector: "Industrial services",     rating: "Buy" },
+  LICI:        { name: "Life Insurance Corp. of India",   logo: "L", logoColor: "bg-blue-800",  vol: "4.16 M",  relVol: 1.36, mktCap: "5.2 T",   pe: 9.21,  epsDil: 45.42,  epsGrowth: 18.90,  divYield: 1.46, sector: "Finance",                 rating: "Strong buy" },
+  HINDUNILVR:  { name: "Hindustan Unilever Limited",      logo: "H", logoColor: "bg-blue-600",  vol: "1.51 M",  relVol: 0.94, mktCap: "5.17 T",  pe: 34.34, epsDil: 64.00,  epsGrowth: 41.20,  divYield: 1.95, sector: "Consumer non-durables",   rating: "Buy" },
+  INFY:        { name: "Infosys Limited",                 logo: "I", logoColor: "bg-blue-500",  vol: "3.40 M",  relVol: 0.78, mktCap: "4.92 T",  pe: 25.10, epsDil: 73.49,  epsGrowth: 8.10,   divYield: 2.30, sector: "Technology services",     rating: "Buy" },
+  ITC:         { name: "ITC Limited",                     logo: "I", logoColor: "bg-yellow-600",vol: "8.70 M",  relVol: 0.62, mktCap: "5.89 T",  pe: 28.45, epsDil: 16.59,  epsGrowth: 2.10,   divYield: 2.83, sector: "Consumer non-durables",   rating: "Neutral" },
+  MARUTI:      { name: "Maruti Suzuki India Limited",     logo: "M", logoColor: "bg-red-700",   vol: "0.40 M",  relVol: 1.05, mktCap: "4.04 T",  pe: 26.18, epsDil: 490.45, epsGrowth: 24.66,  divYield: 0.99, sector: "Producer manufacturing",  rating: "Strong buy" },
+  AXISBANK:    { name: "Axis Bank Limited",               logo: "A", logoColor: "bg-rose-700",  vol: "3.60 M",  relVol: 0.71, mktCap: "3.58 T",  pe: 13.42, epsDil: 86.30,  epsGrowth: 9.15,   divYield: 0.10, sector: "Finance",                 rating: "Buy" },
+};
+
+const ROWS: Row[] = WATCHLIST.flatMap((w) => {
+  const meta = SCREENER_META[w.symbol];
+  if (!meta) return [];
+  return [{
+    symbol: w.symbol,
+    name: meta.name,
+    logo: meta.logo,
+    logoColor: meta.logoColor,
+    price: w.price,           // single source of truth — same number as terminal
+    chgPct: w.changePct,      // same delta as terminal
+    vol: meta.vol,
+    relVol: meta.relVol,
+    mktCap: meta.mktCap,
+    pe: meta.pe,
+    epsDil: meta.epsDil,
+    epsGrowth: meta.epsGrowth,
+    divYield: meta.divYield,
+    sector: meta.sector,
+    rating: meta.rating,
+  }];
+});
 
 const PILLS = [
   { label: "IN", flag: true },
@@ -87,10 +129,41 @@ export default function ScreenerPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [query, setQuery] = useState("");
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  // Track how many rows the *filtered* set has so the global keydown handler
+  // can clamp focusIdx to the visible range. Updated every render.
+  const rowsLengthRef = useRef(0);
 
   useEffect(() => {
     const el = tbodyRef.current?.querySelector<HTMLTableRowElement>(`tr[data-idx="${focusIdx}"]`);
     el?.focus({ preventScroll: false });
+  }, [focusIdx]);
+
+  // Global keydown: lets the user drive roving focus with arrow keys even
+  // when the search input has DOM focus. The previous onKeyDown was bound
+  // to <tbody>, so typing in the input then pressing ArrowDown did nothing
+  // — the keydown never reached the tbody and the highlighted row never
+  // moved.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      // Don't hijack typing in the search box.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) && e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End" && e.key !== "Enter") return;
+      const len = rowsLengthRef.current;
+      if (!len) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); setFocusIdx((i) => Math.min(len - 1, i + 1)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setFocusIdx((i) => Math.max(0, i - 1)); }
+      else if (e.key === "Home") { e.preventDefault(); setFocusIdx(0); }
+      else if (e.key === "End") { e.preventDefault(); setFocusIdx(len - 1); }
+      else if (e.key === "Enter") {
+        // If Enter is pressed inside the search input, move focus to the
+        // first row (or keep it on the current row) instead of selecting.
+        e.preventDefault();
+        const tbody = tbodyRef.current;
+        if (tbody) tbody.querySelector<HTMLTableRowElement>(`tr[data-idx="${focusIdx}"]`)?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [focusIdx]);
 
   const rows = useMemo(() => {
@@ -106,6 +179,13 @@ export default function ScreenerPage() {
       return sortDir === "asc" ? na - nb : nb - na;
     });
   }, [sortKey, sortDir, query]);
+
+  // Keep the global keydown handler's clamp range in sync with the filtered
+  // set; also clamp focusIdx if the filter shrank the list.
+  useEffect(() => {
+    rowsLengthRef.current = rows.length;
+    if (focusIdx >= rows.length) setFocusIdx(Math.max(0, rows.length - 1));
+  }, [rows.length, focusIdx]);
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");

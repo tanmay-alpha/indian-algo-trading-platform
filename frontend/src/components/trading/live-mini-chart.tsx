@@ -1,6 +1,16 @@
 import { useLiveSeries } from "@/hooks/use-live-price";
 
-export function LiveMiniChart({ seed = 2945, height = 280 }: { seed?: number; height?: number }) {
+/**
+ * Mini sparkline chart driven by a simulated random-walk series.
+ *
+ * IMPORTANT: this component is **simulated**, not live, even when a WSClient
+ * is connected. The previous name "LiveMiniChart" suggested otherwise and
+ * silently swallowed a real feed. The hook only produces a random-walk
+ * because no `symbol` is passed (see use-live-price.ts); when a real feed is
+ * available, the parent should pass a `symbol` and call `useLivePrice`
+ * directly. This component is renamed to keep the mock nature honest.
+ */
+export function SimulatedMiniChart({ seed = 2945, height = 280 }: { seed?: number; height?: number }) {
   const data = useLiveSeries(seed, 90, { volatility: 0.004, interval: 800 });
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -37,3 +47,10 @@ export function LiveMiniChart({ seed = 2945, height = 280 }: { seed?: number; he
     </svg>
   );
 }
+
+/**
+ * Backwards-compatible alias for the previous name. The previous component
+ * was always simulated — the rename just makes that explicit. New code should
+ * import `SimulatedMiniChart` directly.
+ */
+export const LiveMiniChart = SimulatedMiniChart;

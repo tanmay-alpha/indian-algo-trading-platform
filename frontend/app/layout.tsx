@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ErrorBoundary } from "@/components/effects/error-boundary";
 
 export const metadata: Metadata = {
   title: "MAET — Scan the market. Chart it. Paper-trade before you risk it.",
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
         />
       </head>
-      <body className="dark bg-background text-foreground">{children}</body>
+      <body className="dark bg-background text-foreground">
+        <ErrorBoundary boundaryName="Application shell">{children}</ErrorBoundary>
+      </body>
     </html>
   );
 }
