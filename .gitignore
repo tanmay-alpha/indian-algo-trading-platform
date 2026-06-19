@@ -1,130 +1,105 @@
-.env
-.env.*
-*.env
-!.env.example
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-logs/
+# Logs
+logs
 *.log
-data/*.db
-data/*.db-shm
-data/*.db-wal
-data/*.sqlite
-backend/data/*.db
-backend/data/*.db-shm
-backend/data/*.db-wal
-backend/data/*.sqlite
-node_modules/
-.next/
-frontend/.next/
-frontend/node_modules/
-dist/
-build/
-coverage/
-# Dashboard mockup screenshots (large binary blobs, not for git)
-lumint-*.png
-terminal-precision-gold.png
-terminal-*.png
-watchlist-final.png
-# Verification screenshots produced by Playwright MCP / Chrome DevTools sessions
-# Only root-level jpeg/png files with these exact names (not in subdirs)
-/verify_*.jpeg
-/verify-*.jpeg
-/verify_*.png
-/prompt*.jpeg
-/maet_*.jpeg
-/landing-*.jpeg
-/markets-*.jpeg
-/screener-*.jpeg
-/current-*.jpeg
-/terminal-*.jpeg
-/playwright-mcp/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Stale prompt scratch files left in repo root by past sessions
-prompt_*.md
+# Environment variables (Next.js + Vite convention)
+# Keep .env.example tracked so newcomers have a template; ignore the real ones.
+.env
+.env.local
+.env.*.local
+!.env.example
 
-# Claude Code local workspace state (memory + project settings)
-.claude/
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
 
-.vercel/
-.vscode/
-*.tsbuildinfo
-*.so
-*.pyd
-cpp/build/
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
 
-# AI workspace local backups
-.ai-workspace-backup/
-
-# Generated data files
-data/**/*.json
-ci_test.db
-
-# OS junk
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===== MAET cleanup (2026-06-18) =====
+
+# OS / IDE
 Thumbs.db
+.cache/
 
-# Playwright MCP session artifacts
-.playwright-mcp/
+# Dev / preview screenshots and mockups (kept off the repo)
+*.png
+*.jpg
+*.jpeg
+landing*.jpeg
+landing*.png
+maet-*.png
+maet_*.jpeg
+maet_*.png
+maet-*.jpeg
+screener-*.jpeg
+screener-*.png
+terminal-*.jpeg
+terminal-*.png
+markets-*.jpeg
+markets-*.png
+lumint-*.png
+verify-*.jpeg
+verify-*.png
+watchlist-*.png
+prompt*-*.jpeg
+current-*.jpeg
+current-*.png
+01-landing.png
+02-screener.png
+03-terminal.png
 
-# Stale file endings
-*.orig
-*.bak
-
-# Dev server logs (pm2 / local)
-maet-frontend-dev.*.log
-
-# Pyflakes / mypy caches
-.mypy_cache/
-.ruff_cache/
-
-# Temporary AI session extraction/debug scripts (not part of the project)
-get_full_prompt.py
-read_all_steps.py
-read_full_log.py
-read_log.py
-read_raw_log.py
-read_user_inputs.py
-scan_all_overviews.py
-search_all_gemini.py
-search_pb.py
-search_steps.py
-extract_pb_utf8.py
-extract_prompt_from_step.py
-extract_prompts.py
-extract_req.py
-clean_prompt.py
-get_headings.py
-print_tail.py
-read_recent_steps.py
-read_user_steps.py
-search_struct.py
-search_tasks.py
-search_user_input.py
-
-# Extracted prompt/log text artifacts (session forensics)
-clean_prompt.txt
-cleaned_full_request.txt
-extracted_*.txt
-full_prompt*.txt
-full_user_prompt.txt
-phase_26_search_results.txt
-scratched_prompt_*.txt
-step_*.txt
-temp_chunk.txt
-temp_prompt.json
-untruncated_prompts.txt
-user_input_*.txt
-user_request*.txt
-
-# AI session folders/scratchpads
-.gemini/
-.antigravity/
-.antigravityignore
-scratchpad/
-scratch/
-*_scratch.py
+# Local binaries and built test executables
+*.exe
 build_manual_indicator_tests.exe
-maet_cpp_indicators.pyd
+
+# SQLite WAL/SHM sidecars (live DB state, regenerates)
+*.db-shm
+*.db-wal
+backend/data/trades.db-shm
+backend/data/trades.db-wal
+data/trades.db-shm
+data/trades.db-wal
+
+# Runtime reconciliation output (only .gitkeep is tracked)
+data/reconciliation/account/*.json
+!data/reconciliation/account/.gitkeep
+
+# MAET reference bundle / Lovable port scratch (not the real app)
+frontend/maet-ui-bundle/
+frontend/maet-ui-bundle/**
+
+# TS build cache
+*.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+
+# Vercel / deployment metadata
+.vercel/
+frontend/.vercel/
+
+# Tool / agent caches (local-only, regenerated)
+.claude/
+.lovable/
+.playwright-mcp/
