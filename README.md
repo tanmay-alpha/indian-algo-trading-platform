@@ -169,6 +169,3 @@ Use [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for a three-to-five minute intern
 
 MAET Terminal is a paper-mode research/demo platform. It is not financial advice, not investment advice, and not a production trading platform. Do not use it for real-money trading without a separate audited live-readiness phase, stronger auth, persistent infrastructure, operational monitoring, and formal risk controls.
 
-## License
-
-MIT License - see [LICENSE](LICENSE).
